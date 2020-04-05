@@ -1,0 +1,16 @@
+define   comiam.jcalc.operations.Define
+divide   comiam.jcalc.operations.Divide
+minus    comiam.jcalc.operations.Minus
+multiply comiam.jcalc.operations.Multiply
+plus     comiam.jcalc.operations.Plus
+pop      comiam.jcalc.operations.Pop
+print    comiam.jcalc.operations.Print
+push     comiam.jcalc.operations.Push
+sqrt     comiam.jcalc.operations.Sqrt
+logOn   comiam.jcalc.operations.LogEnable
+logOff  comiam.jcalc.operations.LogDisable
+
+/   comiam.jcalc.operations.Divide
+-    comiam.jcalc.operations.Minus
+* comiam.jcalc.operations.Multiply
++     comiam.jcalc.operations.Plus
