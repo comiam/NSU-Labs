@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox maxHeight="380.0" maxWidth="832.0" minHeight="-Infinity" minWidth="-Infinity" prefHeight="380.0" prefWidth="832.0" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="comiam.factoryapp.gui.fxml.MainWindowController">
+  <children>
+    <MenuBar VBox.vgrow="NEVER">
+      <menus>
+        <Menu mnemonicParsing="false" text="Main">
+          <items>
+            <MenuItem fx:id="saveDataMenu" mnemonicParsing="false" text="Save data" />
+            <MenuItem fx:id="loadConfigMenu" mnemonicParsing="false" text="Load configuration" />
+                  <MenuItem fx:id="quitMenu" mnemonicParsing="false" text="Quit" />
+          </items>
+        </Menu>
+        <Menu mnemonicParsing="false" text="Help">
+          <items>
+            <MenuItem mnemonicParsing="false" text="About FactoryApp" />
+          </items>
+        </Menu>
+      </menus>
+    </MenuBar>
+    <AnchorPane maxHeight="-1.0" maxWidth="1.7976931348623157E308" prefHeight="-1.0" prefWidth="-1.0" VBox.vgrow="ALWAYS">
+         <children>
+            <HBox layoutX="178.0" layoutY="124.0" prefHeight="100.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+               <children>
+                  <HBox prefHeight="100.0" prefWidth="200.0">
+                     <children>
+                        <VBox prefHeight="200.0" prefWidth="100.0">
+                           <children>
+                              <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Supplier delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
+                              <Slider fx:id="sdSlider" majorTickUnit="10.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="1" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
+                              <Button fx:id="sdRandom" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeSupplierDelay" text="Random">
+                                 <font>
+                                    <Font size="12.0" />
+                                 </font>
+                              </Button>
+                           </children>
+                        </VBox>
+                        <VBox prefHeight="200.0" prefWidth="100.0">
+                           <children>
+                              <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Producer delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
+                              <Slider fx:id="pdSlider" majorTickUnit="10.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="1" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
+                              <Button fx:id="pdRandom" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeProducerDelay" text="Random">
+                                 <font>
+                                    <Font size="12.0" />
+                                 </font>
+                              </Button>
+                           </children>
+                        </VBox>
+                        <VBox prefHeight="200.0" prefWidth="100.0">
+                           <children>
+                              <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Dealer delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
+                              <Slider fx:id="ddSlider" majorTickUnit="10.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="1" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
+                              <Button fx:id="ddRandom" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeSupplierDelay" text="Random">
+                                 <font>
+                                    <Font size="12.0" />
+                                 </font>
+                              </Button>
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+                  <Separator orientation="VERTICAL" prefHeight="200.0" />
+                  <HBox prefHeight="351.0" prefWidth="278.0">
+                     <children>
+                        <VBox prefHeight="351.0" prefWidth="143.0">
+                           <children>
+                              <Label alignment="TOP_CENTER" prefHeight="25.0" prefWidth="137.0" text="Current status:">
+                                 <font>
+                                    <Font size="18.0" />
+                                 </font>
+                              </Label>
+                              <Label prefHeight="20.0" prefWidth="92.0" text="Working time:" />
+                              <Label prefHeight="20.0" prefWidth="85.0" text="Factory load:" />
+                              <Label prefHeight="20.0" prefWidth="75.0" text="Cars made:" />
+                              <Label prefHeight="20.0" prefWidth="131.0" text="Cars supplied:" />
+                              <Separator prefWidth="200.0" />
+                              <Label prefHeight="20.0" prefWidth="114.0" text="Engine delivered:" />
+                              <Label prefHeight="20.0" prefWidth="135.0" text="Accessory delivered:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="Bodywork delivered:" />
+                              <Separator prefWidth="200.0" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="B. store capacity:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="A. store capacity:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="E. store capacity:" />
+                              <Separator prefWidth="200.0" />
+                           </children>
+                        </VBox>
+                        <Separator orientation="VERTICAL" prefHeight="200.0" />
+                        <VBox prefHeight="351.0" prefWidth="143.0">
+                           <children>
+                              <Label alignment="TOP_CENTER" prefHeight="25.0" prefWidth="98.0" />
+                              <Label fx:id="workingTimeLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="92.0" />
+                              <Label fx:id="factoryLoadLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="85.0" />
+                              <Label fx:id="carsMadeLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="75.0" />
+                              <Label fx:id="carsSuppliedLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="131.0" />
+                              <Separator prefWidth="200.0" />
+                              <Label fx:id="engineDeliveredLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="114.0" />
+                              <Label fx:id="accessoryDeliveredLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="135.0" />
+                              <Label fx:id="bodyworkDeliveredLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Separator prefWidth="200.0" />
+                              <Label fx:id="bStoreCapacityLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Label fx:id="aStoreCapacityLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Label fx:id="eStoreCapacityLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Separator prefWidth="200.0" />
+                           </children>
+                        </VBox>
+                     </children>
+                  </HBox>
+                  <Separator orientation="VERTICAL" prefHeight="200.0" />
+                  <TextArea fx:id="logTextField" editable="false" maxWidth="1.7976931348623157E308" prefHeight="351.0" prefWidth="342.0" wrapText="true" />
+               </children>
+            </HBox>
+         </children>
+    </AnchorPane>
+  </children>
+</VBox>

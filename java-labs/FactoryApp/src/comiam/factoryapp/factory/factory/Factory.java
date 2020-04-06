@@ -187,6 +187,30 @@ public class Factory
         return dealerDelay;
     }
 
+    public synchronized void setSupplierDelay(int supplierDelay)
+    {
+        if(supplierDelay == -1)
+            this.supplierDelay = (int)(randomizeDelay() * 1000);
+        else
+            this.supplierDelay = supplierDelay;
+    }
+
+    public synchronized void setProducerDelay(int producerDelay)
+    {
+        if(producerDelay == -1)
+            this.producerDelay = (int)(randomizeDelay() * 1000);
+        else
+            this.producerDelay = producerDelay;
+    }
+
+    public synchronized void setDealerDelay(int dealerDelay)
+    {
+        if(dealerDelay == -1)
+            this.dealerDelay = (int)(randomizeDelay() * 1000);
+        else
+            this.dealerDelay = dealerDelay;
+    }
+
     /**
      * @return random value from 0 to 2
      */
