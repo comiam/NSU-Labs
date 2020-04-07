@@ -27,15 +27,16 @@ public class Main extends Application {
 
         primaryStage.setOnCloseRequest(windowEvent -> controller.closeUIThread());
         primaryStage.show();
+        controller.initSliders();
     }
 
 
     public static void main(String[] args)
     {
-        //launch(args);
-        Log.init();
+        launch(args);
+        /*Log.init();
         Log.enableInfoLogging();
         Factory factory = new Factory();
-        factory.init(3, 10, 3,100, 30, 50, 10, 10, 10, 10);
+        factory.init(3, 10, 3,100, 30, 50, 10, 10, 10, 10);*/
     }
 }

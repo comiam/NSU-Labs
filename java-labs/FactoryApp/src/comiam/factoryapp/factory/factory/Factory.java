@@ -211,7 +211,7 @@ public class Factory
     /**
      * @return random value from 0 to 2
      */
-    private double randomizeDelay()
+    public static double randomizeDelay()
     {
         return 2 * ThreadLocalRandom.current().nextDouble();
     }
