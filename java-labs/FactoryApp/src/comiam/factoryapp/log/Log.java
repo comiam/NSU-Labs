@@ -15,9 +15,13 @@ public class Log
     private static boolean debugEnabled = true;
     private static boolean errorEnabled = true;
     private static boolean logEnabled = false;
+    private static boolean init = false;
 
-    public static synchronized void init()
+    public static synchronized void init() throws Exception
     {
+        if(init)
+            return;
+
         File file = null;
         String resource = "/res/log4j2.xml";
 
@@ -39,14 +43,20 @@ public class Log
         }
 
         if(file != null)
-        {
             System.setProperty("log4j.configurationFile", file.getPath());
-        }else
-            throw new RuntimeException("Can't upload log configuration file!");
+        else
+            throw new Exception("Can't upload log configuration file!");
 
-        info = LogManager.getLogger("calc-info");
-        err = LogManager.getLogger("calc-error");
-        debug = LogManager.getLogger("calc-debug");
+        info = LogManager.getLogger("log-info");
+        err = LogManager.getLogger("log-error");
+        debug = LogManager.getLogger("log-debug");
+
+        init = true;
+    }
+
+    public static synchronized boolean isLoggingEnabled()
+    {
+        return logEnabled;
     }
 
     public static synchronized void enableLogging()

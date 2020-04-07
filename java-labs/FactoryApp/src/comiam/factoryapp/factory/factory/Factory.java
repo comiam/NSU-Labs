@@ -1,6 +1,8 @@
 package comiam.factoryapp.factory.factory;
 
 import comiam.factoryapp.factory.dealer.Dealer;
+import comiam.factoryapp.factory.events.EventHandler;
+import comiam.factoryapp.factory.events.EventManager;
 import comiam.factoryapp.factory.producer.ProducerSection;
 import comiam.factoryapp.factory.store.*;
 import comiam.factoryapp.factory.supplier.AccessorySupplier;
@@ -14,6 +16,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class Factory
 {
     private boolean initialized = false;
+    private EventManager eventManager;
     private ArrayList<Thread> threadPool;
     private CarStore carStore;
     private AccessoryStore accessoryStore;
@@ -21,6 +24,11 @@ public class Factory
     private EngineStore engineStore;
     private ProducerSection producerSection;
     private CarStoreController carStoreController;
+
+    public Factory()
+    {
+        eventManager = new EventManager();
+    }
 
     private int supplierCount = 0;
     private int producerCount = 0;
@@ -44,6 +52,7 @@ public class Factory
         engineStore = null;
         producerSection = null;
         carStoreController = null;
+        eventManager = null;
 
         initialized = false;
         System.gc();
@@ -86,10 +95,10 @@ public class Factory
         this.dealerDelay = dealerDelay;
 
         producerSection = new ProducerSection(this);
-        carStore = new CarStore(carStoreLimit);
-        accessoryStore = new AccessoryStore(accessoryStoreLimit);
-        bodyworkStore = new BodyworkStore(bodyworkStoreLimit);
-        engineStore = new EngineStore(engineStoreLimit);
+        carStore = new CarStore(this, carStoreLimit);
+        accessoryStore = new AccessoryStore(this, accessoryStoreLimit);
+        bodyworkStore = new BodyworkStore(this, bodyworkStoreLimit);
+        engineStore = new EngineStore(this, engineStoreLimit);
         carStoreController = new CarStoreController(this);
         threadPool = new ArrayList<>();
 
@@ -154,6 +163,11 @@ public class Factory
         return producerSection;
     }
 
+    public synchronized EventManager getEventManager()
+    {
+        return eventManager;
+    }
+
     public synchronized int getSupplierCount()
     {
         return supplierCount;
@@ -208,11 +222,86 @@ public class Factory
             this.dealerDelay = dealerDelay;
     }
 
+    public void enableLogging() throws Exception
+    {
+        Log.init();
+        Log.enableInfoLogging();
+    }
+
+    public void disableLogging()
+    {
+        Log.disableLogging();
+        Log.disableInfoLogging();
+    }
+
+    public boolean isLogEnabled()
+    {
+        return Log.isLoggingEnabled();
+    }
+
     /**
      * @return random value from 0 to 2
      */
     public static double randomizeDelay()
     {
         return 2 * ThreadLocalRandom.current().nextDouble();
+    }
+
+    //EVENT SECTION
+
+    public void setOnEngineSupplied(EventHandler handler)
+    {
+        if(handler == null)
+            return;
+        eventManager.setEventHandler(EventManager.ENGINE_SUPPLIED_EVENT, handler);
+    }
+
+    public void setOnAccessorySupplied(EventHandler handler)
+    {
+        if(handler == null)
+            return;
+        eventManager.setEventHandler(EventManager.ACCESSORY_SUPPLIED_EVENT, handler);
+    }
+
+    public void setOnBodyworkSupplied(EventHandler handler)
+    {
+        if(handler == null)
+            return;
+        eventManager.setEventHandler(EventManager.BODYWORK_SUPPLIED_EVENT, handler);
+    }
+
+    public void setOnCareMade(EventHandler handler)
+    {
+        if(handler == null)
+            return;
+        eventManager.setEventHandler(EventManager.CAR_MADE_EVENT, handler);
+    }
+
+    public void setOnCarSupplied(EventHandler handler)
+    {
+        if(handler == null)
+            return;
+        eventManager.setEventHandler(EventManager.CAR_SUPPLIED_TO_STORE_EVENT, handler);
+    }
+
+    public void setOnCarSend(EventHandler handler)
+    {
+        if(handler == null)
+            return;
+        eventManager.setEventHandler(EventManager.CAR_SEND_EVENT, handler);
+    }
+
+    public void setOnProducerStartJob(EventHandler handler)
+    {
+        if(handler == null)
+            return;
+        eventManager.setEventHandler(EventManager.PRODUCER_STARTED_DO_JOB_EVENT, handler);
+    }
+
+    public void setOnProducerDidJob(EventHandler handler)
+    {
+        if(handler == null)
+            return;
+        eventManager.setEventHandler(EventManager.PRODUCER_DID_JOB_EVENT, handler);
     }
 }

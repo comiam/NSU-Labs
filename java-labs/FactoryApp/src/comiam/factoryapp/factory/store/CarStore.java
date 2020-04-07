@@ -1,11 +1,12 @@
 package comiam.factoryapp.factory.store;
 
 import comiam.factoryapp.factory.components.Car;
+import comiam.factoryapp.factory.factory.Factory;
 
 public class CarStore extends Store<Car>
 {
-    public CarStore(int limit)
+    public CarStore(Factory factory, int limit)
     {
-        super(limit);
+        super(factory, limit);
     }
 }

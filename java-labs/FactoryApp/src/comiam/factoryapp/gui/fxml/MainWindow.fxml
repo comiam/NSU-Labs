@@ -19,9 +19,10 @@
       <menus>
         <Menu mnemonicParsing="false" text="Main">
           <items>
-            <MenuItem fx:id="saveDataMenu" mnemonicParsing="false" text="Save data" />
-            <MenuItem fx:id="loadConfigMenu" mnemonicParsing="false" text="Load configuration" />
-                  <MenuItem fx:id="quitMenu" mnemonicParsing="false" text="Quit" />
+            <MenuItem mnemonicParsing="false" text="Save data" />
+                  <MenuItem mnemonicParsing="false" text="Run manually" />
+            <MenuItem mnemonicParsing="false" text="Load configuration" />
+                  <MenuItem mnemonicParsing="false" onAction="#quit" text="Quit" />
           </items>
         </Menu>
         <Menu mnemonicParsing="false" text="Help">
@@ -41,7 +42,7 @@
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Supplier delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
                               <Slider fx:id="sdSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
-                              <Button fx:id="sdRandom" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeSupplierDelay" text="Random">
+                              <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeSupplierDelay" text="Random">
                                  <font>
                                     <Font size="12.0" />
                                  </font>
@@ -52,7 +53,7 @@
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Producer delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
                               <Slider fx:id="pdSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
-                              <Button fx:id="pdRandom" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeProducerDelay" text="Random">
+                              <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeProducerDelay" text="Random">
                                  <font>
                                     <Font size="12.0" />
                                  </font>
@@ -63,7 +64,7 @@
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Dealer delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
                               <Slider fx:id="ddSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
-                              <Button fx:id="ddRandom" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeDealerDelay" text="Random">
+                              <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeDealerDelay" text="Random">
                                  <font>
                                     <Font size="12.0" />
                                  </font>
@@ -91,10 +92,13 @@
                               <Label prefHeight="20.0" prefWidth="135.0" text="Accessory delivered:" />
                               <Label prefHeight="20.0" prefWidth="134.0" text="Bodywork delivered:" />
                               <Separator prefWidth="200.0" />
-                              <Label prefHeight="20.0" prefWidth="134.0" text="B. store capacity:" />
-                              <Label prefHeight="20.0" prefWidth="134.0" text="A. store capacity:" />
-                              <Label prefHeight="20.0" prefWidth="134.0" text="E. store capacity:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="B. store count:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="A. store count:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="E. store count:" />
                               <Separator prefWidth="200.0" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="Supplier count:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="Producer count:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="Dealer count:" />
                            </children>
                         </VBox>
                         <Separator orientation="VERTICAL" prefHeight="200.0" />
@@ -110,10 +114,13 @@
                               <Label fx:id="accessoryDeliveredLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="135.0" />
                               <Label fx:id="bodyworkDeliveredLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
                               <Separator prefWidth="200.0" />
-                              <Label fx:id="bStoreCapacityLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
-                              <Label fx:id="aStoreCapacityLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
-                              <Label fx:id="eStoreCapacityLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Label fx:id="bStoreCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Label fx:id="aStoreCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Label fx:id="eStoreCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
                               <Separator prefWidth="200.0" />
+                              <Label fx:id="supplierCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Label fx:id="producerCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Label fx:id="dealerCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
                            </children>
                         </VBox>
                      </children>

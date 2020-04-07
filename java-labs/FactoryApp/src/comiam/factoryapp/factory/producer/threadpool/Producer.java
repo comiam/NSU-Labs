@@ -1,6 +1,7 @@
 package comiam.factoryapp.factory.producer.threadpool;
 
 import comiam.factoryapp.factory.components.*;
+import comiam.factoryapp.factory.events.EventManager;
 import comiam.factoryapp.factory.factory.Factory;
 
 public class Producer implements Runnable
@@ -32,6 +33,8 @@ public class Producer implements Runnable
                 if(pool.getTask().isDone())
                     pool.removeFirstTask();
 
+                factory.getEventManager().fireEvent(EventManager.PRODUCER_STARTED_DO_JOB_EVENT, null);
+
                 Thread.sleep(factory.getProducerDelay());
 
                 engine = factory.getEngineStore().getComponent();
@@ -40,6 +43,9 @@ public class Producer implements Runnable
 
                 car = new Car(IDProduct.getID(), engine, bodywork, accessory);
                 factory.getCarStore().putComponent(car);
+
+                factory.getEventManager().fireEvent(EventManager.PRODUCER_DID_JOB_EVENT, null);
+                factory.getEventManager().fireEvent(EventManager.CAR_MADE_EVENT, car);
             } catch(InterruptedException ignored) {}
         }
     }

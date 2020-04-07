@@ -6,12 +6,11 @@ import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
-import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.MenuItem;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Font;
@@ -29,15 +28,6 @@ public class MainWindowController
 
     @FXML
     private Slider ddSlider;
-
-    @FXML
-    private Button sdRandom;
-
-    @FXML
-    private Button pdRandom;
-
-    @FXML
-    private Button ddRandom;
 
     @FXML
     private Label workingTimeLabel;
@@ -61,22 +51,22 @@ public class MainWindowController
     private Label bodyworkDeliveredLabel;
 
     @FXML
-    private Label bStoreCapacityLabel;
+    private Label bStoreCountLabel;
 
     @FXML
-    private Label aStoreCapacityLabel;
+    private Label aStoreCountLabel;
 
     @FXML
-    private Label eStoreCapacityLabel;
+    private Label eStoreCountLabel;
 
     @FXML
-    private MenuItem saveDataMenu;
+    private Label dealerCountLabel;
 
     @FXML
-    private MenuItem loadConfigMenu;
+    private Label producerCountLabel;
 
     @FXML
-    private MenuItem quitMenu;
+    private Label supplierCountLabel;
 
     private Factory factory = null;
     private Thread  uiThread = null;
@@ -88,7 +78,6 @@ public class MainWindowController
 
     public void runUIThread()
     {
-        //FIXME чото тут должно быть с заводом
         uiThread = new Thread(new ThreadUpdater(this, factory));
         uiThread.setName("FactoryUIThread");
         uiThread.start();
@@ -100,7 +89,6 @@ public class MainWindowController
             return;
         uiThread.interrupt();
         uiThread = null;
-        factory.destroy();
     }
 
     @FXML
@@ -119,6 +107,13 @@ public class MainWindowController
     private void randomizeSupplierDelay(ActionEvent event)
     {
         changeRandomSlideVal(sdSlider);
+    }
+
+    @FXML
+    private void quit(ActionEvent event)
+    {
+        closeUIThread();
+        Platform.exit();
     }
 
     public void initSliders()
@@ -148,7 +143,12 @@ public class MainWindowController
             {
                 synchronized(factory)
                 {
-                    factory.setDealerDelay(newVal.intValue() - newVal.intValue() % 10);
+                    if(slider.equals(ddSlider))
+                        factory.setDealerDelay(newVal.intValue() - newVal.intValue() % 10);
+                    else if(slider.equals(sdSlider))
+                        factory.setSupplierDelay(newVal.intValue() - newVal.intValue() % 10);
+                    else if(slider.equals(pdSlider))
+                        factory.setProducerDelay(newVal.intValue() - newVal.intValue() % 10);
                 }
             }
         });
@@ -169,5 +169,4 @@ public class MainWindowController
 
         tl.play();
     }
-
 }
