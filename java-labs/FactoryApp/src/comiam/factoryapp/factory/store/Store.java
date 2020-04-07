@@ -1,44 +1,40 @@
 package comiam.factoryapp.factory.store;
 
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class Store<T>
 {
-    private final BlockingQueue<T> components;
+    private final Queue<T> components;
     private final int limit;
 
     public Store(int limit)
     {
-        this.components = new ArrayBlockingQueue<>(limit);
+        this.components = new LinkedList<>();
         this.limit = limit;
     }
 
     public synchronized void putComponent(T obj) throws InterruptedException
     {
-        if(isFull())
-            return;
-        components.put(obj);
-        notifyAll();
+        while(isFull())
+            this.wait();
+
+        this.notify();
+
+        components.offer(obj);
     }
 
-    public synchronized T getComponent()
+    public synchronized T getComponent() throws InterruptedException
     {
-        if(components.size() == 0)
-            return null;
+        while(components.size() == 0)
+            this.wait();
 
-        T component = components.poll();
-        notifyAll();
+        this.notify();
 
-        return component;
+        return components.poll();
     }
 
-    public synchronized boolean isEmpty()
-    {
-        return components.size() == 0;
-    }
-
-    public synchronized boolean isFull()
+    private synchronized boolean isFull()
     {
         return components.size() == limit;
     }

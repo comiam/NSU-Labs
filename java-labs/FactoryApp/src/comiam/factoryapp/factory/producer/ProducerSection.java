@@ -44,10 +44,8 @@ public class ProducerSection
             return;
 
         for(var thread : workers)
-            try
-            {
-                thread.join();
-            }catch(InterruptedException ignored){}
+            thread.interrupt();
+
 
         workers.clear();
         pool = null;

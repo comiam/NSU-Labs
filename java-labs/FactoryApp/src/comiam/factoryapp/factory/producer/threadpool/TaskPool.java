@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 public class TaskPool
 {
-    private ArrayList<FactoryTask> taskArray;
+    private final ArrayList<FactoryTask> taskArray;
 
     public TaskPool()
     {
@@ -18,12 +18,12 @@ public class TaskPool
         notifyAll();
     }
 
-    public synchronized FactoryTask getTask()
+    public synchronized FactoryTask getTask() throws InterruptedException
     {
-        if(isEmpty())
-            return null;
-        else
-            return taskArray.get(0);
+        while(isEmpty())
+            this.wait();
+
+        return taskArray.get(0);
     }
 
     public synchronized void removeFirstTask()
@@ -34,14 +34,13 @@ public class TaskPool
         taskArray.remove(0);
     }
 
-    public int getCountOfTaskJobs()
+    public synchronized int getCountOfTaskJobs()
     {
         int result = 0;
-        synchronized(this)
-        {
-            for(var task : taskArray)
-                result += task.getCountOfCars();
-        }
+
+        for(var task : taskArray)
+            result += task.getCountOfCars();
+
         return result;
     }
 

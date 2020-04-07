@@ -15,22 +15,11 @@ public class Dealer extends Thread
                         try
                         {
                             Thread.sleep(factory.getDealerDelay());
-                        } catch(InterruptedException ignored) {}
 
-                        synchronized(factory.getCarStore())
-                        {
-                            while(factory.getCarStore().isEmpty())
-                            {
-                                try
-                                {
-                                    factory.getCarStore().wait();
-                                } catch(InterruptedException ignored){}
-                            }
                             Car car = factory.getCarStore().getComponent();
                             Log.info("Dealer " + ID + ": Auto: " + car.getUniqueID() + "; (Body: " +
-                                    car.getBodywork().getUniqueID() + "; Engine: " + car.getEngine().getUniqueID() + "; Accessory: " + car.getAccessory().getUniqueID() + ")");
-                        }
-
+                                     car.getBodywork().getUniqueID() + "; Engine: " + car.getEngine().getUniqueID() + "; Accessory: " + car.getAccessory().getUniqueID() + ")");
+                        } catch(InterruptedException ignored) {}
                     }
                 }
         );

@@ -69,9 +69,6 @@ public class Factory
         if(initialized)
             return;
 
-        Log.disableDebugLogging();
-        Log.disableErrorLogging();
-
         if(supplierDelay == -1)
             supplierDelay = (int)(randomizeDelay() * 1000);
 
@@ -132,27 +129,27 @@ public class Factory
         return initialized;
     }
 
-    public CarStore getCarStore()
+    public synchronized CarStore getCarStore()
     {
         return carStore;
     }
 
-    public AccessoryStore getAccessoryStore()
+    public synchronized AccessoryStore getAccessoryStore()
     {
         return accessoryStore;
     }
 
-    public BodyworkStore getBodyworkStore()
+    public synchronized BodyworkStore getBodyworkStore()
     {
         return bodyworkStore;
     }
 
-    public EngineStore getEngineStore()
+    public synchronized EngineStore getEngineStore()
     {
         return engineStore;
     }
 
-    public ProducerSection getProducerSection()
+    public synchronized ProducerSection getProducerSection()
     {
         return producerSection;
     }

@@ -9,7 +9,7 @@ public class FactoryTask
         this.countOfCars = countOfCars;
     }
 
-    public synchronized int getJob()
+    public synchronized int getCarJob()
     {
         if(countOfCars == 0)
             return 0;
@@ -21,7 +21,7 @@ public class FactoryTask
         return countOfCars == 0;
     }
 
-    public int getCountOfCars()
+    public synchronized int getCountOfCars()
     {
         return countOfCars;
     }

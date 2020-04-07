@@ -27,22 +27,10 @@ public class Supplier<T extends IDProduct> implements Runnable
                 Thread.sleep(currentFactory.getSupplierDelay());
             } catch(InterruptedException ignored) {}
 
-            synchronized(store)
+            try
             {
-                if(store.isFull())
-                {
-                    try
-                    {
-                        store.wait();
-                    } catch(InterruptedException ignored) {}
-                }else
-                {
-                    try
-                    {
-                        store.putComponent(typeClass.getConstructor(Long.TYPE).newInstance(IDProduct.getID()));
-                    }catch(Throwable ignored){ignored.printStackTrace();}
-                }
-            }
+                store.putComponent(typeClass.getConstructor(Long.TYPE).newInstance(IDProduct.getID()));
+            }catch(Throwable ignored) {}
         }
     }
 }

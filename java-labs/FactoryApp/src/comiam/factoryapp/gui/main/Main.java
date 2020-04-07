@@ -1,8 +1,9 @@
 package comiam.factoryapp.gui.main;
 
+import comiam.factoryapp.factory.factory.Factory;
 import comiam.factoryapp.gui.fxml.MainWindowController;
+import comiam.factoryapp.log.Log;
 import javafx.application.Application;
-import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -31,10 +32,10 @@ public class Main extends Application {
 
     public static void main(String[] args)
     {
-        launch(args);
-        //Log.init();
-        //Log.enableInfoLogging();
-        //Factory factory = new Factory();
-        //factory.init(3, 10, 3,100, 30, 50, 10, 10, 10, 10);
+        //launch(args);
+        Log.init();
+        Log.enableInfoLogging();
+        Factory factory = new Factory();
+        factory.init(3, 10, 3,100, 30, 50, 10, 10, 10, 10);
     }
 }
