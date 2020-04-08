@@ -30,11 +30,11 @@ public class Store<T>
 
         this.notify();
         if(obj instanceof Accessory)
-            factory.getEventManager().fireEvent(EventManager.ACCESSORY_SUPPLIED_EVENT, null);
+            factory.getEventManager().fireEvent(EventManager.ACCESSORY_DELIVERED_EVENT, null);
         else if(obj instanceof Engine)
-            factory.getEventManager().fireEvent(EventManager.ENGINE_SUPPLIED_EVENT, null);
+            factory.getEventManager().fireEvent(EventManager.ENGINE_DELIVERED_EVENT, null);
         else if(obj instanceof Bodywork)
-            factory.getEventManager().fireEvent(EventManager.BODYWORK_SUPPLIED_EVENT, null);
+            factory.getEventManager().fireEvent(EventManager.BODYWORK_DELIVERED_EVENT, null);
         else if(obj instanceof Car)
             factory.getEventManager().fireEvent(EventManager.CAR_SUPPLIED_TO_STORE_EVENT, obj);
 
@@ -47,8 +47,10 @@ public class Store<T>
             this.wait();
 
         this.notify();
+        T obj = components.poll();
+        factory.getEventManager().fireEvent(EventManager.COMPONENT_SEND_FROM_STORE, obj);
 
-        return components.poll();
+        return obj;
     }
 
     private synchronized boolean isFull()

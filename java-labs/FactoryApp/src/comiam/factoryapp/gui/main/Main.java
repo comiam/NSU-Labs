@@ -2,6 +2,7 @@ package comiam.factoryapp.gui.main;
 
 import comiam.factoryapp.factory.factory.Factory;
 import comiam.factoryapp.gui.fxml.MainWindowController;
+import comiam.factoryapp.gui.uicore.UICore;
 import comiam.factoryapp.log.Log;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
@@ -25,9 +26,10 @@ public class Main extends Application {
         primaryStage.getIcons().add(new Image(getClass().getResource("/res/zavod.png").toExternalForm()));
         primaryStage.setResizable(false);
 
-        primaryStage.setOnCloseRequest(windowEvent -> controller.closeUIThread());
+        primaryStage.setOnCloseRequest(windowEvent -> UICore.closeUIThread());
         primaryStage.show();
         controller.initSliders();
+        controller.setRootStage(primaryStage);
     }
 
 

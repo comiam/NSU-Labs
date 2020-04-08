@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="300.0" stylesheets="@style.css" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <ScrollPane hbarPolicy="NEVER" prefHeight="200.0" prefWidth="200.0" style="-fx-background-color: WHITE;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <content>
+            <VBox prefWidth="300.0" style="-fx-background-color: WHITE;">
+               <children>
+                  <Label prefHeight="23.0" prefWidth="99.0" text="Supplier count:" />
+                  <TextField maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="288.0" promptText="3" />
+                  <Label prefHeight="23.0" prefWidth="124.0" text="Producer count:" />
+                  <TextField maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="288.0" promptText="3" />
+                  <Label prefHeight="23.0" prefWidth="99.0" text="Dealer count:" />
+                  <TextField maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="288.0" promptText="3" />
+                  <Label prefHeight="23.0" prefWidth="99.0" text="Supplier delay:" />
+                  <TextField maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="288.0" promptText="3" />
+                  <Label prefHeight="23.0" prefWidth="122.0" text="Producer delay:" />
+                  <TextField maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="288.0" promptText="3" />
+                  <Label prefHeight="23.0" prefWidth="99.0" text="Dealer delay:" />
+                  <TextField maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="288.0" promptText="3" />
+                  <Label prefHeight="23.0" prefWidth="182.0" text="Accessory store capacity:" />
+                  <TextField maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="288.0" promptText="10" />
+                  <Label prefHeight="23.0" prefWidth="182.0" text="Engine store capacity:" />
+                  <TextField maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="288.0" promptText="10" />
+                  <Label prefHeight="23.0" prefWidth="182.0" text="Bodywork store capacity:" />
+                  <TextField maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="288.0" promptText="10" />
+                  <Label prefHeight="23.0" prefWidth="182.0" text="Car store capacity:" />
+                  <TextField maxHeight="-Infinity" maxWidth="-Infinity" prefWidth="288.0" promptText="10" />
+                  <CheckBox mnemonicParsing="false" prefHeight="36.0" prefWidth="300.0" text="Enable logging" />
+                  <Button mnemonicParsing="false" prefWidth="96.0" text="Ok" />
+               </children>
+            </VBox>
+         </content>
+      </ScrollPane>
+   </children>
+</AnchorPane>

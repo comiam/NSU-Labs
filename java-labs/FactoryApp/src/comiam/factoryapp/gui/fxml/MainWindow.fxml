@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
@@ -20,8 +21,10 @@
         <Menu mnemonicParsing="false" text="Main">
           <items>
             <MenuItem mnemonicParsing="false" text="Save data" />
-                  <MenuItem mnemonicParsing="false" text="Run manually" />
+                  <MenuItem mnemonicParsing="false" onAction="#showManualStartWindow" text="Run manually" />
             <MenuItem mnemonicParsing="false" text="Load configuration" />
+                  <MenuItem mnemonicParsing="false" text="Restart factory" />
+                  <MenuItem mnemonicParsing="false" text="Close factory" />
                   <MenuItem mnemonicParsing="false" onAction="#quit" text="Quit" />
           </items>
         </Menu>
@@ -30,6 +33,11 @@
             <MenuItem mnemonicParsing="false" text="About FactoryApp" />
           </items>
         </Menu>
+            <Menu mnemonicParsing="false" style="-fx-background-color: WHITE;">
+               <graphic>
+                  <CheckBox focusTraversable="false" mnemonicParsing="false" style="-fx-text-fill: BLACK;" text="logging" />
+               </graphic>
+            </Menu>
       </menus>
     </MenuBar>
     <AnchorPane maxHeight="-1.0" maxWidth="1.7976931348623157E308" prefHeight="-1.0" prefWidth="-1.0" VBox.vgrow="ALWAYS">
@@ -76,7 +84,7 @@
                   <Separator orientation="VERTICAL" prefHeight="200.0" />
                   <HBox prefHeight="351.0" prefWidth="278.0">
                      <children>
-                        <VBox prefHeight="351.0" prefWidth="143.0">
+                        <VBox prefHeight="350.0" prefWidth="159.0">
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="25.0" prefWidth="137.0" text="Current status:">
                                  <font>
@@ -86,15 +94,16 @@
                               <Label prefHeight="20.0" prefWidth="92.0" text="Working time:" />
                               <Label prefHeight="20.0" prefWidth="85.0" text="Factory load:" />
                               <Label prefHeight="20.0" prefWidth="75.0" text="Cars made:" />
-                              <Label prefHeight="20.0" prefWidth="131.0" text="Cars supplied:" />
+                              <Label prefHeight="20.0" prefWidth="146.0" text="Cars send from store:" />
                               <Separator prefWidth="200.0" />
                               <Label prefHeight="20.0" prefWidth="114.0" text="Engine delivered:" />
                               <Label prefHeight="20.0" prefWidth="135.0" text="Accessory delivered:" />
                               <Label prefHeight="20.0" prefWidth="134.0" text="Bodywork delivered:" />
                               <Separator prefWidth="200.0" />
-                              <Label prefHeight="20.0" prefWidth="134.0" text="B. store count:" />
-                              <Label prefHeight="20.0" prefWidth="134.0" text="A. store count:" />
-                              <Label prefHeight="20.0" prefWidth="134.0" text="E. store count:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="Bodywork st. count:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="Accessory st. count:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="Engine store count:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="Car store count:" />
                               <Separator prefWidth="200.0" />
                               <Label prefHeight="20.0" prefWidth="134.0" text="Supplier count:" />
                               <Label prefHeight="20.0" prefWidth="134.0" text="Producer count:" />
@@ -117,6 +126,7 @@
                               <Label fx:id="bStoreCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
                               <Label fx:id="aStoreCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
                               <Label fx:id="eStoreCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Label fx:id="cStoreCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
                               <Separator prefWidth="200.0" />
                               <Label fx:id="supplierCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
                               <Label fx:id="producerCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />

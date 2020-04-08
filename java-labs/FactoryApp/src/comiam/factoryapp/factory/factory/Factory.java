@@ -133,11 +133,6 @@ public class Factory
             thread.start();
     }
 
-    public boolean isInitialized()
-    {
-        return initialized;
-    }
-
     public synchronized CarStore getCarStore()
     {
         return carStore;
@@ -249,25 +244,25 @@ public class Factory
 
     //EVENT SECTION
 
-    public void setOnEngineSupplied(EventHandler handler)
+    public void setOnEngineDelivered(EventHandler handler)
     {
         if(handler == null)
             return;
-        eventManager.setEventHandler(EventManager.ENGINE_SUPPLIED_EVENT, handler);
+        eventManager.setEventHandler(EventManager.ENGINE_DELIVERED_EVENT, handler);
     }
 
-    public void setOnAccessorySupplied(EventHandler handler)
+    public void setOnAccessoryDelivered(EventHandler handler)
     {
         if(handler == null)
             return;
-        eventManager.setEventHandler(EventManager.ACCESSORY_SUPPLIED_EVENT, handler);
+        eventManager.setEventHandler(EventManager.ACCESSORY_DELIVERED_EVENT, handler);
     }
 
-    public void setOnBodyworkSupplied(EventHandler handler)
+    public void setOnBodyworkDelivered(EventHandler handler)
     {
         if(handler == null)
             return;
-        eventManager.setEventHandler(EventManager.BODYWORK_SUPPLIED_EVENT, handler);
+        eventManager.setEventHandler(EventManager.BODYWORK_DELIVERED_EVENT, handler);
     }
 
     public void setOnCareMade(EventHandler handler)
@@ -277,11 +272,18 @@ public class Factory
         eventManager.setEventHandler(EventManager.CAR_MADE_EVENT, handler);
     }
 
-    public void setOnCarSupplied(EventHandler handler)
+    public void setOnCarDelivered(EventHandler handler)
     {
         if(handler == null)
             return;
         eventManager.setEventHandler(EventManager.CAR_SUPPLIED_TO_STORE_EVENT, handler);
+    }
+
+    public void setOnComponentSendFromStore(EventHandler handler)
+    {
+        if(handler == null)
+            return;
+        eventManager.setEventHandler(EventManager.COMPONENT_SEND_FROM_STORE, handler);
     }
 
     public void setOnCarSend(EventHandler handler)
