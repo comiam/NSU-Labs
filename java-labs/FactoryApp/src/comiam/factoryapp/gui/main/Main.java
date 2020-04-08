@@ -26,7 +26,6 @@ public class Main extends Application {
         primaryStage.getIcons().add(new Image(getClass().getResource("/res/zavod.png").toExternalForm()));
         primaryStage.setResizable(false);
 
-        primaryStage.setOnCloseRequest(windowEvent -> UICore.closeUIThread());
         primaryStage.show();
         controller.initSliders();
         controller.setRootStage(primaryStage);
