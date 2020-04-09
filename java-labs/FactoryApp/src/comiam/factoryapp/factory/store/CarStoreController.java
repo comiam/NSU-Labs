@@ -11,18 +11,20 @@ public class CarStoreController extends Thread
         {
             while(!Thread.currentThread().isInterrupted())
             {
-                if(factory.getProducerSection().getPool().getCountOfTaskJobs() < getCountOfMissingCars(factory))
-                    factory.getProducerSection().getPool().pushTask(new FactoryTask(getCountOfMissingCars(factory) - factory.getProducerSection().getPool().getCountOfTaskJobs()));
-                else
-                    synchronized(factory.getCarStore())
-                    {
-                        try
+                try
+                {
+                    if(factory.getProducerSection().getPool().getCountOfTaskJobs() < getCountOfMissingCars(factory))
+                        factory.getProducerSection().getPool().pushTask(new FactoryTask(getCountOfMissingCars(factory) - factory.getProducerSection().getPool().getCountOfTaskJobs()));
+                    else
+                        synchronized(factory.getCarStore())
                         {
                             factory.getCarStore().wait();
-                        } catch(InterruptedException ignored) {}
-                    }
+                        }
+                }catch(Throwable ignored){
+                    return;
+                }
             }
-        });
+        }, "CarStoreController");
     }
 
     private static int getCountOfMissingCars(Factory factory)

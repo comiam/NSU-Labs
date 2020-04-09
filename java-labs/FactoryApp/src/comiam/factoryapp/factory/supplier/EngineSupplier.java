@@ -7,6 +7,6 @@ public class EngineSupplier extends Thread
 {
     public EngineSupplier(Factory factory)
     {
-        super(new Supplier<>(factory, factory.getEngineStore(), Engine.class));
+        super(new Supplier<>(factory, factory.getEngineStore(), Engine.class), "Supplier");
     }
 }

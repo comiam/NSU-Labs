@@ -24,7 +24,7 @@ public class Producer implements Runnable
         Bodywork bodywork;
         Car car;
 
-        while(!Thread.currentThread().isInterrupted())
+        while(!Thread.currentThread().isInterrupted() && factory.isInitialized())
         {
             try
             {
@@ -33,20 +33,22 @@ public class Producer implements Runnable
                 if(pool.getTask().isDone())
                     pool.removeFirstTask();
 
-                factory.getEventManager().fireEvent(EventManager.PRODUCER_STARTED_DO_JOB_EVENT, null);
-
-                Thread.sleep(factory.getProducerDelay());
-
                 engine = factory.getEngineStore().getComponent();
                 accessory = factory.getAccessoryStore().getComponent();
                 bodywork = factory.getBodyworkStore().getComponent();
+
+                factory.getEventManager().fireEvent(EventManager.PRODUCER_STARTED_DO_JOB_EVENT, null);
+
+                Thread.sleep(factory.getProducerDelay());
 
                 car = new Car(IDProduct.getID(), engine, bodywork, accessory);
                 factory.getCarStore().putComponent(car);
 
                 factory.getEventManager().fireEvent(EventManager.PRODUCER_DID_JOB_EVENT, null);
                 factory.getEventManager().fireEvent(EventManager.CAR_MADE_EVENT, car);
-            } catch(InterruptedException ignored) {}
+            } catch(Throwable ignored) {
+                return;
+            }
         }
     }
 }

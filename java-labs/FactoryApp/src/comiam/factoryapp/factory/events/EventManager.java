@@ -1,7 +1,6 @@
 package comiam.factoryapp.factory.events;
 
 import java.util.HashMap;
-import java.util.Map;
 
 public class EventManager
 {
@@ -15,7 +14,7 @@ public class EventManager
     public static final long CAR_SEND_EVENT = 7;
     public static final long COMPONENT_SEND_FROM_STORE = 8;
 
-    private final Map<Long, EventHandler> eventHandlers;
+    private final HashMap<Long, EventHandler> eventHandlers;
 
     public EventManager()
     {

@@ -11,7 +11,7 @@ public class Dealer extends Thread
     {
         super(() ->
                 {
-                    while(!Thread.currentThread().isInterrupted())
+                    while(!Thread.currentThread().isInterrupted() && factory.isInitialized())
                     {
                         try
                         {
@@ -22,9 +22,11 @@ public class Dealer extends Thread
 
                             Log.info("Dealer " + ID + ": Auto: " + car.getUniqueID() + "; (Body: " +
                                      car.getBodywork().getUniqueID() + "; Engine: " + car.getEngine().getUniqueID() + "; Accessory: " + car.getAccessory().getUniqueID() + ")");
-                        } catch(InterruptedException ignored) {}
+                        } catch(Throwable ignored) {
+                            return;
+                        }
                     }
                 }
-        );
+        , "Dealer");
     }
 }

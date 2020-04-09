@@ -3,6 +3,7 @@ package comiam.factoryapp.gui.fxml;
 import comiam.factoryapp.factory.factory.Factory;
 import comiam.factoryapp.gui.dialogs.Dialogs;
 import comiam.factoryapp.gui.uicore.UICore;
+import comiam.factoryapp.time.Timer;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -13,19 +14,14 @@ import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.Priority;
-import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
 
 public class MainWindowController
 {
@@ -81,7 +77,7 @@ public class MainWindowController
     private Label supplierCountLabel;
 
     @FXML
-    private TextField logTextField;
+    private TextArea logTextArea;
 
     @FXML
     private void randomizeDealerDelay()
@@ -104,6 +100,8 @@ public class MainWindowController
     @FXML
     private void quit()
     {
+        Timer.stop();
+        UICore.disableFactory();
         Platform.exit();
     }
 
@@ -116,22 +114,39 @@ public class MainWindowController
         {
             FXMLLoader loader = new FXMLLoader();
             loader.setLocation(MainWindowController.class.getResource("ManStartWindow.fxml"));
-            VBox page = loader.load();
+            AnchorPane page = loader.load();
             ManStartWindowController controllerN = loader.getController();
 
             Stage dialogStage = new Stage();
-            dialogStage.setTitle("Задайте настройки!");
+            dialogStage.setTitle("Input factory configuration!");
             dialogStage.initModality(Modality.WINDOW_MODAL);
             dialogStage.initOwner(rootStage);
 
             Scene scene = new Scene(page);
             dialogStage.setScene(scene);
             dialogStage.setResizable(false);
+            controllerN.setStage(dialogStage);
+            controllerN.setController(this);
             dialogStage.showAndWait();
         } catch (Throwable e)
         {
             Dialogs.showExceptionDialog(e);
         }
+    }
+
+    @FXML
+    public void initialize()
+    {
+        UICore.initCore(this);
+        logTextArea.textProperty().addListener((observable, oldValue, newValue) ->
+        {
+            while (logTextArea.getText().split("\n", -1).length > 200)
+            {
+                int fle = logTextArea.getText().indexOf("\n");
+                logTextArea.replaceText(0, fle + 1, "");
+            }
+            logTextArea.positionCaret(logTextArea.getText().length());
+        });
     }
 
     public void setRootStage(Stage rootStage)
@@ -175,6 +190,21 @@ public class MainWindowController
                 }
             }
         });
+    }
+
+    public void setDDSliderVal(int val)
+    {
+        ddSlider.setValue(val);
+    }
+
+    public void setSDSliderVal(int val)
+    {
+        sdSlider.setValue(val);
+    }
+
+    public void setPDSliderVal(int val)
+    {
+        pdSlider.setValue(val);
     }
 
     private void changeRandomSlideVal(Slider slider)
@@ -266,11 +296,11 @@ public class MainWindowController
 
     public void printLog(String message)
     {
-        logTextField.appendText(message);
+        logTextArea.appendText(message);
     }
 
     public void resetLog()
     {
-        logTextField.setText("");
+        logTextArea.setText("");
     }
 }

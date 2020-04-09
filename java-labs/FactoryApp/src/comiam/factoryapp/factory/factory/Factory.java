@@ -25,42 +25,19 @@ public class Factory
     private ProducerSection producerSection;
     private CarStoreController carStoreController;
 
-    public Factory()
-    {
-        eventManager = new EventManager();
-    }
-
-    private int supplierCount = 0;
-    private int producerCount = 0;
-    private int dealerCount = 0;
-    private int supplierDelay = 0;
-    private int producerDelay = 0;
-    private int dealerDelay = 0;
-
-    /**
-     * Destroy all threads in factory, factory will stop. All data will be deleted.
-     */
-    public void destroy()
-    {
-        stopThreads();
-        threadPool.clear();
-
-        threadPool = null;
-        carStore = null;
-        accessoryStore = null;
-        bodyworkStore = null;
-        engineStore = null;
-        producerSection = null;
-        carStoreController = null;
-        eventManager = null;
-
-        initialized = false;
-        System.gc();
-    }
+    private final int accessorySupplierCount;
+    private final int producerCount;
+    private final int dealerCount;
+    private int supplierDelay;
+    private int producerDelay;
+    private int dealerDelay;
+    private final int accessoryStoreLimit;
+    private final int engineStoreLimit;
+    private final int bodyworkStoreLimit;
+    private final int carStoreLimit;
 
     /**
-     * Init all factory processes: Dealers, Producers and suppliers. If any delay equals -1, when this delay sets randomly from 0,2 to 1.
-     *
+     * If any delay equals -1, when this delay sets randomly from 0,2 to 1.
      * @param accessorySupplierCount - count of suppliers for this factory.
      * @param producerCount - count of producers for this factory.
      * @param dealerCount - count of dealers for this factory.
@@ -72,11 +49,10 @@ public class Factory
      * @param bodyworkStoreLimit - limit of components for bodywork store
      * @param carStoreLimit - limit of components for car store
      */
-    public void init(int accessorySupplierCount, int producerCount, int dealerCount, int supplierDelay, int producerDelay, int dealerDelay,
-                     int accessoryStoreLimit, int engineStoreLimit, int bodyworkStoreLimit, int carStoreLimit)
+    public Factory(int accessorySupplierCount, int producerCount, int dealerCount, int supplierDelay, int producerDelay, int dealerDelay,
+                   int accessoryStoreLimit, int engineStoreLimit, int bodyworkStoreLimit, int carStoreLimit)
     {
-        if(initialized)
-            return;
+        eventManager = new EventManager();
 
         if(supplierDelay == -1)
             supplierDelay = (int)(randomizeDelay() * 1000);
@@ -87,12 +63,51 @@ public class Factory
         if(dealerDelay == -1)
             supplierDelay = (int)(randomizeDelay() * 1000);
 
-        this.supplierCount = accessorySupplierCount;
+        this.accessorySupplierCount = accessorySupplierCount;
         this.dealerCount = dealerCount;
         this.producerCount = producerCount;
         this.supplierDelay = supplierDelay;
         this.producerDelay = producerDelay;
         this.dealerDelay = dealerDelay;
+        this.accessoryStoreLimit = accessoryStoreLimit;
+        this.engineStoreLimit = engineStoreLimit;
+        this.bodyworkStoreLimit = bodyworkStoreLimit;
+        this.carStoreLimit = carStoreLimit;
+    }
+
+    /**
+     * Destroy all threads in factory, factory will stop. All data will be deleted.
+     */
+    public synchronized void destroy(boolean destroyEventListeners)
+    {
+        if(!initialized)
+            return;
+
+        initialized = false;
+
+        stopThreads();
+        threadPool.clear();
+
+        threadPool = null;
+        carStore = null;
+        accessoryStore = null;
+        bodyworkStore = null;
+        engineStore = null;
+        producerSection = null;
+        carStoreController = null;
+
+        if(destroyEventListeners)
+            eventManager = null;
+        System.gc();
+    }
+
+    /**
+     * Init all factory processes: Dealers, Producers and suppliers.
+     */
+    public synchronized void init()
+    {
+        if(initialized)
+            return;
 
         producerSection = new ProducerSection(this);
         carStore = new CarStore(this, carStoreLimit);
@@ -111,18 +126,27 @@ public class Factory
         for(int i = 0; i < dealerCount; i++)
             threadPool.add(new Dealer(this, i));
 
-        startThreads();
 
         initialized = true;
+        startThreads();
     }
 
-    private void stopThreads()
+    public synchronized void restart()
     {
-        for(var thread : threadPool)
-            thread.interrupt();
+        if(!initialized)
+            return;
 
+        destroy(false);
+        init();
+    }
+
+    private synchronized void stopThreads()
+    {
         producerSection.destroy();
         carStoreController.interrupt();
+
+        for(var thread : threadPool)
+            thread.interrupt();
     }
 
     private void startThreads()
@@ -131,6 +155,11 @@ public class Factory
         producerSection.start();
         for(var thread : threadPool)
             thread.start();
+    }
+
+    public synchronized boolean isInitialized()
+    {
+        return initialized;
     }
 
     public synchronized CarStore getCarStore()
@@ -163,9 +192,9 @@ public class Factory
         return eventManager;
     }
 
-    public synchronized int getSupplierCount()
+    public synchronized int getAccessorySupplierCount()
     {
-        return supplierCount;
+        return accessorySupplierCount;
     }
 
     public synchronized int getProducerCount()
@@ -221,17 +250,6 @@ public class Factory
     {
         Log.init();
         Log.enableInfoLogging();
-    }
-
-    public void disableLogging()
-    {
-        Log.disableLogging();
-        Log.disableInfoLogging();
-    }
-
-    public boolean isLogEnabled()
-    {
-        return Log.isLoggingEnabled();
     }
 
     /**

@@ -10,6 +10,8 @@ import comiam.factoryapp.gui.fxml.MainWindowController;
 import comiam.factoryapp.time.Timer;
 import javafx.application.Platform;
 
+import static comiam.factoryapp.util.Strings.getTimeString;
+
 public class UICore
 {
     private static Factory factory = null;
@@ -28,7 +30,8 @@ public class UICore
     public static void enableFactoryProcess(int accessorySupplierCount, int producerCount, int dealerCount, int supplierDelay, int producerDelay, int dealerDelay,
                                             int accessoryStoreLimit, int engineStoreLimit, int bodyworkStoreLimit, int carStoreLimit, boolean loggingEnabled)
     {
-        factory = new Factory();
+        factory = new Factory(accessorySupplierCount, producerCount, dealerCount, supplierDelay, producerDelay, dealerDelay,
+                accessoryStoreLimit, engineStoreLimit, bodyworkStoreLimit, carStoreLimit);
         setEventHandlers();
         if(loggingEnabled)
         {
@@ -41,15 +44,28 @@ public class UICore
             }
         }
 
-        factory.init(accessorySupplierCount, producerCount, dealerCount, supplierDelay, producerDelay, dealerDelay,
-                accessoryStoreLimit, engineStoreLimit, bodyworkStoreLimit, carStoreLimit);
+        factory.init();
 
-        Timer.start(() -> Platform.runLater(() -> controller.setWorkingTime(Timer.getSeconds() / 3600 + ":" + Timer.getSeconds() / 60 + ":" + Timer.getMilliSeconds())));
-
+        Timer.start(() -> Platform.runLater(() -> controller.setWorkingTime(getTimeString(Timer.getSeconds() / 3600, 2) + ":" + getTimeString(Timer.getSeconds() / 60, 2) + ":" + getTimeString(Timer.getSeconds() % 60, 2))));
 
         controller.setDealerCount(factory.getDealerCount());
         controller.setProducerCount(factory.getProducerCount());
-        controller.setSupplierCount(factory.getSupplierCount());
+        controller.setSupplierCount(factory.getAccessorySupplierCount());
+    }
+
+    public static boolean restartFactory()
+    {
+        if(factory == null)
+            return false;
+
+        factory.restart();
+        return true;
+    }
+
+    public static void disableFactory()
+    {
+        if(factory != null)
+            factory.destroy(true);
     }
 
     private static void setEventHandlers()
@@ -96,21 +112,21 @@ public class UICore
             Platform.runLater(() ->
             {
                 controller.setCarsSend(UIDataBundle.getCarSendCount());
-                controller.printLog("Dealer " + array[0] + ": Auto: " + ((Car) array[1]).getUniqueID() + "; (Body: " +
+                controller.printLog(getTimeString(Timer.getSeconds() / 3600, 2) + ":" + getTimeString(Timer.getSeconds() / 60, 2) + ":" + getTimeString(Timer.getSeconds() % 60, 2) + ":" + getTimeString(Timer.getMilliSeconds(), 3) + " - Dealer " + array[0] + ": Auto: " + ((Car) array[1]).getUniqueID() + "; (Body: " +
                                     ((Car) array[1]).getBodywork().getUniqueID() + "; Engine: " +
                                     ((Car) array[1]).getEngine().getUniqueID() + "; Accessory: " +
-                                    ((Car) array[1]).getAccessory().getUniqueID() + ")");
+                                    ((Car) array[1]).getAccessory().getUniqueID() + ")\n");
             });
         });
 
         factory.setOnProducerStartJob((o) -> {
             UIDataBundle.incFactoryWorkingProducers();
-            Platform.runLater(() -> controller.setFactoryLoad((UIDataBundle.getFactoryWorkingProducers() / factory.getProducerCount()) * 100 + "%"));
+            Platform.runLater(() -> controller.setFactoryLoad(Math.round((1.0 * UIDataBundle.getFactoryWorkingProducers()) / factory.getProducerCount() * 100 * 100) / 100 + "%"));
         });
 
         factory.setOnProducerDidJob((o) -> {
             UIDataBundle.decFactoryWorkingProducers();
-            Platform.runLater(() -> controller.setFactoryLoad((UIDataBundle.getFactoryWorkingProducers() / factory.getProducerCount()) * 100 + "%"));
+            Platform.runLater(() -> controller.setFactoryLoad(Math.round((1.0 * UIDataBundle.getFactoryWorkingProducers()) / factory.getProducerCount() * 100 * 100) / 100 + "%"));
         });
 
         factory.setOnComponentSendFromStore((o) ->

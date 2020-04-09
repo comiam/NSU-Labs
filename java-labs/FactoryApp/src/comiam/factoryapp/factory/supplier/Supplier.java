@@ -20,17 +20,21 @@ public class Supplier<T extends IDProduct> implements Runnable
     @Override
     public void run()
     {
-        while(!Thread.currentThread().isInterrupted())
+        while(!Thread.currentThread().isInterrupted() && currentFactory.isInitialized())
         {
             try
             {
                 Thread.sleep(currentFactory.getSupplierDelay());
-            } catch(InterruptedException ignored) {}
+            } catch(InterruptedException ignored) {
+                return;
+            }
 
             try
             {
                 store.putComponent(typeClass.getConstructor(Long.TYPE).newInstance(IDProduct.getID()));
-            }catch(Throwable ignored) {}
+            }catch(Throwable ignored) {
+                return;
+            }
         }
     }
 }

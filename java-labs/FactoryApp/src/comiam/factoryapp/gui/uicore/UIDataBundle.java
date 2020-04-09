@@ -18,7 +18,7 @@ public class UIDataBundle
 
     public static synchronized void decFactoryWorkingProducers()
     {
-        UIDataBundle.factoryWorkingProducers++;
+        UIDataBundle.factoryWorkingProducers--;
     }
 
     public static synchronized void setFactoryTime(long factoryTime)

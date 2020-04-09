@@ -9,6 +9,7 @@
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.Slider?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.input.KeyCodeCombination?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
@@ -20,12 +21,30 @@
       <menus>
         <Menu mnemonicParsing="false" text="Main">
           <items>
-            <MenuItem mnemonicParsing="false" text="Save data" />
-                  <MenuItem mnemonicParsing="false" onAction="#showManualStartWindow" text="Run manually" />
-            <MenuItem mnemonicParsing="false" text="Load configuration" />
-                  <MenuItem mnemonicParsing="false" text="Restart factory" />
-                  <MenuItem mnemonicParsing="false" text="Close factory" />
-                  <MenuItem mnemonicParsing="false" onAction="#quit" text="Quit" />
+            <MenuItem mnemonicParsing="false" text="Save data">
+                     <accelerator>
+                        <KeyCodeCombination alt="ANY" code="S" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                     </accelerator></MenuItem>
+                  <MenuItem mnemonicParsing="false" onAction="#showManualStartWindow" text="Run manually">
+                     <accelerator>
+                        <KeyCodeCombination alt="ANY" code="M" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                     </accelerator></MenuItem>
+            <MenuItem mnemonicParsing="false" text="Load configuration">
+                     <accelerator>
+                        <KeyCodeCombination alt="ANY" code="C" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                     </accelerator></MenuItem>
+                  <MenuItem mnemonicParsing="false" text="Restart factory">
+                     <accelerator>
+                        <KeyCodeCombination alt="ANY" code="R" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                     </accelerator></MenuItem>
+                  <MenuItem mnemonicParsing="false" text="Close factory">
+                     <accelerator>
+                        <KeyCodeCombination alt="ANY" code="F" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                     </accelerator></MenuItem>
+                  <MenuItem mnemonicParsing="false" onAction="#quit" text="Quit">
+                     <accelerator>
+                        <KeyCodeCombination alt="ANY" code="Q" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                     </accelerator></MenuItem>
           </items>
         </Menu>
         <Menu mnemonicParsing="false" text="Help">
@@ -42,11 +61,11 @@
     </MenuBar>
     <AnchorPane maxHeight="-1.0" maxWidth="1.7976931348623157E308" prefHeight="-1.0" prefWidth="-1.0" VBox.vgrow="ALWAYS">
          <children>
-            <HBox layoutX="178.0" layoutY="124.0" prefHeight="100.0" prefWidth="200.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+            <HBox layoutX="178.0" layoutY="124.0" prefHeight="100.0" prefWidth="200.0" style="-fx-background-color: WHITE;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                <children>
-                  <HBox prefHeight="100.0" prefWidth="200.0">
+                  <HBox prefHeight="100.0" prefWidth="200.0" style="-fx-background-color: WHITE;">
                      <children>
-                        <VBox prefHeight="200.0" prefWidth="100.0">
+                        <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: WHITE;">
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Supplier delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
                               <Slider fx:id="sdSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
@@ -57,7 +76,7 @@
                               </Button>
                            </children>
                         </VBox>
-                        <VBox prefHeight="200.0" prefWidth="100.0">
+                        <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: WHITE;">
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Producer delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
                               <Slider fx:id="pdSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
@@ -68,7 +87,7 @@
                               </Button>
                            </children>
                         </VBox>
-                        <VBox prefHeight="200.0" prefWidth="100.0">
+                        <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: WHITE;">
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Dealer delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
                               <Slider fx:id="ddSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
@@ -82,9 +101,9 @@
                      </children>
                   </HBox>
                   <Separator orientation="VERTICAL" prefHeight="200.0" />
-                  <HBox prefHeight="351.0" prefWidth="278.0">
+                  <HBox prefHeight="351.0" prefWidth="278.0" style="-fx-background-color: WHITE;">
                      <children>
-                        <VBox prefHeight="350.0" prefWidth="159.0">
+                        <VBox prefHeight="350.0" prefWidth="159.0" style="-fx-background-color: WHITE;">
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="25.0" prefWidth="137.0" text="Current status:">
                                  <font>
@@ -105,13 +124,13 @@
                               <Label prefHeight="20.0" prefWidth="134.0" text="Engine store count:" />
                               <Label prefHeight="20.0" prefWidth="134.0" text="Car store count:" />
                               <Separator prefWidth="200.0" />
-                              <Label prefHeight="20.0" prefWidth="134.0" text="Supplier count:" />
+                              <Label prefHeight="20.0" prefWidth="134.0" text="Acc. Supplier count:" />
                               <Label prefHeight="20.0" prefWidth="134.0" text="Producer count:" />
                               <Label prefHeight="20.0" prefWidth="134.0" text="Dealer count:" />
                            </children>
                         </VBox>
                         <Separator orientation="VERTICAL" prefHeight="200.0" />
-                        <VBox prefHeight="351.0" prefWidth="143.0">
+                        <VBox prefHeight="351.0" prefWidth="143.0" style="-fx-background-color: WHITE;">
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="25.0" prefWidth="98.0" />
                               <Label fx:id="workingTimeLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="92.0" />
@@ -136,7 +155,10 @@
                      </children>
                   </HBox>
                   <Separator orientation="VERTICAL" prefHeight="200.0" />
-                  <TextArea fx:id="logTextField" editable="false" maxWidth="1.7976931348623157E308" prefHeight="351.0" prefWidth="342.0" wrapText="true" />
+                  <TextArea fx:id="logTextArea" editable="false" focusTraversable="false" maxWidth="1.7976931348623157E308" prefHeight="351.0" prefWidth="342.0">
+                     <font>
+                        <Font size="10.0" />
+                     </font></TextArea>
                </children>
             </HBox>
          </children>

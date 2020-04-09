@@ -1,10 +1,10 @@
 package comiam.factoryapp.gui.main;
 
-import comiam.factoryapp.factory.factory.Factory;
 import comiam.factoryapp.gui.fxml.MainWindowController;
 import comiam.factoryapp.gui.uicore.UICore;
-import comiam.factoryapp.log.Log;
+import comiam.factoryapp.time.Timer;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -26,6 +26,12 @@ public class Main extends Application {
         primaryStage.getIcons().add(new Image(getClass().getResource("/res/zavod.png").toExternalForm()));
         primaryStage.setResizable(false);
 
+        primaryStage.setOnCloseRequest((e) ->
+        {
+            Timer.stop();
+            UICore.disableFactory();
+            Platform.exit();
+        });
         primaryStage.show();
         controller.initSliders();
         controller.setRootStage(primaryStage);
@@ -35,9 +41,5 @@ public class Main extends Application {
     public static void main(String[] args)
     {
         launch(args);
-        /*Log.init();
-        Log.enableInfoLogging();
-        Factory factory = new Factory();
-        factory.init(3, 10, 3,100, 30, 50, 10, 10, 10, 10);*/
     }
 }

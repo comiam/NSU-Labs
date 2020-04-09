@@ -7,6 +7,6 @@ public class AccessorySupplier extends Thread
 {
     public AccessorySupplier(Factory factory)
     {
-        super(new Supplier<>(factory, factory.getAccessoryStore(), Accessory.class));
+        super(new Supplier<>(factory, factory.getAccessoryStore(), Accessory.class), "Supplier");
     }
 }

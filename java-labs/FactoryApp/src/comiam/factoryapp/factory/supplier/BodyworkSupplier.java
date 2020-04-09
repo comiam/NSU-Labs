@@ -7,6 +7,6 @@ public class BodyworkSupplier extends Thread
 {
     public BodyworkSupplier(Factory factory)
     {
-        super(new Supplier<>(factory, factory.getBodyworkStore(), Bodywork.class));
+        super(new Supplier<>(factory, factory.getBodyworkStore(), Bodywork.class), "Supplier");
     }
 }

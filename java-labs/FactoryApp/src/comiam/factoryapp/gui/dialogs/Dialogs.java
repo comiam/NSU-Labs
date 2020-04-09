@@ -11,6 +11,16 @@ import java.io.StringWriter;
 
 public class Dialogs
 {
+    public static void showDefaultAlert(String title, String message, Alert.AlertType type, String... header)
+    {
+        Alert alert = new Alert(type);
+        alert.setTitle(title);
+        alert.setHeaderText(header != null && header.length == 1 ? header[0] : null);
+        alert.setContentText(message);
+
+        alert.showAndWait();
+    }
+
     public static void showExceptionDialog(Throwable ex, String... message)
     {
         Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -40,7 +50,6 @@ public class Dialogs
         expContent.add(textArea, 0, 1);
 
         alert.getDialogPane().setExpandableContent(expContent);
-
         alert.showAndWait();
     }
 }

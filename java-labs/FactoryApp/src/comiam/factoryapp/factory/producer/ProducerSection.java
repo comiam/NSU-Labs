@@ -17,8 +17,8 @@ public class ProducerSection
         workers = new ArrayList<>();
         pool = new TaskPool();
 
-        for(int i = 0; i < factory.getProducerDelay(); i++)
-            workers.add(new Thread(new Producer(factory, pool)));
+        for(int i = 0; i < factory.getProducerCount(); i++)
+            workers.add(new Thread(new Producer(factory, pool), "Producer"));
 
         init = true;
     }

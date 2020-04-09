@@ -41,10 +41,16 @@ public class Store<T>
         components.offer(obj);
     }
 
-    public synchronized T getComponent() throws InterruptedException
+    public synchronized T getComponent()
     {
         while(components.size() == 0)
-            this.wait();
+            try
+            {
+                this.wait();
+            }catch(InterruptedException e)
+            {
+                return null;
+            }
 
         this.notify();
         T obj = components.poll();
