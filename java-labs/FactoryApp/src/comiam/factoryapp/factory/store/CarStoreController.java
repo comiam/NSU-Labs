@@ -20,8 +20,8 @@ public class CarStoreController extends Thread
                         {
                             factory.getCarStore().wait();
                         }
-                }catch(Throwable ignored){
-                    return;
+                }catch(Throwable ignored) {
+                    break;
                 }
             }
         }, "CarStoreController");

@@ -18,7 +18,7 @@ public class TaskPool
         notifyAll();
     }
 
-    public synchronized FactoryTask getTask() throws InterruptedException
+    public synchronized FactoryTask getTask()
     {
         while(isEmpty())
             try
@@ -26,6 +26,7 @@ public class TaskPool
                 this.wait();
             }catch(InterruptedException e)
             {
+                Thread.currentThread().interrupt();
                 return null;
             }
 

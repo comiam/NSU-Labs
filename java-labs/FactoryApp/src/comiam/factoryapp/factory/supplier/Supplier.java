@@ -4,9 +4,11 @@ import comiam.factoryapp.factory.components.IDProduct;
 import comiam.factoryapp.factory.factory.Factory;
 import comiam.factoryapp.factory.store.Store;
 
+import static comiam.factoryapp.util.ThreadChecker.assertThreadInterrupted;
+
 public class Supplier<T extends IDProduct> implements Runnable
 {
-    private final Factory  currentFactory;
+    private Factory currentFactory;
     private final Store<T> store;
     private final Class<T> typeClass;
 
@@ -20,20 +22,17 @@ public class Supplier<T extends IDProduct> implements Runnable
     @Override
     public void run()
     {
-        while(!Thread.currentThread().isInterrupted() && currentFactory.isInitialized())
+        while(!Thread.currentThread().isInterrupted())
         {
             try
             {
                 Thread.sleep(currentFactory.getSupplierDelay());
-            } catch(InterruptedException ignored) {
-                return;
-            }
 
-            try
-            {
                 store.putComponent(typeClass.getConstructor(Long.TYPE).newInstance(IDProduct.getID()));
+
+                assertThreadInterrupted();
             }catch(Throwable ignored) {
-                return;
+                break;
             }
         }
     }

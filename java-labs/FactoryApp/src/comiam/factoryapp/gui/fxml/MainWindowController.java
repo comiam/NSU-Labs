@@ -3,7 +3,7 @@ package comiam.factoryapp.gui.fxml;
 import comiam.factoryapp.factory.factory.Factory;
 import comiam.factoryapp.gui.dialogs.Dialogs;
 import comiam.factoryapp.gui.uicore.UICore;
-import comiam.factoryapp.time.Timer;
+import comiam.factoryapp.log.Log;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -25,6 +25,13 @@ import javafx.util.Duration;
 
 public class MainWindowController
 {
+    public enum FactoryStatus
+    {
+        RUNNING,
+        DESTROYED,
+        NOT_CREATED
+    }
+
     @FXML
     private Slider sdSlider;
 
@@ -33,6 +40,9 @@ public class MainWindowController
 
     @FXML
     private Slider ddSlider;
+
+    @FXML
+    private Label status;
 
     @FXML
     private Label workingTimeLabel;
@@ -77,6 +87,21 @@ public class MainWindowController
     private Label supplierCountLabel;
 
     @FXML
+    private Menu loggingOnMenu;
+
+    @FXML
+    private CheckBox loggingEnabled;
+
+    @FXML
+    private Button randomSD;
+
+    @FXML
+    private Button randomDD;
+
+    @FXML
+    private Button randomPD;
+
+    @FXML
     private TextArea logTextArea;
 
     @FXML
@@ -97,12 +122,64 @@ public class MainWindowController
         changeRandomSlideVal(sdSlider);
     }
 
+    private long factoryID = Long.MIN_VALUE;
+
+    @FXML
+    private void selectLogging()//FIXME set Timer working in factory
+    {
+        if(loggingEnabled.isSelected())
+        {
+            try
+            {
+                Log.init();
+                Log.enableInfoLogging();
+                if(factoryID != Long.MIN_VALUE && factoryID == UICore.getFactory().hashCode())
+                    Log.info("======================LOGGING ENABLED IN SAME FACTORY======================");
+                else if(factoryID != Long.MIN_VALUE)
+                    Log.info("======================LOGGING ENABLED IN ANOTHER FACTORY======================");
+            } catch(Exception e)
+            {
+                Dialogs.showExceptionDialog(e);
+            }
+        }else
+        {
+            Log.info("======================LOGGING CLOSED======================");
+            Log.disableInfoLogging();
+            Log.disableLogging();
+            if(UICore.getFactory() != null)
+                factoryID = UICore.getFactory().hashCode();
+        }
+    }
+
     @FXML
     private void quit()
     {
-        Timer.stop();
+        loggingEnabled.setSelected(false);
+        selectLogging();
+
         UICore.disableFactory();
         Platform.exit();
+    }
+
+    @FXML
+    private void restartFactory()
+    {
+        UICore.restartFactory();
+    }
+
+    @FXML
+    private void stopFactory()
+    {
+        if(UICore.factoryIsDisabled())
+            return;
+
+        disableAll();
+        loggingEnabled.setSelected(false);
+        selectLogging();
+        setStatus(FactoryStatus.DESTROYED);
+        printLog("Destroyed\n");
+
+        UICore.disableFactory();
     }
 
     private Stage rootStage = null;
@@ -147,6 +224,10 @@ public class MainWindowController
             }
             logTextArea.positionCaret(logTextArea.getText().length());
         });
+
+        loggingOnMenu.setStyle("-fx-effect: none; -fx-background-color: WHITE;");
+        setStatus(FactoryStatus.NOT_CREATED);
+        disableAll();
     }
 
     public void setRootStage(Stage rootStage)
@@ -216,6 +297,8 @@ public class MainWindowController
 
         double var = Factory.randomizeDelay() * 1000;
         var -= var % 10;
+        if(var == 0)
+            var = 10;
 
         var kv = new KeyValue(slider.valueProperty(), var, Interpolator.EASE_BOTH);
         var kf = new KeyFrame(Duration.millis(150), kv);
@@ -293,6 +376,50 @@ public class MainWindowController
     {
         supplierCountLabel.setText("" + count);
     }
+
+    public void setStatus(FactoryStatus fstatus)
+    {
+        switch(fstatus)
+        {
+            case RUNNING:
+                status.setText("Running");
+                break;
+            case DESTROYED:
+                status.setText("Destroyed");
+                break;
+            case NOT_CREATED:
+                status.setText("Not created");
+                break;
+        }
+    }
+
+    public void enableAll()
+    {
+        ddSlider.setDisable(false);
+        sdSlider.setDisable(false);
+        pdSlider.setDisable(false);
+        loggingEnabled.setDisable(false);
+        randomDD.setDisable(false);
+        randomPD.setDisable(false);
+        randomSD.setDisable(false);
+    }
+
+    public void disableAll()
+    {
+        ddSlider.setDisable(true);
+        sdSlider.setDisable(true);
+        pdSlider.setDisable(true);
+        loggingEnabled.setDisable(true);
+        randomDD.setDisable(true);
+        randomPD.setDisable(true);
+        randomSD.setDisable(true);
+    }
+
+    public void setCBLogging(boolean checked)
+    {
+        loggingEnabled.setSelected(checked);
+    }
+
 
     public void printLog(String message)
     {

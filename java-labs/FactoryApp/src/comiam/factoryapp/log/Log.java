@@ -3,7 +3,10 @@ package comiam.factoryapp.log;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 
 public class Log
@@ -22,30 +25,21 @@ public class Log
         if(init)
             return;
 
-        File file = null;
+        File file;
         String resource = "/res/log4j2.xml";
 
-        try
-        {
-            InputStream input = Log.class.getResourceAsStream(resource);
-            file = File.createTempFile("tempfile", ".tmp");
-            OutputStream out = new FileOutputStream(file);
-            int read;
-            byte[] bytes = new byte[1024];
+        InputStream input = Log.class.getResourceAsStream(resource);
+        file = File.createTempFile("tempfile", ".tmp");
+        OutputStream out = new FileOutputStream(file);
+        int read;
+        byte[] bytes = new byte[1024];
 
-            while((read = input.read(bytes)) != -1)
-                out.write(bytes, 0, read);
-            out.close();
-            file.deleteOnExit();
-        } catch(IOException ex)
-        {
-            ex.printStackTrace();
-        }
+        while((read = input.read(bytes)) != -1)
+            out.write(bytes, 0, read);
+        out.close();
+        file.deleteOnExit();
 
-        if(file != null)
-            System.setProperty("log4j.configurationFile", file.getPath());
-        else
-            throw new Exception("Can't upload log configuration file!");
+        System.setProperty("log4j.configurationFile", file.getPath());
 
         info = LogManager.getLogger("log-info");
         err = LogManager.getLogger("log-error");
@@ -212,7 +206,7 @@ public class Log
 
     public static synchronized void log(LogType type, String message, Throwable t)
     {
-        if(!logEnabled)
+        if(!logEnabled || !init)
             return;
         switch(type)
         {

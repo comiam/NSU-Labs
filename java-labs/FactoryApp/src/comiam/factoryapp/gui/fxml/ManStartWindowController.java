@@ -129,9 +129,13 @@ public class ManStartWindowController
 
         dialogStage.close();
 
+        controller.setStatus(MainWindowController.FactoryStatus.RUNNING);
         controller.setPDSliderVal(getIntFromField(producerDelayTF));
         controller.setSDSliderVal(getIntFromField(supplierDelayTF));
         controller.setDDSliderVal(getIntFromField(dealerDelayTF));
+        controller.setCBLogging(enableLoggingCBox.isSelected());
+
+        controller.resetLog();
 
         UICore.enableFactoryProcess(
                 getIntFromField(accessorySupplierCountTF), getIntFromField(producerCountTF), getIntFromField(dealerCountTF),

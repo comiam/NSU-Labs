@@ -10,8 +10,6 @@ import comiam.factoryapp.gui.fxml.MainWindowController;
 import comiam.factoryapp.time.Timer;
 import javafx.application.Platform;
 
-import static comiam.factoryapp.util.Strings.getTimeString;
-
 public class UICore
 {
     private static Factory factory = null;
@@ -32,6 +30,8 @@ public class UICore
     {
         factory = new Factory(accessorySupplierCount, producerCount, dealerCount, supplierDelay, producerDelay, dealerDelay,
                 accessoryStoreLimit, engineStoreLimit, bodyworkStoreLimit, carStoreLimit);
+
+        UIDataBundle.resetAll();
         setEventHandlers();
         if(loggingEnabled)
         {
@@ -45,27 +45,53 @@ public class UICore
         }
 
         factory.init();
-
-        Timer.start(() -> Platform.runLater(() -> controller.setWorkingTime(getTimeString(Timer.getSeconds() / 3600, 2) + ":" + getTimeString(Timer.getSeconds() / 60, 2) + ":" + getTimeString(Timer.getSeconds() % 60, 2))));
+        setTimerEventHandler();
 
         controller.setDealerCount(factory.getDealerCount());
         controller.setProducerCount(factory.getProducerCount());
         controller.setSupplierCount(factory.getAccessorySupplierCount());
+        controller.enableAll();
     }
 
-    public static boolean restartFactory()
+    public static void restartFactory()
     {
-        if(factory == null)
-            return false;
+        if(factory == null || !factory.isInitialized())
+            return;
 
+        UIDataBundle.resetAll();
         factory.restart();
-        return true;
+        setTimerEventHandler();
+
+        controller.setCBLogging(false);
+        controller.setSDSliderVal(factory.getSupplierDelay());
+        controller.setPDSliderVal(factory.getProducerDelay());
+        controller.setDDSliderVal(factory.getDealerDelay());
+        controller.enableAll();
+        controller.resetLog();
+    }
+
+    private static void setTimerEventHandler()
+    {
+        Timer.subscribeEvent(() -> {
+            String time = Timer.getTime(Timer.HOURS | Timer.MINUTES | Timer.SECONDS);
+            Platform.runLater(() ->
+                    controller.setWorkingTime(time)
+            );
+        }, 1000);
+    }
+
+    public static boolean factoryIsDisabled()
+    {
+        return factory == null;
     }
 
     public static void disableFactory()
     {
         if(factory != null)
+        {
             factory.destroy(true);
+            factory = null;
+        }
     }
 
     private static void setEventHandlers()
@@ -111,8 +137,12 @@ public class UICore
             UIDataBundle.incCarSendCount();
             Platform.runLater(() ->
             {
+                if(array[0] == null || array[1] == null)
+                    return;
+                if(((Car) array[1]).getBodywork() == null || ((Car) array[1]).getEngine() == null || ((Car) array[1]).getAccessory() == null)
+                    return;
                 controller.setCarsSend(UIDataBundle.getCarSendCount());
-                controller.printLog(getTimeString(Timer.getSeconds() / 3600, 2) + ":" + getTimeString(Timer.getSeconds() / 60, 2) + ":" + getTimeString(Timer.getSeconds() % 60, 2) + ":" + getTimeString(Timer.getMilliSeconds(), 3) + " - Dealer " + array[0] + ": Auto: " + ((Car) array[1]).getUniqueID() + "; (Body: " +
+                controller.printLog(Timer.getTime(Timer.ALL_PARAMETERS) + " - Dealer " + array[0] + ": Auto: " + ((Car) array[1]).getUniqueID() + "; (Body: " +
                                     ((Car) array[1]).getBodywork().getUniqueID() + "; Engine: " +
                                     ((Car) array[1]).getEngine().getUniqueID() + "; Accessory: " +
                                     ((Car) array[1]).getAccessory().getUniqueID() + ")\n");

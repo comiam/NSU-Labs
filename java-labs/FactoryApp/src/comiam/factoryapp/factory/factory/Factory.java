@@ -9,6 +9,7 @@ import comiam.factoryapp.factory.supplier.AccessorySupplier;
 import comiam.factoryapp.factory.supplier.BodyworkSupplier;
 import comiam.factoryapp.factory.supplier.EngineSupplier;
 import comiam.factoryapp.log.Log;
+import comiam.factoryapp.time.Timer;
 
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
@@ -85,20 +86,21 @@ public class Factory
 
         initialized = false;
 
-        stopThreads();
-        threadPool.clear();
-
-        threadPool = null;
         carStore = null;
         accessoryStore = null;
         bodyworkStore = null;
         engineStore = null;
-        producerSection = null;
+
+        stopThreads();
+        threadPool.clear();
         carStoreController = null;
+        producerSection = null;
+        threadPool = null;
 
         if(destroyEventListeners)
             eventManager = null;
         System.gc();
+        Timer.stop();
     }
 
     /**
@@ -128,6 +130,7 @@ public class Factory
 
 
         initialized = true;
+        Timer.start();
         startThreads();
     }
 

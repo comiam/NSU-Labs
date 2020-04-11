@@ -21,11 +21,6 @@ public class UIDataBundle
         UIDataBundle.factoryWorkingProducers--;
     }
 
-    public static synchronized void setFactoryTime(long factoryTime)
-    {
-        UIDataBundle.factoryTime = factoryTime;
-    }
-
     public static synchronized void incCarMadeCount()
     {
         UIDataBundle.carMadeCount++;
@@ -54,11 +49,6 @@ public class UIDataBundle
     public static synchronized double getFactoryWorkingProducers()
     {
         return factoryWorkingProducers;
-    }
-
-    public static synchronized long getFactoryTime()
-    {
-        return factoryTime;
     }
 
     public static synchronized long getCarMadeCount()

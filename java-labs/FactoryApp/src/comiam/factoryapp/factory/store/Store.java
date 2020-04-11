@@ -23,10 +23,17 @@ public class Store<T>
         this.factory = factory;
     }
 
-    public synchronized void putComponent(T obj) throws InterruptedException
+    public synchronized void putComponent(T obj)
     {
         while(isFull())
-            this.wait();
+            try
+            {
+                this.wait();
+            }catch(Throwable ignored)
+            {
+                Thread.currentThread().interrupt();
+                return;
+            }
 
         this.notify();
         if(obj instanceof Accessory)
@@ -49,6 +56,7 @@ public class Store<T>
                 this.wait();
             }catch(InterruptedException e)
             {
+                Thread.currentThread().interrupt();
                 return null;
             }
 
