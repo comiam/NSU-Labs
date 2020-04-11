@@ -3,7 +3,8 @@ package comiam.factoryapp.gui.fxml;
 import comiam.factoryapp.factory.factory.Factory;
 import comiam.factoryapp.gui.dialogs.Dialogs;
 import comiam.factoryapp.gui.uicore.UICore;
-import comiam.factoryapp.log.Log;
+import comiam.factoryapp.factory.factory.FactoryIO;
+import comiam.factoryapp.io.Log;
 import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
@@ -14,14 +15,18 @@ import javafx.fxml.FXMLLoader;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.Pane;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.TextAlignment;
+import javafx.stage.FileChooser;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
+import java.io.File;
 
 public class MainWindowController
 {
@@ -125,16 +130,15 @@ public class MainWindowController
     private long factoryID = Long.MIN_VALUE;
 
     @FXML
-    private void selectLogging()//FIXME set Timer working in factory
+    private void selectLogging()
     {
         if(loggingEnabled.isSelected())
         {
             try
             {
-                Log.init();
-                Log.enableInfoLogging();
+                UICore.getFactory().enableLogging();
                 if(factoryID != Long.MIN_VALUE && factoryID == UICore.getFactory().hashCode())
-                    Log.info("======================LOGGING ENABLED IN SAME FACTORY======================");
+                    Log.info("=======================LOGGING ENABLED IN SAME FACTORY========================");
                 else if(factoryID != Long.MIN_VALUE)
                     Log.info("======================LOGGING ENABLED IN ANOTHER FACTORY======================");
             } catch(Exception e)
@@ -143,11 +147,17 @@ public class MainWindowController
             }
         }else
         {
-            Log.info("======================LOGGING CLOSED======================");
-            Log.disableInfoLogging();
-            Log.disableLogging();
+            Log.info("================================LOGGING CLOSED================================");
             if(UICore.getFactory() != null)
+            {
+                UICore.getFactory().disableLogging();
                 factoryID = UICore.getFactory().hashCode();
+            }
+            else
+            {
+                Log.disableInfoLogging();
+                Log.disableLogging();
+            }
         }
     }
 
@@ -161,9 +171,26 @@ public class MainWindowController
         Platform.exit();
     }
 
+    private void checkLogging()
+    {
+        if(loggingEnabled.isDisabled())
+        {
+            Dialogs.showDefaultAlert(rootStage, "Error", "I haven't any working factory!", Alert.AlertType.ERROR);
+            return;
+        }
+
+        loggingEnabled.setSelected(!loggingEnabled.isSelected());
+        selectLogging();
+    }
+
     @FXML
     private void restartFactory()
     {
+        if(UICore.factoryIsDisabled())
+        {
+            Dialogs.showDefaultAlert(rootStage, "Error", "I haven't any working factory!", Alert.AlertType.ERROR);
+            return;
+        }
         UICore.restartFactory();
     }
 
@@ -171,7 +198,10 @@ public class MainWindowController
     private void stopFactory()
     {
         if(UICore.factoryIsDisabled())
+        {
+            Dialogs.showDefaultAlert(rootStage, "Error", "I haven't any working factory!", Alert.AlertType.ERROR);
             return;
+        }
 
         disableAll();
         loggingEnabled.setSelected(false);
@@ -183,6 +213,91 @@ public class MainWindowController
     }
 
     private Stage rootStage = null;
+
+    @FXML
+    private void saveFactory()
+    {
+        if(UICore.getFactory() == null || !UICore.getFactory().isInitialized())
+            return;
+
+        try
+        {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setInitialFileName("config.fc");
+            fileChooser.setTitle("Choose file to save factory configuration.");
+            FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Factory configuration (*.fc)",
+                    "*.fc");
+            fileChooser.getExtensionFilters().add(extFilter);
+            File file = fileChooser.showSaveDialog(rootStage);
+            if (file == null)
+                return;
+
+            if(!FactoryIO.saveFactory(file, UICore.getFactory()))
+                Dialogs.showDefaultAlert(rootStage, "Error", "Can't save file. Unexpected error!", Alert.AlertType.ERROR);
+        } catch (Throwable e)
+        {
+            Dialogs.showExceptionDialog(e);
+        }
+    }
+
+    @FXML
+    private void loadFactory()
+    {
+        try
+        {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Choose file to open factory configuration.");
+            FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Factory configuration (*.fc)",
+                    "*.fc");
+            fileChooser.getExtensionFilters().add(extFilter);
+            File file = fileChooser.showOpenDialog(rootStage);
+
+            if (file == null)
+                return;
+
+            Factory factory = FactoryIO.readFactory(file);
+            if(factory == null)
+                Dialogs.showDefaultAlert(rootStage, "Error", "Bad XML Configuration file!", Alert.AlertType.ERROR);
+            else
+                UICore.enableFactoryProcess(factory);
+        } catch (Throwable e)
+        {
+            Dialogs.showExceptionDialog(e);
+        }
+    }
+
+    @FXML
+    private void showAboutDevelopers()
+    {
+        try
+        {
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(MainWindowController.class.getResource("AboutDevelopersPane.fxml"));
+            AnchorPane page = loader.load();
+
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("About developer");
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.initOwner(rootStage);
+
+            double centerXPosition = rootStage.getX() + rootStage.getWidth() / 2d;
+            double centerYPosition = rootStage.getY() + rootStage.getHeight() / 2d;
+
+            dialogStage.setOnShown(ev -> {
+                dialogStage.setX(centerXPosition - dialogStage.getWidth()/2d);
+                dialogStage.setY(centerYPosition - dialogStage.getHeight()/2d);
+            });
+
+            Scene scene = new Scene(page);
+            dialogStage.setScene(scene);
+            dialogStage.setResizable(false);
+
+            dialogStage.show();
+        } catch (Throwable e)
+        {
+            Dialogs.showExceptionDialog(e);
+        }
+    }
 
     @FXML
     private void showManualStartWindow()
@@ -199,11 +314,18 @@ public class MainWindowController
             dialogStage.initModality(Modality.WINDOW_MODAL);
             dialogStage.initOwner(rootStage);
 
+            double centerXPosition = rootStage.getX() + rootStage.getWidth() / 2d;
+            double centerYPosition = rootStage.getY() + rootStage.getHeight() / 2d;
+
+            dialogStage.setOnShown(ev -> {
+                dialogStage.setX(centerXPosition - dialogStage.getWidth()/2d);
+                dialogStage.setY(centerYPosition - dialogStage.getHeight()/2d);
+            });
+
             Scene scene = new Scene(page);
             dialogStage.setScene(scene);
             dialogStage.setResizable(false);
             controllerN.setStage(dialogStage);
-            controllerN.setController(this);
             dialogStage.showAndWait();
         } catch (Throwable e)
         {
@@ -217,7 +339,7 @@ public class MainWindowController
         UICore.initCore(this);
         logTextArea.textProperty().addListener((observable, oldValue, newValue) ->
         {
-            while (logTextArea.getText().split("\n", -1).length > 200)
+            while (logTextArea.getText().split("\n", -1).length > 26)
             {
                 int fle = logTextArea.getText().indexOf("\n");
                 logTextArea.replaceText(0, fle + 1, "");
@@ -233,6 +355,10 @@ public class MainWindowController
     public void setRootStage(Stage rootStage)
     {
         this.rootStage = rootStage;
+        rootStage.getScene().setOnKeyReleased((e) -> {
+            if(e.getCode() == KeyCode.L && e.isAltDown())
+                checkLogging();
+        });
     }
 
     public void initSliders()
@@ -377,6 +503,26 @@ public class MainWindowController
         supplierCountLabel.setText("" + count);
     }
 
+    public void clearFields()
+    {
+        setWorkingTime("00:00:00");
+        setFactoryLoad("0%");
+        setCarsMade(0);
+        setCarsSend(0);
+        setCarStoreCount(0);
+        setEngineDelivered(0);
+
+        setBodyworkDelivered(0);
+        setAccessoryDelivered(0);
+        setBodyworkStoreCount(0);
+        setAccessoryStoreCount(0);
+        setEngineStoreCount(0);
+        setSupplierCount(0);
+
+        setProducerCount(0);
+        setDealerCount(0);
+    }
+
     public void setStatus(FactoryStatus fstatus)
     {
         switch(fstatus)
@@ -421,9 +567,14 @@ public class MainWindowController
     }
 
 
-    public void printLog(String message)
+    public synchronized void printLog(String message)
     {
-        logTextArea.appendText(message);
+        double scl = logTextArea.getScrollLeft();
+        if(!logTextArea.getText().isEmpty())
+            logTextArea.setText(logTextArea.getText() + "\n");
+        logTextArea.setText(logTextArea.getText() + message);
+        logTextArea.setScrollTop(Double.MAX_VALUE);
+        logTextArea.setScrollLeft(scl);
     }
 
     public void resetLog()

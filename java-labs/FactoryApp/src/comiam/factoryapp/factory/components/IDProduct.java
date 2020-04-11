@@ -19,4 +19,9 @@ public class IDProduct
     {
         return uniqueID;
     }
+
+    public static synchronized void resetID()
+    {
+        ID = 0;
+    }
 }

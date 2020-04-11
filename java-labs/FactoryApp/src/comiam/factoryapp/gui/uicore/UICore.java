@@ -1,9 +1,6 @@
 package comiam.factoryapp.gui.uicore;
 
-import comiam.factoryapp.factory.components.Accessory;
-import comiam.factoryapp.factory.components.Bodywork;
-import comiam.factoryapp.factory.components.Car;
-import comiam.factoryapp.factory.components.Engine;
+import comiam.factoryapp.factory.components.*;
 import comiam.factoryapp.factory.factory.Factory;
 import comiam.factoryapp.gui.dialogs.Dialogs;
 import comiam.factoryapp.gui.fxml.MainWindowController;
@@ -15,53 +12,73 @@ public class UICore
     private static Factory factory = null;
     private static MainWindowController controller = null;
 
-    public static Factory getFactory()
+    public static synchronized Factory getFactory()
     {
         return factory;
     }
 
-    public static void initCore(MainWindowController controller)
+    public static synchronized void initCore(MainWindowController controller)
     {
         UICore.controller = controller;
     }
 
-    public static void enableFactoryProcess(int accessorySupplierCount, int producerCount, int dealerCount, int supplierDelay, int producerDelay, int dealerDelay,
-                                            int accessoryStoreLimit, int engineStoreLimit, int bodyworkStoreLimit, int carStoreLimit, boolean loggingEnabled)
+    public static synchronized void enableFactoryProcess(Factory factory)
     {
-        factory = new Factory(accessorySupplierCount, producerCount, dealerCount, supplierDelay, producerDelay, dealerDelay,
-                accessoryStoreLimit, engineStoreLimit, bodyworkStoreLimit, carStoreLimit);
+        if(UICore.factory != null && UICore.factory.isInitialized())
+            UICore.factory.destroy(true);
 
-        UIDataBundle.resetAll();
+        UICore.factory = factory;
         setEventHandlers();
-        if(loggingEnabled)
-        {
-            try
-            {
-                factory.enableLogging();
-            }catch(Throwable e)
-            {
-                Dialogs.showExceptionDialog(e, "Can't initialize logging!");
-            }
-        }
+        UIDataBundle.resetAll();
+        IDProduct.resetID();
 
-        factory.init();
+        try
+        {
+            UICore.factory.init();
+        } catch(Exception e)
+        {
+            Dialogs.showExceptionDialog(e, "Can't initialize logging!");
+        }
         setTimerEventHandler();
 
-        controller.setDealerCount(factory.getDealerCount());
-        controller.setProducerCount(factory.getProducerCount());
-        controller.setSupplierCount(factory.getAccessorySupplierCount());
+        controller.clearFields();
+        controller.setDealerCount(UICore.factory.getDealerCount());
+        controller.setProducerCount(UICore.factory.getProducerCount());
+        controller.setSupplierCount(UICore.factory.getAccessorySupplierCount());
+        controller.setStatus(MainWindowController.FactoryStatus.RUNNING);
+        controller.setPDSliderVal(UICore.factory.getProducerDelay());
+        controller.setSDSliderVal(UICore.factory.getSupplierDelay());
+        controller.setDDSliderVal(UICore.factory.getDealerDelay());
+        controller.setCBLogging(UICore.factory.isLoggingEnabled());
+
+        controller.resetLog();
         controller.enableAll();
     }
 
-    public static void restartFactory()
+    public static synchronized void enableFactoryProcess(int accessorySupplierCount, int producerCount, int dealerCount, int supplierDelay, int producerDelay, int dealerDelay,
+                                            int accessoryStoreLimit, int engineStoreLimit, int bodyworkStoreLimit, int carStoreLimit, boolean loggingEnabled)
+    {
+        enableFactoryProcess(new Factory(accessorySupplierCount, producerCount, dealerCount, supplierDelay, producerDelay, dealerDelay,
+                accessoryStoreLimit, engineStoreLimit, bodyworkStoreLimit, carStoreLimit, loggingEnabled));
+    }
+
+    public static synchronized void restartFactory()
     {
         if(factory == null || !factory.isInitialized())
             return;
 
         UIDataBundle.resetAll();
-        factory.restart();
+        IDProduct.resetID();
+        try
+        {
+            factory.restart();
+        } catch(Exception e)
+        {
+            Dialogs.showExceptionDialog(e, "Can't initialize logging!");
+        }
         setTimerEventHandler();
 
+        controller.clearFields();
         controller.setCBLogging(false);
         controller.setSDSliderVal(factory.getSupplierDelay());
         controller.setPDSliderVal(factory.getProducerDelay());
@@ -80,12 +97,12 @@ public class UICore
         }, 1000);
     }
 
-    public static boolean factoryIsDisabled()
+    public static synchronized boolean factoryIsDisabled()
     {
         return factory == null;
     }
 
-    public static void disableFactory()
+    public static synchronized void disableFactory()
     {
         if(factory != null)
         {
@@ -94,12 +111,14 @@ public class UICore
         }
     }
 
-    private static void setEventHandlers()
+    private static synchronized void setEventHandlers()
     {
         factory.setOnAccessoryDelivered((o) ->
         {
             UIDataBundle.incAccessoryDelivered();
             Platform.runLater(() -> {
+                if(factory == null)
+                    return;
                 controller.setAccessoryDelivered(UIDataBundle.getAccessoryDelivered());
                 controller.setAccessoryStoreCount(factory.getAccessoryStore().getCurrentCount());
             });
@@ -109,6 +128,8 @@ public class UICore
         {
             UIDataBundle.incBodyworkDelivered();
             Platform.runLater(() -> {
+                if(factory == null)
+                    return;
                 controller.setBodyworkDelivered(UIDataBundle.getBodyworkDelivered());
                 controller.setBodyworkStoreCount(factory.getBodyworkStore().getCurrentCount());
             });
@@ -118,12 +139,18 @@ public class UICore
         {
             UIDataBundle.incEngineDelivered();
             Platform.runLater(() -> {
+                if(factory == null)
+                    return;
                 controller.setEngineDelivered(UIDataBundle.getEngineDelivered());
                 controller.setEngineStoreCount(factory.getEngineStore().getCurrentCount());
             });
         });
 
-        factory.setOnCarDelivered((o) -> Platform.runLater(() -> controller.setCarStoreCount(factory.getCarStore().getCurrentCount())));
+        factory.setOnCarDelivered((o) -> Platform.runLater(() -> {
+            if(factory == null)
+                return;
+            controller.setCarStoreCount(factory.getCarStore().getCurrentCount());
+        }));
 
         factory.setOnCareMade((o) ->
         {
@@ -142,25 +169,36 @@ public class UICore
                 if(((Car) array[1]).getBodywork() == null || ((Car) array[1]).getEngine() == null || ((Car) array[1]).getAccessory() == null)
                     return;
                 controller.setCarsSend(UIDataBundle.getCarSendCount());
-                controller.printLog(Timer.getTime(Timer.ALL_PARAMETERS) + " - Dealer " + array[0] + ": Auto: " + ((Car) array[1]).getUniqueID() + "; (Body: " +
-                                    ((Car) array[1]).getBodywork().getUniqueID() + "; Engine: " +
-                                    ((Car) array[1]).getEngine().getUniqueID() + "; Accessory: " +
-                                    ((Car) array[1]).getAccessory().getUniqueID() + ")\n");
+                if(Timer.isRunning())
+                    controller.printLog(Timer.getTime(Timer.ALL_PARAMETERS) + " - Dealer " + array[0] + ": Auto: " + ((Car) array[1]).getUniqueID() + "; (Body: " +
+                                        ((Car) array[1]).getBodywork().getUniqueID() + "; Engine: " +
+                                        ((Car) array[1]).getEngine().getUniqueID() + "; Accessory: " +
+                                        ((Car) array[1]).getAccessory().getUniqueID() + ")");
             });
         });
 
         factory.setOnProducerStartJob((o) -> {
             UIDataBundle.incFactoryWorkingProducers();
-            Platform.runLater(() -> controller.setFactoryLoad(Math.round((1.0 * UIDataBundle.getFactoryWorkingProducers()) / factory.getProducerCount() * 100 * 100) / 100 + "%"));
+            Platform.runLater(() -> {
+                if(factory == null)
+                    return;
+                controller.setFactoryLoad(Math.round((1.0 * UIDataBundle.getFactoryWorkingProducers()) / factory.getProducerCount() * 100 * 100) / 100 + "%");
+            });
         });
 
         factory.setOnProducerDidJob((o) -> {
             UIDataBundle.decFactoryWorkingProducers();
-            Platform.runLater(() -> controller.setFactoryLoad(Math.round((1.0 * UIDataBundle.getFactoryWorkingProducers()) / factory.getProducerCount() * 100 * 100) / 100 + "%"));
+            Platform.runLater(() -> {
+                if(factory == null)
+                    return;
+                controller.setFactoryLoad(Math.round((1.0 * UIDataBundle.getFactoryWorkingProducers()) / factory.getProducerCount() * 100 * 100) / 100 + "%");
+            });
         });
 
         factory.setOnComponentSendFromStore((o) ->
                 Platform.runLater(() -> {
+                    if(factory == null)
+                        return;
                     if(o instanceof Accessory)
                         controller.setAccessoryStoreCount(factory.getAccessoryStore().getCurrentCount());
                     else if(o instanceof Engine)

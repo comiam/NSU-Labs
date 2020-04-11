@@ -48,7 +48,6 @@ public class ManStartWindowController
     private CheckBox  enableLoggingCBox;
 
     private Stage dialogStage;
-    private MainWindowController controller;
 
     public void setStage(Stage stage)
     {
@@ -59,83 +58,70 @@ public class ManStartWindowController
         });
     }
 
-    public void setController(MainWindowController controller)
-    {
-        this.controller = controller;
-    }
-
     @FXML
     private void setData()
     {
         if(checkArgs(accessorySupplierCountTF, false))
         {
-            Dialogs.showDefaultAlert("Error!", "Invalid accessory supplier count value!", Alert.AlertType.ERROR);
+            Dialogs.showDefaultAlert(dialogStage, "Error!", "Invalid accessory supplier count value!", Alert.AlertType.ERROR);
             return;
         }
 
         if(checkArgs(producerCountTF, false))
         {
-            Dialogs.showDefaultAlert("Error!", "Invalid producer count value!", Alert.AlertType.ERROR);
+            Dialogs.showDefaultAlert(dialogStage, "Error!", "Invalid producer count value!", Alert.AlertType.ERROR);
             return;
         }
 
         if(checkArgs(dealerCountTF, false))
         {
-            Dialogs.showDefaultAlert("Error!", "Invalid dealer count value!", Alert.AlertType.ERROR);
+            Dialogs.showDefaultAlert(dialogStage, "Error!", "Invalid dealer count value!", Alert.AlertType.ERROR);
             return;
         }
 
         if(checkArgs(supplierDelayTF, true))
         {
-            Dialogs.showDefaultAlert("Error!", "Invalid supplier delay value!", Alert.AlertType.ERROR);
+            Dialogs.showDefaultAlert(dialogStage, "Error!", "Invalid supplier delay value!", Alert.AlertType.ERROR);
             return;
         }
 
         if(checkArgs(producerDelayTF, true))
         {
-            Dialogs.showDefaultAlert("Error!", "Invalid producer delay value!", Alert.AlertType.ERROR);
+            Dialogs.showDefaultAlert(dialogStage, "Error!", "Invalid producer delay value!", Alert.AlertType.ERROR);
             return;
         }
 
         if(checkArgs(dealerDelayTF, true))
         {
-            Dialogs.showDefaultAlert("Error!", "Invalid dealer delay value!", Alert.AlertType.ERROR);
+            Dialogs.showDefaultAlert(dialogStage, "Error!", "Invalid dealer delay value!", Alert.AlertType.ERROR);
             return;
         }
 
         if(checkArgs(accessoryStoreCapacityTF, false))
         {
-            Dialogs.showDefaultAlert("Error!", "Invalid accessory store capacity value!", Alert.AlertType.ERROR);
+            Dialogs.showDefaultAlert(dialogStage, "Error!", "Invalid accessory store capacity value!", Alert.AlertType.ERROR);
             return;
         }
 
         if(checkArgs(engineStoreCapacityTF, false))
         {
-            Dialogs.showDefaultAlert("Error!", "Invalid engine store capacity value!", Alert.AlertType.ERROR);
+            Dialogs.showDefaultAlert(dialogStage, "Error!", "Invalid engine store capacity value!", Alert.AlertType.ERROR);
             return;
         }
 
         if(checkArgs(bodyworkStoreCapacityTF, false))
         {
-            Dialogs.showDefaultAlert("Error!", "Invalid bodywork store capacity value!", Alert.AlertType.ERROR);
+            Dialogs.showDefaultAlert(dialogStage, "Error!", "Invalid bodywork store capacity value!", Alert.AlertType.ERROR);
             return;
         }
 
         if(checkArgs(carStoreCapacityTF, false))
         {
-            Dialogs.showDefaultAlert("Error!", "Invalid car store capacity value!", Alert.AlertType.ERROR);
+            Dialogs.showDefaultAlert(dialogStage, "Error!", "Invalid car store capacity value!", Alert.AlertType.ERROR);
             return;
         }
 
         dialogStage.close();
-
-        controller.setStatus(MainWindowController.FactoryStatus.RUNNING);
-        controller.setPDSliderVal(getIntFromField(producerDelayTF));
-        controller.setSDSliderVal(getIntFromField(supplierDelayTF));
-        controller.setDDSliderVal(getIntFromField(dealerDelayTF));
-        controller.setCBLogging(enableLoggingCBox.isSelected());
-
-        controller.resetLog();
 
         UICore.enableFactoryProcess(
                 getIntFromField(accessorySupplierCountTF), getIntFromField(producerCountTF), getIntFromField(dealerCountTF),
@@ -152,6 +138,6 @@ public class ManStartWindowController
 
     private boolean checkArgs(TextField field, boolean checkOnNegative)
     {
-        return getIntegerWithCondition(field.getText().isEmpty() ? field.getPromptText() : field.getText(), (integer -> integer > 0 || (checkOnNegative && integer == -1))) == null;
+        return getIntegerWithCondition(field.getText().isEmpty() ? field.getPromptText() : field.getText(), (integer -> ((checkOnNegative ? integer >= 10 : integer > 0) && integer <= 2000) || (checkOnNegative && integer == -1))) == null;
     }
 }

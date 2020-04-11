@@ -3,7 +3,7 @@ package comiam.factoryapp.factory.dealer;
 import comiam.factoryapp.factory.components.Car;
 import comiam.factoryapp.factory.events.EventManager;
 import comiam.factoryapp.factory.factory.Factory;
-import comiam.factoryapp.log.Log;
+import comiam.factoryapp.io.Log;
 import comiam.factoryapp.time.Timer;
 
 import static comiam.factoryapp.util.ThreadChecker.assertThreadInterrupted;
@@ -33,8 +33,9 @@ public class DealerRunnable implements Runnable
 
                 factory.getEventManager().fireEvent(EventManager.CAR_SEND_EVENT, new Object[]{ID, car});
 
-                Log.info(Timer.getTime(Timer.ALL_PARAMETERS) + " - Dealer " + ID + ": Auto: " + car.getUniqueID() + "; (Body: " +
-                                car.getBodywork().getUniqueID() + "; Engine: " + car.getEngine().getUniqueID() + "; Accessory: " + car.getAccessory().getUniqueID() + ")");
+                if(factory.isLoggingEnabled())
+                    Log.info(Timer.getTime(Timer.ALL_PARAMETERS) + " - Dealer " + ID + ": Auto: " + car.getUniqueID() + "; (Body: " +
+                                    car.getBodywork().getUniqueID() + "; Engine: " + car.getEngine().getUniqueID() + "; Accessory: " + car.getAccessory().getUniqueID() + ")");
             } catch(Throwable ignored) {
                 break;
             }

@@ -5,16 +5,31 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.Priority;
+import javafx.stage.Stage;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public class Dialogs
 {
-    public static void showDefaultAlert(String title, String message, Alert.AlertType type, String... header)
+    public static void showDefaultAlert(Stage root, String title, String message, Alert.AlertType type, String... header)
     {
         Alert alert = new Alert(type);
         alert.setTitle(title);
+
+        if(root != null)
+        {
+            Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+
+            double centerXPosition = root.getX() + root.getWidth() / 2d;
+            double centerYPosition = root.getY() + root.getHeight() / 2d;
+
+            stage.setOnShown(ev -> {
+                stage.setX(centerXPosition - stage.getWidth()/2d);
+                stage.setY(centerYPosition - stage.getHeight()/2d);
+            });
+        }
+
         alert.setHeaderText(header != null && header.length == 1 ? header[0] : null);
         alert.setContentText(message);
 

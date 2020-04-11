@@ -15,53 +15,59 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox maxHeight="380.0" maxWidth="930.0" minHeight="-Infinity" minWidth="-Infinity" prefHeight="380.0" prefWidth="930.0" stylesheets="@style.css" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="comiam.factoryapp.gui.fxml.MainWindowController">
+<VBox maxHeight="419.0" maxWidth="930.0" minHeight="-Infinity" minWidth="-Infinity" prefHeight="386.0" prefWidth="930.0" stylesheets="@style.css" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="comiam.factoryapp.gui.fxml.MainWindowController">
   <children>
-    <MenuBar VBox.vgrow="NEVER">
-      <menus>
-        <Menu mnemonicParsing="false" text="Main">
-          <items>
-            <MenuItem mnemonicParsing="false" text="Save data">
-                     <accelerator>
-                        <KeyCodeCombination alt="ANY" code="S" control="UP" meta="UP" shift="UP" shortcut="UP" />
-                     </accelerator></MenuItem>
-                  <MenuItem mnemonicParsing="false" onAction="#showManualStartWindow" text="Run manually">
-                     <accelerator>
-                        <KeyCodeCombination alt="ANY" code="M" control="UP" meta="UP" shift="UP" shortcut="UP" />
-                     </accelerator></MenuItem>
-            <MenuItem mnemonicParsing="false" text="Load configuration">
-                     <accelerator>
-                        <KeyCodeCombination alt="ANY" code="C" control="UP" meta="UP" shift="UP" shortcut="UP" />
-                     </accelerator></MenuItem>
-                  <MenuItem mnemonicParsing="false" onAction="#restartFactory" text="Restart factory">
-                     <accelerator>
-                        <KeyCodeCombination alt="ANY" code="R" control="UP" meta="UP" shift="UP" shortcut="UP" />
-                     </accelerator></MenuItem>
-                  <MenuItem mnemonicParsing="false" onAction="#stopFactory" text="Close factory">
-                     <accelerator>
-                        <KeyCodeCombination alt="ANY" code="F" control="UP" meta="UP" shift="UP" shortcut="UP" />
-                     </accelerator></MenuItem>
-                  <MenuItem mnemonicParsing="false" onAction="#quit" text="Quit">
-                     <accelerator>
-                        <KeyCodeCombination alt="ANY" code="Q" control="UP" meta="UP" shift="UP" shortcut="UP" />
-                     </accelerator></MenuItem>
-          </items>
-        </Menu>
-        <Menu mnemonicParsing="false" text="Help">
-          <items>
-            <MenuItem mnemonicParsing="false" text="About FactoryApp" />
-          </items>
-        </Menu>
-            <Menu fx:id="loggingOnMenu" mnemonicParsing="false" style="-fx-background-color: WHITE;">
-               <graphic>
-                  <CheckBox fx:id="loggingEnabled" focusTraversable="false" mnemonicParsing="false" onAction="#selectLogging" style="-fx-text-fill: BLACK;" text="logging" />
-               </graphic>
-            </Menu>
-      </menus>
-    </MenuBar>
-    <AnchorPane maxHeight="-1.0" maxWidth="1.7976931348623157E308" prefHeight="-1.0" prefWidth="-1.0" VBox.vgrow="ALWAYS">
+    <AnchorPane maxHeight="-1.0" maxWidth="1.7976931348623157E308" prefHeight="369.0" prefWidth="930.0" VBox.vgrow="ALWAYS">
          <children>
-            <HBox layoutX="178.0" layoutY="124.0" prefHeight="100.0" prefWidth="200.0" style="-fx-background-color: WHITE;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+          <MenuBar prefHeight="30.0" prefWidth="490.0">
+            <menus>
+              <Menu mnemonicParsing="false" text="Factory">
+                <items>
+                  <MenuItem mnemonicParsing="false" onAction="#saveFactory" text="Save factory configuration">
+                           <accelerator>
+                              <KeyCodeCombination alt="ANY" code="S" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                           </accelerator>
+                        </MenuItem>
+                        <MenuItem mnemonicParsing="false" onAction="#showManualStartWindow" text="Run manually">
+                           <accelerator>
+                              <KeyCodeCombination alt="ANY" code="M" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                           </accelerator>
+                        </MenuItem>
+                  <MenuItem mnemonicParsing="false" onAction="#loadFactory" text="Load configuration">
+                           <accelerator>
+                              <KeyCodeCombination alt="ANY" code="C" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                           </accelerator>
+                        </MenuItem>
+                        <MenuItem mnemonicParsing="false" onAction="#restartFactory" text="Restart factory">
+                           <accelerator>
+                              <KeyCodeCombination alt="ANY" code="R" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                           </accelerator>
+                        </MenuItem>
+                        <MenuItem mnemonicParsing="false" onAction="#stopFactory" text="Close factory">
+                           <accelerator>
+                              <KeyCodeCombination alt="ANY" code="F" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                           </accelerator>
+                        </MenuItem>
+                        <MenuItem mnemonicParsing="false" onAction="#quit" text="Quit">
+                           <accelerator>
+                              <KeyCodeCombination alt="ANY" code="Q" control="UP" meta="UP" shift="UP" shortcut="UP" />
+                           </accelerator>
+                        </MenuItem>
+                </items>
+              </Menu>
+              <Menu mnemonicParsing="false" text="Help">
+                <items>
+                  <MenuItem mnemonicParsing="false" onAction="#showAboutDevelopers" text="About FactoryApp" />
+                </items>
+              </Menu>
+                  <Menu fx:id="loggingOnMenu" mnemonicParsing="false" style="-fx-background-color: WHITE;">
+                     <graphic>
+                        <CheckBox fx:id="loggingEnabled" focusTraversable="false" mnemonicParsing="false" onAction="#selectLogging" style="-fx-text-fill: BLACK;" text="logging" />
+                     </graphic>
+                  </Menu>
+            </menus>
+          </MenuBar>
+            <HBox layoutX="178.0" layoutY="124.0" prefHeight="100.0" prefWidth="200.0" style="-fx-background-color: WHITE;" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="30.0">
                <children>
                   <HBox prefHeight="100.0" prefWidth="200.0" style="-fx-background-color: WHITE;">
                      <children>
@@ -69,6 +75,7 @@
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Supplier delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
                               <Slider fx:id="sdSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" min="10.0" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
+                              <Label prefHeight="16.0" prefWidth="69.0" />
                               <Button fx:id="randomSD" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeSupplierDelay" text="Random">
                                  <font>
                                     <Font size="12.0" />
@@ -80,6 +87,7 @@
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Producer delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
                               <Slider fx:id="pdSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" min="10.0" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
+                              <Label prefHeight="16.0" prefWidth="69.0" />
                               <Button fx:id="randomPD" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeProducerDelay" text="Random">
                                  <font>
                                     <Font size="12.0" />
@@ -91,6 +99,7 @@
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Dealer delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
                               <Slider fx:id="ddSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" min="10.0" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
+                              <Label prefHeight="16.0" prefWidth="69.0" />
                               <Button fx:id="randomDD" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeDealerDelay" text="Random">
                                  <font>
                                     <Font size="12.0" />
@@ -132,38 +141,40 @@
                         <Separator orientation="VERTICAL" prefHeight="200.0" />
                         <VBox prefHeight="351.0" prefWidth="143.0" style="-fx-background-color: WHITE;">
                            <children>
-                              <Label fx:id="status" alignment="TOP_CENTER" prefHeight="25.0" prefWidth="129.0">
+                              <Label fx:id="status" alignment="CENTER" prefHeight="25.0" prefWidth="129.0">
                                  <font>
                                     <Font size="16.0" />
-                                 </font></Label>
-                              <Label fx:id="workingTimeLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="92.0" />
-                              <Label fx:id="factoryLoadLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="85.0" />
-                              <Label fx:id="carsMadeLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="75.0" />
-                              <Label fx:id="carsSuppliedLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="131.0" />
+                                 </font>
+                              </Label>
+                              <Label fx:id="workingTimeLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="92.0" text="00:00:00" />
+                              <Label fx:id="factoryLoadLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="85.0" text="0%" />
+                              <Label fx:id="carsMadeLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="75.0" text="0" />
+                              <Label fx:id="carsSuppliedLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="131.0" text="0" />
                               <Separator prefWidth="200.0" />
-                              <Label fx:id="engineDeliveredLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="114.0" />
-                              <Label fx:id="accessoryDeliveredLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="135.0" />
-                              <Label fx:id="bodyworkDeliveredLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Label fx:id="engineDeliveredLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="114.0" text="0" />
+                              <Label fx:id="accessoryDeliveredLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="135.0" text="0" />
+                              <Label fx:id="bodyworkDeliveredLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" text="0" />
                               <Separator prefWidth="200.0" />
-                              <Label fx:id="bStoreCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
-                              <Label fx:id="aStoreCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
-                              <Label fx:id="eStoreCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
-                              <Label fx:id="cStoreCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Label fx:id="bStoreCountLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" text="0" />
+                              <Label fx:id="aStoreCountLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" text="0" />
+                              <Label fx:id="eStoreCountLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" text="0" />
+                              <Label fx:id="cStoreCountLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" text="0" />
                               <Separator prefWidth="200.0" />
-                              <Label fx:id="supplierCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
-                              <Label fx:id="producerCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
-                              <Label fx:id="dealerCountLabel" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" />
+                              <Label fx:id="supplierCountLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" text="0" />
+                              <Label fx:id="producerCountLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" text="0" />
+                              <Label fx:id="dealerCountLabel" alignment="CENTER" maxWidth="1.7976931348623157E308" prefHeight="20.0" prefWidth="134.0" text="0" />
                            </children>
                         </VBox>
                      </children>
                   </HBox>
-                  <Separator orientation="VERTICAL" prefHeight="200.0" />
-                  <TextArea fx:id="logTextArea" editable="false" focusTraversable="false" maxWidth="1.7976931348623157E308" prefHeight="350.0" prefWidth="440.0">
-                     <font>
-                        <Font size="10.0" />
-                     </font></TextArea>
                </children>
             </HBox>
+            <Separator layoutX="487.0" maxHeight="1.7976931348623157E308" orientation="VERTICAL" prefHeight="386.0" prefWidth="6.0" />
+            <TextArea fx:id="logTextArea" editable="false" focusTraversable="false" maxWidth="1.7976931348623157E308" prefHeight="385.0" prefWidth="440.0" AnchorPane.leftAnchor="490.0" AnchorPane.rightAnchor="0.0">
+               <font>
+                  <Font size="10.0" />
+               </font>
+            </TextArea>
          </children>
     </AnchorPane>
   </children>

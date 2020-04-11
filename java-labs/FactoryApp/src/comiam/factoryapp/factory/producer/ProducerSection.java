@@ -46,7 +46,6 @@ public class ProducerSection
         for(var thread : workers)
             thread.interrupt();
 
-
         workers.clear();
         pool = null;
         workers = null;

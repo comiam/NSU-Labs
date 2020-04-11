@@ -8,7 +8,7 @@ import comiam.factoryapp.factory.store.*;
 import comiam.factoryapp.factory.supplier.AccessorySupplier;
 import comiam.factoryapp.factory.supplier.BodyworkSupplier;
 import comiam.factoryapp.factory.supplier.EngineSupplier;
-import comiam.factoryapp.log.Log;
+import comiam.factoryapp.io.Log;
 import comiam.factoryapp.time.Timer;
 
 import java.util.ArrayList;
@@ -36,22 +36,23 @@ public class Factory
     private final int engineStoreLimit;
     private final int bodyworkStoreLimit;
     private final int carStoreLimit;
+    private boolean loggingEnabled;
 
     /**
      * If any delay equals -1, when this delay sets randomly from 0,2 to 1.
      * @param accessorySupplierCount - count of suppliers for this factory.
      * @param producerCount - count of producers for this factory.
      * @param dealerCount - count of dealers for this factory.
-     * @param supplierDelay - delay in milliseconds with which suppliers deliver components.
-     * @param producerDelay - delay in milliseconds with which producers make cars.
-     * @param dealerDelay - delay in milliseconds with which dealers buy cars.
+     * @param supplierDelay - delay in milliseconds with which suppliers deliver components. If delay < 10, then it set to 10
+     * @param producerDelay - delay in milliseconds with which producers make cars. If delay < 10, then it set to 10
+     * @param dealerDelay - delay in milliseconds with which dealers buy cars. If delay < 10, then it set to 10
      * @param accessoryStoreLimit - limit of components for accessory store
      * @param engineStoreLimit - limit of components for engine store
      * @param bodyworkStoreLimit - limit of components for bodywork store
      * @param carStoreLimit - limit of components for car store
      */
     public Factory(int accessorySupplierCount, int producerCount, int dealerCount, int supplierDelay, int producerDelay, int dealerDelay,
-                   int accessoryStoreLimit, int engineStoreLimit, int bodyworkStoreLimit, int carStoreLimit)
+                   int accessoryStoreLimit, int engineStoreLimit, int bodyworkStoreLimit, int carStoreLimit, boolean loggingEnabled)
     {
         eventManager = new EventManager();
 
@@ -64,6 +65,15 @@ public class Factory
         if(dealerDelay == -1)
             supplierDelay = (int)(randomizeDelay() * 1000);
 
+        if(dealerDelay < 10)
+            dealerDelay = 10;
+
+        if(producerDelay < 10)
+            producerDelay = 10;
+
+        if(supplierDelay < 10)
+            supplierDelay = 10;
+
         this.accessorySupplierCount = accessorySupplierCount;
         this.dealerCount = dealerCount;
         this.producerCount = producerCount;
@@ -74,6 +84,7 @@ public class Factory
         this.engineStoreLimit = engineStoreLimit;
         this.bodyworkStoreLimit = bodyworkStoreLimit;
         this.carStoreLimit = carStoreLimit;
+        this.loggingEnabled = loggingEnabled;
     }
 
     /**
@@ -106,7 +117,7 @@ public class Factory
     /**
      * Init all factory processes: Dealers, Producers and suppliers.
      */
-    public synchronized void init()
+    public synchronized void init() throws Exception
     {
         if(initialized)
             return;
@@ -130,11 +141,13 @@ public class Factory
 
 
         initialized = true;
+        if(loggingEnabled)
+            enableLogging();
         Timer.start();
         startThreads();
     }
 
-    public synchronized void restart()
+    public synchronized void restart() throws Exception
     {
         if(!initialized)
             return;
@@ -249,8 +262,27 @@ public class Factory
             this.dealerDelay = dealerDelay;
     }
 
+    public boolean isLoggingEnabled()
+    {
+        if(loggingEnabled && !Log.isLoggingEnabled())
+            try
+            {
+                enableLogging();
+            }catch(Throwable e) {
+                return false;
+            }
+
+        return loggingEnabled;
+    }
+
+    public void disableLogging()
+    {
+        loggingEnabled = false;
+    }
+
     public void enableLogging() throws Exception
     {
+        loggingEnabled = true;
         Log.init();
         Log.enableInfoLogging();
     }
