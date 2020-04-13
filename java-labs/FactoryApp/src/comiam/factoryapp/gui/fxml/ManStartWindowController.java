@@ -136,8 +136,8 @@ public class ManStartWindowController
         return getInteger(field.getText().isEmpty() ? field.getPromptText() : field.getText());
     }
 
-    private boolean checkArgs(TextField field, boolean checkOnNegative)
+    private boolean checkArgs(TextField field, boolean checkDelay)
     {
-        return getIntegerWithCondition(field.getText().isEmpty() ? field.getPromptText() : field.getText(), (integer -> ((checkOnNegative ? integer >= 10 : integer > 0) && integer <= 2000) || (checkOnNegative && integer == -1))) == null;
+        return getIntegerWithCondition(field.getText().isEmpty() ? field.getPromptText() : field.getText(), (integer -> ((checkDelay ? integer >= 10 : integer > 0) && integer <= 2000) || (checkDelay && integer == -1))) == null;
     }
 }

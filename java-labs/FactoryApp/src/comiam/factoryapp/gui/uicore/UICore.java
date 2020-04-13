@@ -37,7 +37,7 @@ public class UICore
             UICore.factory.init();
         } catch(Exception e)
         {
-            Dialogs.showExceptionDialog(e, "Can't initialize logging!");
+            Dialogs.showExceptionDialog(controller.getRootStage(), e, "Can't initialize logging!");
         }
         setTimerEventHandler();
 
@@ -59,7 +59,7 @@ public class UICore
                                             int accessoryStoreLimit, int engineStoreLimit, int bodyworkStoreLimit, int carStoreLimit, boolean loggingEnabled)
     {
         enableFactoryProcess(new Factory(accessorySupplierCount, producerCount, dealerCount, supplierDelay, producerDelay, dealerDelay,
-                accessoryStoreLimit, engineStoreLimit, bodyworkStoreLimit, carStoreLimit, loggingEnabled));
+                accessoryStoreLimit, engineStoreLimit, bodyworkStoreLimit, carStoreLimit, loggingEnabled, "AppFactory-" + ProcessHandle.current().pid()));
     }
 
     public static synchronized void restartFactory()
@@ -74,7 +74,7 @@ public class UICore
             factory.restart();
         } catch(Exception e)
         {
-            Dialogs.showExceptionDialog(e, "Can't initialize logging!");
+            Dialogs.showExceptionDialog(controller.getRootStage(), e, "Can't initialize logging!");
         }
         setTimerEventHandler();
 
@@ -152,7 +152,7 @@ public class UICore
             controller.setCarStoreCount(factory.getCarStore().getCurrentCount());
         }));
 
-        factory.setOnCareMade((o) ->
+        factory.setOnCarMade((o) ->
         {
             UIDataBundle.incCarMadeCount();
             Platform.runLater(() -> controller.setCarsMade(UIDataBundle.getCarMadeCount()));

@@ -34,8 +34,8 @@ public class DealerRunnable implements Runnable
                 factory.getEventManager().fireEvent(EventManager.CAR_SEND_EVENT, new Object[]{ID, car});
 
                 if(factory.isLoggingEnabled())
-                    Log.info(Timer.getTime(Timer.ALL_PARAMETERS) + " - Dealer " + ID + ": Auto: " + car.getUniqueID() + "; (Body: " +
-                                    car.getBodywork().getUniqueID() + "; Engine: " + car.getEngine().getUniqueID() + "; Accessory: " + car.getAccessory().getUniqueID() + ")");
+                    Log.info(Timer.getTime(Timer.ALL_PARAMETERS) + (factory.canPrintName() ? " [" + factory.getFactoryName() + "]" : "") + " - Dealer " + ID + ": Auto: " + car.getUniqueID() + "; (Body: " +
+                             car.getBodywork().getUniqueID() + "; Engine: " + car.getEngine().getUniqueID() + "; Accessory: " + car.getAccessory().getUniqueID() + ")");
             } catch(Throwable ignored) {
                 break;
             }

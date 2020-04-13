@@ -18,17 +18,7 @@ public class Dialogs
         alert.setTitle(title);
 
         if(root != null)
-        {
-            Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
-
-            double centerXPosition = root.getX() + root.getWidth() / 2d;
-            double centerYPosition = root.getY() + root.getHeight() / 2d;
-
-            stage.setOnShown(ev -> {
-                stage.setX(centerXPosition - stage.getWidth()/2d);
-                stage.setY(centerYPosition - stage.getHeight()/2d);
-            });
-        }
+            centerChild((Stage) alert.getDialogPane().getScene().getWindow(), root);
 
         alert.setHeaderText(header != null && header.length == 1 ? header[0] : null);
         alert.setContentText(message);
@@ -36,7 +26,7 @@ public class Dialogs
         alert.showAndWait();
     }
 
-    public static void showExceptionDialog(Throwable ex, String... message)
+    public static void showExceptionDialog(Stage root, Throwable ex, String... message)
     {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Ошибка!");
@@ -65,6 +55,21 @@ public class Dialogs
         expContent.add(textArea, 0, 1);
 
         alert.getDialogPane().setExpandableContent(expContent);
+
+        if(root != null)
+            centerChild((Stage) alert.getDialogPane().getScene().getWindow(), root);
+
         alert.showAndWait();
+    }
+
+    public static void centerChild(Stage child, Stage parent)
+    {
+        double centerXPosition = parent.getX() + parent.getWidth() / 2d;
+        double centerYPosition = parent.getY() + parent.getHeight() / 2d;
+
+        child.setOnShown(ev -> {
+            child.setX(centerXPosition - child.getWidth()/2d);
+            child.setY(centerYPosition - child.getHeight()/2d);
+        });
     }
 }

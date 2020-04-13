@@ -28,7 +28,6 @@ public class Main extends Application {
 
         primaryStage.setOnCloseRequest((e) ->
         {
-            Timer.stop();
             UICore.disableFactory();
             Platform.exit();
         });

@@ -1,10 +1,9 @@
 package comiam.factoryapp.factory.factory;
 
+import comiam.factoryapp.io.IndentingXMLStreamWriter;
+
 import javax.xml.stream.*;
 import javax.xml.stream.events.XMLEvent;
-import javax.xml.transform.*;
-import javax.xml.transform.stream.StreamResult;
-import javax.xml.transform.stream.StreamSource;
 import java.io.*;
 
 public class FactoryIO
@@ -89,9 +88,10 @@ public class FactoryIO
                !logBoolIsInitialized)
                 throw new IllegalArgumentException("Bad XML Configuration file!");
 
-            return new Factory(accessorySupplierCount, producerCount, dealerCount, supplierDelay, producerDelay, dealerDelay, accessoryStoreLimit, engineStoreLimit, bodyworkStoreLimit, carStoreLimit, loggingEnabled);
+            return new Factory(accessorySupplierCount, producerCount, dealerCount, supplierDelay, producerDelay, dealerDelay, accessoryStoreLimit, engineStoreLimit, bodyworkStoreLimit, carStoreLimit, loggingEnabled, null);
         }catch(IOException | XMLStreamException | IllegalArgumentException ex)
         {
+            ex.printStackTrace();
             if(xmlReader != null)
                 try
                 {
@@ -106,9 +106,8 @@ public class FactoryIO
         XMLStreamWriter writer = null;
         try
         {
-            StringWriter sw = new StringWriter();
             XMLOutputFactory output = XMLOutputFactory.newInstance();
-            writer = output.createXMLStreamWriter(sw);
+            writer = new IndentingXMLStreamWriter(output.createXMLStreamWriter(new FileOutputStream(file)), "    ");
 
             // Open XML-doc and write FactoryConfiguration
             writer.writeStartDocument("1.0");
@@ -165,19 +164,9 @@ public class FactoryIO
             writer.flush();
             writer.close();
 
-            TransformerFactory transformerFactory = TransformerFactory.newInstance();
 
-            Transformer transformer = transformerFactory.newTransformer();
-            transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-            transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
-
-            StringWriter formattedStringWriter = new StringWriter();
-            transformer.transform(new StreamSource(new StringReader(sw.toString())), new StreamResult(formattedStringWriter));
-
-            PrintStream stream = new PrintStream(file);
-            stream.print(formattedStringWriter);
             return true;
-        } catch(XMLStreamException | IOException | TransformerException ex)
+        } catch(XMLStreamException | IOException ex)
         {
             ex.printStackTrace();
             if(writer != null)

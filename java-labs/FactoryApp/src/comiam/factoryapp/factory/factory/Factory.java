@@ -12,6 +12,7 @@ import comiam.factoryapp.io.Log;
 import comiam.factoryapp.time.Timer;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Factory
@@ -25,6 +26,7 @@ public class Factory
     private EngineStore engineStore;
     private ProducerSection producerSection;
     private CarStoreController carStoreController;
+    private String name;
 
     private final int accessorySupplierCount;
     private final int producerCount;
@@ -37,6 +39,7 @@ public class Factory
     private final int bodyworkStoreLimit;
     private final int carStoreLimit;
     private boolean loggingEnabled;
+    private boolean printName = true;
 
     /**
      * If any delay equals -1, when this delay sets randomly from 0,2 to 1.
@@ -52,7 +55,7 @@ public class Factory
      * @param carStoreLimit - limit of components for car store
      */
     public Factory(int accessorySupplierCount, int producerCount, int dealerCount, int supplierDelay, int producerDelay, int dealerDelay,
-                   int accessoryStoreLimit, int engineStoreLimit, int bodyworkStoreLimit, int carStoreLimit, boolean loggingEnabled)
+                   int accessoryStoreLimit, int engineStoreLimit, int bodyworkStoreLimit, int carStoreLimit, boolean loggingEnabled, String name)
     {
         eventManager = new EventManager();
 
@@ -73,6 +76,8 @@ public class Factory
 
         if(supplierDelay < 10)
             supplierDelay = 10;
+
+        this.name = Objects.requireNonNullElseGet(name, () -> "Factory-" + this.hashCode());
 
         this.accessorySupplierCount = accessorySupplierCount;
         this.dealerCount = dealerCount;
@@ -173,6 +178,26 @@ public class Factory
             thread.start();
     }
 
+    public synchronized boolean canPrintName()
+    {
+        return printName;
+    }
+
+    public synchronized void setPrintFactoryNameToLog(boolean set)
+    {
+        printName = set;
+    }
+
+    public synchronized void setFactoryName(String name)
+    {
+        this.name = name;
+    }
+
+    public synchronized String getFactoryName()
+    {
+        return name;
+    }
+
     public synchronized boolean isInitialized()
     {
         return initialized;
@@ -262,7 +287,7 @@ public class Factory
             this.dealerDelay = dealerDelay;
     }
 
-    public boolean isLoggingEnabled()
+    public synchronized boolean isLoggingEnabled()
     {
         if(loggingEnabled && !Log.isLoggingEnabled())
             try
@@ -275,12 +300,12 @@ public class Factory
         return loggingEnabled;
     }
 
-    public void disableLogging()
+    public synchronized void disableLogging()
     {
         loggingEnabled = false;
     }
 
-    public void enableLogging() throws Exception
+    public synchronized void enableLogging() throws Exception
     {
         loggingEnabled = true;
         Log.init();
@@ -297,63 +322,63 @@ public class Factory
 
     //EVENT SECTION
 
-    public void setOnEngineDelivered(EventHandler handler)
+    public synchronized void setOnEngineDelivered(EventHandler handler)
     {
         if(handler == null)
             return;
         eventManager.setEventHandler(EventManager.ENGINE_DELIVERED_EVENT, handler);
     }
 
-    public void setOnAccessoryDelivered(EventHandler handler)
+    public synchronized void setOnAccessoryDelivered(EventHandler handler)
     {
         if(handler == null)
             return;
         eventManager.setEventHandler(EventManager.ACCESSORY_DELIVERED_EVENT, handler);
     }
 
-    public void setOnBodyworkDelivered(EventHandler handler)
+    public synchronized void setOnBodyworkDelivered(EventHandler handler)
     {
         if(handler == null)
             return;
         eventManager.setEventHandler(EventManager.BODYWORK_DELIVERED_EVENT, handler);
     }
 
-    public void setOnCareMade(EventHandler handler)
+    public synchronized void setOnCarMade(EventHandler handler)
     {
         if(handler == null)
             return;
         eventManager.setEventHandler(EventManager.CAR_MADE_EVENT, handler);
     }
 
-    public void setOnCarDelivered(EventHandler handler)
+    public synchronized void setOnCarDelivered(EventHandler handler)
     {
         if(handler == null)
             return;
         eventManager.setEventHandler(EventManager.CAR_SUPPLIED_TO_STORE_EVENT, handler);
     }
 
-    public void setOnComponentSendFromStore(EventHandler handler)
+    public synchronized void setOnComponentSendFromStore(EventHandler handler)
     {
         if(handler == null)
             return;
         eventManager.setEventHandler(EventManager.COMPONENT_SEND_FROM_STORE, handler);
     }
 
-    public void setOnCarSend(EventHandler handler)
+    public synchronized void setOnCarSend(EventHandler handler)
     {
         if(handler == null)
             return;
         eventManager.setEventHandler(EventManager.CAR_SEND_EVENT, handler);
     }
 
-    public void setOnProducerStartJob(EventHandler handler)
+    public synchronized void setOnProducerStartJob(EventHandler handler)
     {
         if(handler == null)
             return;
         eventManager.setEventHandler(EventManager.PRODUCER_STARTED_DO_JOB_EVENT, handler);
     }
 
-    public void setOnProducerDidJob(EventHandler handler)
+    public synchronized void setOnProducerDidJob(EventHandler handler)
     {
         if(handler == null)
             return;

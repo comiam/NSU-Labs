@@ -28,6 +28,8 @@ import javafx.util.Duration;
 
 import java.io.File;
 
+import static comiam.factoryapp.gui.dialogs.Dialogs.centerChild;
+
 public class MainWindowController
 {
     public enum FactoryStatus
@@ -143,7 +145,7 @@ public class MainWindowController
                     Log.info("======================LOGGING ENABLED IN ANOTHER FACTORY======================");
             } catch(Exception e)
             {
-                Dialogs.showExceptionDialog(e);
+                Dialogs.showExceptionDialog(rootStage, e);
             }
         }else
         {
@@ -218,7 +220,10 @@ public class MainWindowController
     private void saveFactory()
     {
         if(UICore.getFactory() == null || !UICore.getFactory().isInitialized())
+        {
+            Dialogs.showDefaultAlert(rootStage, "Error", "I haven't any working factory!", Alert.AlertType.ERROR);
             return;
+        }
 
         try
         {
@@ -236,7 +241,7 @@ public class MainWindowController
                 Dialogs.showDefaultAlert(rootStage, "Error", "Can't save file. Unexpected error!", Alert.AlertType.ERROR);
         } catch (Throwable e)
         {
-            Dialogs.showExceptionDialog(e);
+            Dialogs.showExceptionDialog(rootStage, e);
         }
     }
 
@@ -262,7 +267,7 @@ public class MainWindowController
                 UICore.enableFactoryProcess(factory);
         } catch (Throwable e)
         {
-            Dialogs.showExceptionDialog(e);
+            Dialogs.showExceptionDialog(rootStage, e);
         }
     }
 
@@ -280,13 +285,8 @@ public class MainWindowController
             dialogStage.initModality(Modality.WINDOW_MODAL);
             dialogStage.initOwner(rootStage);
 
-            double centerXPosition = rootStage.getX() + rootStage.getWidth() / 2d;
-            double centerYPosition = rootStage.getY() + rootStage.getHeight() / 2d;
-
-            dialogStage.setOnShown(ev -> {
-                dialogStage.setX(centerXPosition - dialogStage.getWidth()/2d);
-                dialogStage.setY(centerYPosition - dialogStage.getHeight()/2d);
-            });
+            if(rootStage != null)
+                centerChild(dialogStage, rootStage);
 
             Scene scene = new Scene(page);
             dialogStage.setScene(scene);
@@ -295,7 +295,7 @@ public class MainWindowController
             dialogStage.show();
         } catch (Throwable e)
         {
-            Dialogs.showExceptionDialog(e);
+            Dialogs.showExceptionDialog(rootStage, e);
         }
     }
 
@@ -314,13 +314,8 @@ public class MainWindowController
             dialogStage.initModality(Modality.WINDOW_MODAL);
             dialogStage.initOwner(rootStage);
 
-            double centerXPosition = rootStage.getX() + rootStage.getWidth() / 2d;
-            double centerYPosition = rootStage.getY() + rootStage.getHeight() / 2d;
-
-            dialogStage.setOnShown(ev -> {
-                dialogStage.setX(centerXPosition - dialogStage.getWidth()/2d);
-                dialogStage.setY(centerYPosition - dialogStage.getHeight()/2d);
-            });
+            if(rootStage != null)
+                centerChild(dialogStage, rootStage);
 
             Scene scene = new Scene(page);
             dialogStage.setScene(scene);
@@ -329,7 +324,7 @@ public class MainWindowController
             dialogStage.showAndWait();
         } catch (Throwable e)
         {
-            Dialogs.showExceptionDialog(e);
+            Dialogs.showExceptionDialog(rootStage, e);
         }
     }
 
@@ -359,6 +354,11 @@ public class MainWindowController
             if(e.getCode() == KeyCode.L && e.isAltDown())
                 checkLogging();
         });
+    }
+
+    public Stage getRootStage()
+    {
+        return rootStage;
     }
 
     public void initSliders()
@@ -569,12 +569,9 @@ public class MainWindowController
 
     public synchronized void printLog(String message)
     {
-        double scl = logTextArea.getScrollLeft();
         if(!logTextArea.getText().isEmpty())
             logTextArea.setText(logTextArea.getText() + "\n");
         logTextArea.setText(logTextArea.getText() + message);
-        logTextArea.setScrollTop(Double.MAX_VALUE);
-        logTextArea.setScrollLeft(scl);
     }
 
     public void resetLog()
