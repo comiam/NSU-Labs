@@ -138,6 +138,6 @@ public class ManStartWindowController
 
     private boolean checkArgs(TextField field, boolean checkDelay)
     {
-        return getIntegerWithCondition(field.getText().isEmpty() ? field.getPromptText() : field.getText(), (integer -> ((checkDelay ? integer >= 10 : integer > 0) && integer <= 2000) || (checkDelay && integer == -1))) == null;
+        return getIntegerWithCondition(field.getText().isEmpty() ? field.getPromptText() : field.getText(), (integer -> (integer >= 0 && integer <= 2500) || (checkDelay && integer == -1))) == null;
     }
 }

@@ -5,22 +5,20 @@ import comiam.factoryapp.factory.components.Bodywork;
 import comiam.factoryapp.factory.components.Car;
 import comiam.factoryapp.factory.components.Engine;
 import comiam.factoryapp.factory.events.EventManager;
-import comiam.factoryapp.factory.factory.Factory;
-
-import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 
 public class Store<T>
 {
     private final Queue<T> components;
+    private final EventManager eventManager;
     private final int limit;
-    private final Factory factory;
 
-    public Store(Factory factory, int limit)
+    public Store(EventManager manager, int limit)
     {
-        this.components = new LinkedList<>();
+        this.components = new ArrayBlockingQueue<>(limit);
         this.limit = limit;
-        this.factory = factory;
+        this.eventManager = manager;
     }
 
     public synchronized void putComponent(T obj)
@@ -35,17 +33,18 @@ public class Store<T>
                 return;
             }
 
-        this.notify();
         if(obj instanceof Accessory)
-            factory.getEventManager().fireEvent(EventManager.ACCESSORY_DELIVERED_EVENT, null);
+            eventManager.fireEvent(EventManager.ACCESSORY_DELIVERED_EVENT, null);
         else if(obj instanceof Engine)
-            factory.getEventManager().fireEvent(EventManager.ENGINE_DELIVERED_EVENT, null);
+            eventManager.fireEvent(EventManager.ENGINE_DELIVERED_EVENT, null);
         else if(obj instanceof Bodywork)
-            factory.getEventManager().fireEvent(EventManager.BODYWORK_DELIVERED_EVENT, null);
+            eventManager.fireEvent(EventManager.BODYWORK_DELIVERED_EVENT, null);
         else if(obj instanceof Car)
-            factory.getEventManager().fireEvent(EventManager.CAR_SUPPLIED_TO_STORE_EVENT, obj);
+            eventManager.fireEvent(EventManager.CAR_SUPPLIED_TO_STORE_EVENT, obj);
 
         components.offer(obj);
+
+        this.notify();
     }
 
     public synchronized T getComponent()
@@ -60,9 +59,9 @@ public class Store<T>
                 return null;
             }
 
-        this.notify();
         T obj = components.poll();
-        factory.getEventManager().fireEvent(EventManager.COMPONENT_SEND_FROM_STORE, obj);
+        eventManager.fireEvent(EventManager.COMPONENT_SEND_FROM_STORE, obj);
+        this.notifyAll();
 
         return obj;
     }

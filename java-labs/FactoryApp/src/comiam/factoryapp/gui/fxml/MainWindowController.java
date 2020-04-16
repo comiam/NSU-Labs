@@ -29,6 +29,7 @@ import javafx.util.Duration;
 import java.io.File;
 
 import static comiam.factoryapp.gui.dialogs.Dialogs.centerChild;
+import static comiam.factoryapp.gui.uicore.UIDataBundle.MAX_LOG_SIZE;
 
 public class MainWindowController
 {
@@ -334,7 +335,7 @@ public class MainWindowController
         UICore.initCore(this);
         logTextArea.textProperty().addListener((observable, oldValue, newValue) ->
         {
-            while (logTextArea.getText().split("\n", -1).length > 26)
+            while (logTextArea.getText().split("\n", -1).length > MAX_LOG_SIZE)
             {
                 int fle = logTextArea.getText().indexOf("\n");
                 logTextArea.replaceText(0, fle + 1, "");
@@ -569,9 +570,11 @@ public class MainWindowController
 
     public synchronized void printLog(String message)
     {
+        double scroll = logTextArea.getScrollLeft();
         if(!logTextArea.getText().isEmpty())
             logTextArea.setText(logTextArea.getText() + "\n");
         logTextArea.setText(logTextArea.getText() + message);
+        logTextArea.setScrollLeft(scroll);
     }
 
     public void resetLog()

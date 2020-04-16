@@ -2,7 +2,6 @@ package comiam.factoryapp.gui.main;
 
 import comiam.factoryapp.gui.fxml.MainWindowController;
 import comiam.factoryapp.gui.uicore.UICore;
-import comiam.factoryapp.time.Timer;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;

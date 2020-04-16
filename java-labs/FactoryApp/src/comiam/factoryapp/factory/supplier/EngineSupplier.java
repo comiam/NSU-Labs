@@ -5,8 +5,9 @@ import comiam.factoryapp.factory.factory.Factory;
 
 public class EngineSupplier extends Thread
 {
-    public EngineSupplier(Factory factory)
+    public EngineSupplier(Factory factory, int priority)
     {
         super(new Supplier<>(factory, factory.getEngineStore(), Engine.class), "Supplier");
+        setPriority(priority);
     }
 }

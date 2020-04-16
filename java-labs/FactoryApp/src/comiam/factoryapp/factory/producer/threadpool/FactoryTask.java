@@ -9,16 +9,16 @@ public class FactoryTask
         this.countOfCars = countOfCars;
     }
 
-    public synchronized int getCarJob()
+    public synchronized void getCarJob()
     {
-        if(countOfCars == 0)
-            return 0;
+        if(countOfCars <= 0)
+            return;
 
-        return countOfCars--;
+        countOfCars--;
     }
     public synchronized boolean isDone()
     {
-        return countOfCars == 0;
+        return countOfCars <= 0;
     }
 
     public synchronized int getCountOfCars()

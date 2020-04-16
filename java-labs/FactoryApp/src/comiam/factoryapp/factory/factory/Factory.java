@@ -1,5 +1,6 @@
 package comiam.factoryapp.factory.factory;
 
+import comiam.factoryapp.factory.controller.CarStoreController;
 import comiam.factoryapp.factory.dealer.Dealer;
 import comiam.factoryapp.factory.events.EventHandler;
 import comiam.factoryapp.factory.events.EventManager;
@@ -10,6 +11,7 @@ import comiam.factoryapp.factory.supplier.BodyworkSupplier;
 import comiam.factoryapp.factory.supplier.EngineSupplier;
 import comiam.factoryapp.io.Log;
 import comiam.factoryapp.time.Timer;
+import comiam.factoryapp.util.Bundle;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -26,20 +28,21 @@ public class Factory
     private EngineStore engineStore;
     private ProducerSection producerSection;
     private CarStoreController carStoreController;
-    private String name;
 
     private final int accessorySupplierCount;
     private final int producerCount;
     private final int dealerCount;
-    private int supplierDelay;
-    private int producerDelay;
-    private int dealerDelay;
+    private final Bundle<Integer> supplierDelay;
+    private final Bundle<Integer> producerDelay;
+    private final Bundle<Integer> dealerDelay;
+    private final Bundle<Boolean> loggingEnabled;
+    private final Bundle<Boolean> printName;
+    private final Bundle<String> name;
     private final int accessoryStoreLimit;
     private final int engineStoreLimit;
     private final int bodyworkStoreLimit;
     private final int carStoreLimit;
-    private boolean loggingEnabled;
-    private boolean printName = true;
+    private int threadPriority;
 
     /**
      * If any delay equals -1, when this delay sets randomly from 0,2 to 1.
@@ -68,28 +71,20 @@ public class Factory
         if(dealerDelay == -1)
             supplierDelay = (int)(randomizeDelay() * 1000);
 
-        if(dealerDelay < 10)
-            dealerDelay = 10;
-
-        if(producerDelay < 10)
-            producerDelay = 10;
-
-        if(supplierDelay < 10)
-            supplierDelay = 10;
-
-        this.name = Objects.requireNonNullElseGet(name, () -> "Factory-" + this.hashCode());
+        this.name = new Bundle<>(Objects.requireNonNullElseGet(name, () -> "Factory-" + this.hashCode()));
+        this.printName = new Bundle<>(true);
 
         this.accessorySupplierCount = accessorySupplierCount;
         this.dealerCount = dealerCount;
         this.producerCount = producerCount;
-        this.supplierDelay = supplierDelay;
-        this.producerDelay = producerDelay;
-        this.dealerDelay = dealerDelay;
+        this.supplierDelay = new Bundle<>(supplierDelay);
+        this.producerDelay = new Bundle<>(producerDelay);
+        this.dealerDelay = new Bundle<>(dealerDelay);
         this.accessoryStoreLimit = accessoryStoreLimit;
         this.engineStoreLimit = engineStoreLimit;
         this.bodyworkStoreLimit = bodyworkStoreLimit;
         this.carStoreLimit = carStoreLimit;
-        this.loggingEnabled = loggingEnabled;
+        this.loggingEnabled = new Bundle<>(loggingEnabled);
     }
 
     /**
@@ -121,44 +116,50 @@ public class Factory
 
     /**
      * Init all factory processes: Dealers, Producers and suppliers.
+     * @param threadPriority - thread priority of all threads in factory process
+     * @throws Exception - if enable logging is failed
      */
-    public synchronized void init() throws Exception
+    public synchronized void init(int threadPriority) throws Exception
     {
         if(initialized)
             return;
 
-        producerSection = new ProducerSection(this);
-        carStore = new CarStore(this, carStoreLimit);
-        accessoryStore = new AccessoryStore(this, accessoryStoreLimit);
-        bodyworkStore = new BodyworkStore(this, bodyworkStoreLimit);
-        engineStore = new EngineStore(this, engineStoreLimit);
-        carStoreController = new CarStoreController(this);
+        carStore = new CarStore(eventManager, carStoreLimit);
+        accessoryStore = new AccessoryStore(eventManager, accessoryStoreLimit);
+        bodyworkStore = new BodyworkStore(eventManager, bodyworkStoreLimit);
+        engineStore = new EngineStore(eventManager, engineStoreLimit);
+        producerSection = new ProducerSection(this, threadPriority);
+        carStoreController = new CarStoreController(producerSection.getPool(), carStore, threadPriority);
         threadPool = new ArrayList<>();
 
         for(int i = 0; i < accessorySupplierCount; i++)
-            threadPool.add(new AccessorySupplier(this));
+            threadPool.add(new AccessorySupplier(this, threadPriority));
 
-        threadPool.add(new EngineSupplier(this));
-        threadPool.add(new BodyworkSupplier(this));
+        threadPool.add(new EngineSupplier(this, threadPriority));
+        threadPool.add(new BodyworkSupplier(this, threadPriority));
 
         for(int i = 0; i < dealerCount; i++)
-            threadPool.add(new Dealer(this, i));
+            threadPool.add(new Dealer(this, i, threadPriority));
 
+        this.threadPriority = threadPriority;
 
         initialized = true;
-        if(loggingEnabled)
+        if(loggingEnabled.getVal())
             enableLogging();
         Timer.start();
         startThreads();
     }
 
-    public synchronized void restart() throws Exception
+    public synchronized void restart(int threadPriority) throws Exception
     {
         if(!initialized)
             return;
 
         destroy(false);
-        init();
+        if(threadPriority != -1)
+            this.threadPriority = threadPriority;
+
+        init(this.threadPriority);
     }
 
     private synchronized void stopThreads()
@@ -178,22 +179,22 @@ public class Factory
             thread.start();
     }
 
-    public synchronized boolean canPrintName()
+    public synchronized Bundle<Boolean> canPrintName()
     {
         return printName;
     }
 
     public synchronized void setPrintFactoryNameToLog(boolean set)
     {
-        printName = set;
+        printName.setVal(set);
     }
 
     public synchronized void setFactoryName(String name)
     {
-        this.name = name;
+        this.name.setVal(name);
     }
 
-    public synchronized String getFactoryName()
+    public synchronized Bundle<String> getFactoryName()
     {
         return name;
     }
@@ -248,17 +249,17 @@ public class Factory
         return dealerCount;
     }
 
-    public synchronized int getSupplierDelay()
+    public synchronized Bundle<Integer> getSupplierDelay()
     {
         return supplierDelay;
     }
 
-    public synchronized int getProducerDelay()
+    public synchronized Bundle<Integer> getProducerDelay()
     {
         return producerDelay;
     }
 
-    public synchronized int getDealerDelay()
+    public synchronized Bundle<Integer> getDealerDelay()
     {
         return dealerDelay;
     }
@@ -266,35 +267,35 @@ public class Factory
     public synchronized void setSupplierDelay(int supplierDelay)
     {
         if(supplierDelay == -1)
-            this.supplierDelay = (int)(randomizeDelay() * 1000);
+            this.supplierDelay.setVal((int)(randomizeDelay() * 1000));
         else
-            this.supplierDelay = supplierDelay;
+            this.supplierDelay.setVal(supplierDelay);
     }
 
     public synchronized void setProducerDelay(int producerDelay)
     {
         if(producerDelay == -1)
-            this.producerDelay = (int)(randomizeDelay() * 1000);
+            this.producerDelay.setVal((int)(randomizeDelay() * 1000));
         else
-            this.producerDelay = producerDelay;
+            this.producerDelay.setVal(producerDelay);
     }
 
     public synchronized void setDealerDelay(int dealerDelay)
     {
         if(dealerDelay == -1)
-            this.dealerDelay = (int)(randomizeDelay() * 1000);
+            this.dealerDelay.setVal((int)(randomizeDelay() * 1000));
         else
-            this.dealerDelay = dealerDelay;
+            this.dealerDelay.setVal(dealerDelay);
     }
 
-    public synchronized boolean isLoggingEnabled()
+    public synchronized Bundle<Boolean> isLoggingEnabled()
     {
-        if(loggingEnabled && !Log.isLoggingEnabled())
+        if(loggingEnabled.getVal() && !Log.isLoggingEnabled())
             try
             {
                 enableLogging();
-            }catch(Throwable e) {
-                return false;
+            }catch(Throwable ignored) {
+                loggingEnabled.setVal(false);
             }
 
         return loggingEnabled;
@@ -302,12 +303,12 @@ public class Factory
 
     public synchronized void disableLogging()
     {
-        loggingEnabled = false;
+        loggingEnabled.setVal(false);
     }
 
     public synchronized void enableLogging() throws Exception
     {
-        loggingEnabled = true;
+        loggingEnabled.setVal(true);
         Log.init();
         Log.enableInfoLogging();
     }

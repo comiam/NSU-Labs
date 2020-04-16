@@ -1,12 +1,12 @@
 package comiam.factoryapp.factory.store;
 
 import comiam.factoryapp.factory.components.Accessory;
-import comiam.factoryapp.factory.factory.Factory;
+import comiam.factoryapp.factory.events.EventManager;
 
 public class AccessoryStore extends Store<Accessory>
 {
-    public AccessoryStore(Factory factory, int limit)
+    public AccessoryStore(EventManager manager, int limit)
     {
-        super(factory, limit);
+        super(manager, limit);
     }
 }

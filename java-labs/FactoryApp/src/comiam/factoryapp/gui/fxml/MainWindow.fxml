@@ -74,7 +74,7 @@
                         <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: WHITE;">
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Supplier delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
-                              <Slider fx:id="sdSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" min="10.0" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
+                              <Slider fx:id="sdSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
                               <Label prefHeight="16.0" prefWidth="69.0" />
                               <Button fx:id="randomSD" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeSupplierDelay" text="Random">
                                  <font>
@@ -86,7 +86,7 @@
                         <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: WHITE;">
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Producer delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
-                              <Slider fx:id="pdSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" min="10.0" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
+                              <Slider fx:id="pdSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
                               <Label prefHeight="16.0" prefWidth="69.0" />
                               <Button fx:id="randomPD" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeProducerDelay" text="Random">
                                  <font>
@@ -98,7 +98,7 @@
                         <VBox prefHeight="200.0" prefWidth="100.0" style="-fx-background-color: WHITE;">
                            <children>
                               <Label alignment="TOP_CENTER" prefHeight="54.0" prefWidth="67.0" text="Dealer delay (ms)" textAlignment="CENTER" textOverrun="CLIP" wrapText="true" />
-                              <Slider fx:id="ddSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" min="10.0" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
+                              <Slider fx:id="ddSlider" majorTickUnit="500.0" max="2000.0" maxWidth="1.7976931348623157E308" minorTickCount="10" nodeOrientation="LEFT_TO_RIGHT" orientation="VERTICAL" prefHeight="251.0" prefWidth="67.0" showTickLabels="true" />
                               <Label prefHeight="16.0" prefWidth="69.0" />
                               <Button fx:id="randomDD" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#randomizeDealerDelay" text="Random">
                                  <font>

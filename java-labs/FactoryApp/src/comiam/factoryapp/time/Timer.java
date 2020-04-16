@@ -93,7 +93,6 @@ public class Timer
         running = false;
         timer.cancel();
         timer.purge();
-
         synchronized(timeEventSet)
         {
             timeEventSet.clear();

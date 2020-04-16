@@ -1,19 +1,20 @@
 package comiam.factoryapp.factory.producer.threadpool;
 
-import java.util.ArrayList;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class TaskPool
 {
-    private final ArrayList<FactoryTask> taskArray;
+    private final Queue<FactoryTask> tasks;
 
     public TaskPool()
     {
-        taskArray = new ArrayList<>();
+        tasks = new LinkedBlockingQueue<>(3000);
     }
 
     public synchronized void pushTask(FactoryTask task)
     {
-        taskArray.add(task);
+        tasks.offer(task);
 
         notifyAll();
     }
@@ -30,7 +31,7 @@ public class TaskPool
                 return null;
             }
 
-        return taskArray.get(0);
+        return tasks.peek();
     }
 
     public synchronized void removeFirstTask()
@@ -38,14 +39,14 @@ public class TaskPool
         if(isEmpty())
             return;
 
-        taskArray.remove(0);
+        tasks.poll();
     }
 
     public synchronized int getCountOfTaskJobs()
     {
         int result = 0;
 
-        for(var task : taskArray)
+        for(var task : tasks)
             result += task.getCountOfCars();
 
         return result;
@@ -53,6 +54,6 @@ public class TaskPool
 
     public synchronized boolean isEmpty()
     {
-        return taskArray.size() == 0;
+        return tasks.size() == 0;
     }
 }

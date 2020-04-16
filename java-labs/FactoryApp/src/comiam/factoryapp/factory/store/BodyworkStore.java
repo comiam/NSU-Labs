@@ -1,12 +1,12 @@
 package comiam.factoryapp.factory.store;
 
 import comiam.factoryapp.factory.components.Bodywork;
-import comiam.factoryapp.factory.factory.Factory;
+import comiam.factoryapp.factory.events.EventManager;
 
 public class BodyworkStore extends Store<Bodywork>
 {
-    public BodyworkStore(Factory factory, int limit)
+    public BodyworkStore(EventManager manager, int limit)
     {
-        super(factory, limit);
+        super(manager, limit);
     }
 }

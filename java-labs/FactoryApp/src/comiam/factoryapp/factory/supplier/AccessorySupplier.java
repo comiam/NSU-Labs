@@ -5,8 +5,9 @@ import comiam.factoryapp.factory.factory.Factory;
 
 public class AccessorySupplier extends Thread
 {
-    public AccessorySupplier(Factory factory)
+    public AccessorySupplier(Factory factory, int priority)
     {
         super(new Supplier<>(factory, factory.getAccessoryStore(), Accessory.class), "Supplier");
+        setPriority(priority);
     }
 }

@@ -12,13 +12,17 @@ public class ProducerSection
     private ArrayList<Thread> workers;
     private boolean init;
 
-    public ProducerSection(Factory factory)
+    public ProducerSection(Factory factory, int priority)
     {
         workers = new ArrayList<>();
         pool = new TaskPool();
 
         for(int i = 0; i < factory.getProducerCount(); i++)
-            workers.add(new Thread(new Producer(factory, pool), "Producer"));
+        {
+            Thread thread = new Thread(new Producer(pool, factory), "Producer");
+            thread.setPriority(priority);
+            workers.add(thread);
+        }
 
         init = true;
     }

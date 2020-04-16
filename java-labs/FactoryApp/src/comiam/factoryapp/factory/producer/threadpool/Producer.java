@@ -3,6 +3,7 @@ package comiam.factoryapp.factory.producer.threadpool;
 import comiam.factoryapp.factory.components.*;
 import comiam.factoryapp.factory.events.EventManager;
 import comiam.factoryapp.factory.factory.Factory;
+import comiam.factoryapp.util.Bundle;
 
 import static comiam.factoryapp.util.ThreadChecker.assertThreadInterrupted;
 
@@ -10,11 +11,13 @@ public class Producer implements Runnable
 {
     private final TaskPool pool;
     private final Factory factory;
+    private final Bundle<Integer> delay;
 
-    public Producer(Factory factory, TaskPool pool)
+    public Producer(TaskPool pool, Factory factory)
     {
         this.factory = factory;
         this.pool = pool;
+        this.delay = factory.getProducerDelay();
     }
 
 
@@ -30,6 +33,11 @@ public class Producer implements Runnable
         {
             try
             {
+                //need for wake up the store controller, if it necessary decide to sleep
+                synchronized(factory.getCarStore())
+                {
+                    factory.getCarStore().notifyAll();
+                }
                 pool.getTask().getCarJob();
 
                 if(pool.getTask().isDone())
@@ -45,7 +53,9 @@ public class Producer implements Runnable
                 assertThreadInterrupted();
 
                 factory.getEventManager().fireEvent(EventManager.PRODUCER_STARTED_DO_JOB_EVENT, null);
-                Thread.sleep(factory.getProducerDelay());
+
+                if(delay.getVal() != 0)
+                    Thread.sleep(delay.getVal());
 
                 car = new Car(IDProduct.getID(), engine, bodywork, accessory);
                 factory.getCarStore().putComponent(car);
