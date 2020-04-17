@@ -46,16 +46,16 @@ public class Factory
 
     /**
      * If any delay equals -1, when this delay sets randomly from 0,2 to 1.
-     * @param accessorySupplierCount - count of suppliers for this factory.
-     * @param producerCount - count of producers for this factory.
-     * @param dealerCount - count of dealers for this factory.
-     * @param supplierDelay - delay in milliseconds with which suppliers deliver components. If delay < 10, then it set to 10
-     * @param producerDelay - delay in milliseconds with which producers make cars. If delay < 10, then it set to 10
-     * @param dealerDelay - delay in milliseconds with which dealers buy cars. If delay < 10, then it set to 10
-     * @param accessoryStoreLimit - limit of components for accessory store
-     * @param engineStoreLimit - limit of components for engine store
-     * @param bodyworkStoreLimit - limit of components for bodywork store
-     * @param carStoreLimit - limit of components for car store
+     * @param accessorySupplierCount count of suppliers for this factory.
+     * @param producerCount count of producers for this factory.
+     * @param dealerCount count of dealers for this factory.
+     * @param supplierDelay delay in milliseconds with which suppliers deliver components. If delay < 10, then it set to 10
+     * @param producerDelay delay in milliseconds with which producers make cars. If delay < 10, then it set to 10
+     * @param dealerDelay delay in milliseconds with which dealers buy cars. If delay < 10, then it set to 10
+     * @param accessoryStoreLimit limit of components for accessory store
+     * @param engineStoreLimit limit of components for engine store
+     * @param bodyworkStoreLimit limit of components for bodywork store
+     * @param carStoreLimit limit of components for car store
      */
     public Factory(int accessorySupplierCount, int producerCount, int dealerCount, int supplierDelay, int producerDelay, int dealerDelay,
                    int accessoryStoreLimit, int engineStoreLimit, int bodyworkStoreLimit, int carStoreLimit, boolean loggingEnabled, String name)
@@ -102,6 +102,8 @@ public class Factory
         bodyworkStore = null;
         engineStore = null;
 
+        eventManager.disablePerformingEvents();
+
         stopThreads();
         threadPool.clear();
         carStoreController = null;
@@ -110,14 +112,15 @@ public class Factory
 
         if(destroyEventListeners)
             eventManager = null;
+
         System.gc();
         Timer.stop();
     }
 
     /**
      * Init all factory processes: Dealers, Producers and suppliers.
-     * @param threadPriority - thread priority of all threads in factory process
-     * @throws Exception - if enable logging is failed
+     * @param threadPriority thread priority of all threads in factory process.
+     * @throws Exception if enable logging is failed
      */
     public synchronized void init(int threadPriority) throws Exception
     {
@@ -146,11 +149,19 @@ public class Factory
         initialized = true;
         if(loggingEnabled.getVal())
             enableLogging();
+
+        eventManager.enablePerformingEvents();
         Timer.start();
         startThreads();
     }
 
-    public synchronized void restart(int threadPriority) throws Exception
+    /**
+     * restart Factory with same parameters
+     * @param threadPriority new thread priority of all threads in factory process. If it equals -1, factory will restart with old priority
+     * @param worker code after destroy and before initialization factory. Ignored, if equals null
+     * @throws Exception if enable logging is failed
+     */
+    public synchronized void restart(int threadPriority, Runnable worker) throws Exception
     {
         if(!initialized)
             return;
@@ -158,6 +169,9 @@ public class Factory
         destroy(false);
         if(threadPriority != -1)
             this.threadPriority = threadPriority;
+
+        if(worker != null)
+            worker.run();
 
         init(this.threadPriority);
     }

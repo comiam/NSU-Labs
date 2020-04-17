@@ -14,6 +14,7 @@ public class EventManager
     public static final long CAR_SEND_EVENT = 7;
     public static final long COMPONENT_SEND_FROM_STORE = 8;
 
+    private boolean enablePerformingEvents = true;
     private final HashMap<Long, EventHandler> eventHandlers;
 
     public EventManager()
@@ -28,7 +29,25 @@ public class EventManager
 
     public synchronized void fireEvent(long ID, Object object)
     {
-        if(eventHandlers.containsKey(ID))
+        if(Thread.currentThread().isInterrupted())
+            return;
+
+        if(eventHandlers.containsKey(ID) && enablePerformingEvents)
             eventHandlers.get(ID).perform(object);
+    }
+
+    public synchronized boolean isEnablePerformingEvents()
+    {
+        return enablePerformingEvents;
+    }
+
+    public synchronized void disablePerformingEvents()
+    {
+        this.enablePerformingEvents = false;
+    }
+
+    public synchronized void enablePerformingEvents()
+    {
+        this.enablePerformingEvents = true;
     }
 }

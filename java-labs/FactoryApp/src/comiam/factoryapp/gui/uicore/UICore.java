@@ -74,20 +74,21 @@ public class UICore
         if(factory == null || !factory.isInitialized())
             return;
 
-        UIDataBundle.resetAll();
-        IDProduct.resetID();
         uiThread.waitOnRestart();
 
         try
         {
-            factory.restart(-1);
+            factory.restart(-1, () -> {
+                UIDataBundle.resetAll();
+                IDProduct.resetID();
+                setTimerEventHandler();
+            });
         } catch(Exception e)
         {
             Dialogs.showExceptionDialog(controller.getRootStage(), e, "Can't initialize logging!");
         }
 
         uiThread.continueWork();
-        setTimerEventHandler();
 
         controller.clearFields();
         controller.setCBLogging(false);
