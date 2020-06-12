@@ -5,8 +5,83 @@ import comiam.chat.server.logger.Log;
 
 import java.net.Socket;
 
+import static comiam.chat.server.messages.MessageNameConstants.*;
 public class LogMessages
 {
+    public static void logMessageOp(Socket socket, String username, String param, String type)
+    {
+        switch(type)
+        {
+            case SIGN_IN_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + " tries to sign in as " + param + ".");
+                break;
+            case SIGN_UP_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + " tries to sign up as " + param + ".");
+                break;
+            case CONNECT_TO_CHAT:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to connect to chat " + param + ".");
+                break;
+            case GET_CHATS_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to get chat list.");
+                break;
+            case GET_MESSAGES_FROM_CHAT_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to get messages from chat " + param + ".");
+                break;
+            case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to get online users list from chat " + param + ".");
+                break;
+            case GET_USERS_OF_CHAT_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to get users list from chat " + param + ".");
+                break;
+            case CREATE_CHAT_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to create chat " + param + ".");
+                break;
+            case DISCONNECT_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to disconnect.");
+                break;
+            case SEND_MESSAGE_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to send message.");
+                break;
+        }
+    }
+
+    public static void logSuccessMessageOp(Socket socket, String username, String param, String type)
+    {
+        switch(type)
+        {
+            case SIGN_IN_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + " signed in successfully as " + param + ".");
+                break;
+            case SIGN_UP_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + " signed up successfully as " + param + ".");
+                break;
+            case CONNECT_TO_CHAT:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully connected to chat " + param + ".");
+                break;
+            case GET_CHATS_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully got chat list.");
+                break;
+            case GET_MESSAGES_FROM_CHAT_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully got messages from chat " + param + ".");
+                break;
+            case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully got online users list from chat " + param + ".");
+                break;
+            case GET_USERS_OF_CHAT_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully got users list from chat " + param + ".");
+                break;
+            case CREATE_CHAT_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully created chat " + param + ".");
+                break;
+            case DISCONNECT_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully disconnected.");
+                break;
+            case SEND_MESSAGE_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully sent message.");
+                break;
+        }
+    }
+
     public static void badMessageTypeError(Socket victim)
     {
         Log.error("Backend thread: Unknown message type sent from " + victim.getInetAddress());

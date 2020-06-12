@@ -151,6 +151,8 @@ public class MessageHandler implements Runnable
                 username = res[0];
                 password = res[1];
 
+                logMessageOp(socket, null, username, messageType);
+
                 if(ServerData.containsUsername(username))
                 {
                     userAlreadyExistError(username, socket);
@@ -162,6 +164,8 @@ public class MessageHandler implements Runnable
                 ServerData.addNewUser(clientUser);
                 Sessions.createNewSession(socket, clientUser);
                 MessageSender.sendSuccess(socket, "Hello, " + username + " :)");
+
+                logSuccessMessageOp(socket, null, username, messageType);
                 break;
             }
             case SIGN_IN_MESSAGE:
@@ -170,6 +174,8 @@ public class MessageHandler implements Runnable
                 String[] res = parseAndCheck(socket, true, list, "name", "password");
                 username = res[0];
                 password = res[1];
+
+                logMessageOp(socket, null, username, messageType);
 
                 if(!ServerData.containsUsername(username))
                 {
@@ -190,21 +196,31 @@ public class MessageHandler implements Runnable
                 Sessions.createNewSession(socket, clientUser);
                 MessageSender.sendSuccess(socket, "Hello, " + username + " :)");
                 MessageSender.broadcastUpdateFrom(UpdateType.ONLINE_UPDATE, clientUser);
+
+                logSuccessMessageOp(socket, null, username, messageType);
                 break;
             }
             case GET_CHATS_MESSAGE:
             {
                 String chats = Objects.requireNonNull(MessageFactory.generateChatListMessage());
 
+                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
+
+                logMessageOp(socket, clientUser.getUsername(), null, messageType);
+
                 MessageSender.sendMessage(socket, chats);
 
-                clientUser = Sessions.getSessionUser(socket);
                 ConnectionTimers.zeroTimer(clientUser);
+
+                logSuccessMessageOp(socket, clientUser.getUsername(), null, messageType);
                 break;
             }
             case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
             {
                 String chatName = parseAndCheck(socket, false, list, "name")[0];
+
+                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
+                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
 
                 if(!ServerData.containsChat(chatName))
                 {
@@ -215,13 +231,16 @@ public class MessageHandler implements Runnable
                 String onlineUsers = MessageFactory.generateOnlineChatUsersListMessage(chatName);
                 MessageSender.sendMessage(socket, onlineUsers);
 
-                clientUser = Sessions.getSessionUser(socket);
                 ConnectionTimers.zeroTimer(clientUser);
+                logSuccessMessageOp(socket, clientUser.getUsername(), chatName, messageType);
                 break;
             }
             case GET_USERS_OF_CHAT_MESSAGE:
             {
                 String chatName = parseAndCheck(socket, false, list, "name")[0];
+
+                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
+                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
 
                 if(!ServerData.containsChat(chatName))
                 {
@@ -232,13 +251,16 @@ public class MessageHandler implements Runnable
                 String users = MessageFactory.generateChatUsersListMessage(chatName);
                 MessageSender.sendMessage(socket, users);
 
-                clientUser = Sessions.getSessionUser(socket);
                 ConnectionTimers.zeroTimer(clientUser);
+                logSuccessMessageOp(socket, clientUser.getUsername(), chatName, messageType);
                 break;
             }
             case GET_MESSAGES_FROM_CHAT_MESSAGE:
             {
                 String chatName = parseAndCheck(socket, false, list, "name")[0];
+
+                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
+                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
 
                 if(!ServerData.containsChat(chatName))
                 {
@@ -249,8 +271,8 @@ public class MessageHandler implements Runnable
                 String messages = MessageFactory.generateChatMessageListMessage(chatName);
                 MessageSender.sendMessage(socket, messages);
 
-                clientUser = Sessions.getSessionUser(socket);
                 ConnectionTimers.zeroTimer(clientUser);
+                logSuccessMessageOp(socket, clientUser.getUsername(), chatName, messageType);
                 break;
             }
             case DISCONNECT_MESSAGE:
@@ -262,10 +284,13 @@ public class MessageHandler implements Runnable
                 }
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
+                logMessageOp(socket, clientUser.getUsername(),null, messageType);
 
                 MessageSender.sendSuccess(socket, "Goodbye, " + clientUser.getUsername() + "!");
                 Connection.disconnectClient(Sessions.getSessionUser(socket));
                 MessageSender.broadcastUpdateFrom(UpdateType.ONLINE_UPDATE, clientUser);
+
+                logSuccessMessageOp(socket, clientUser.getUsername(), null, messageType);
                 break;
             }
             case SEND_MESSAGE_MESSAGE:
@@ -274,6 +299,10 @@ public class MessageHandler implements Runnable
                 String[] res = parseAndCheck(socket, false, list, "name", "message");
                 chatName = res[0];
                 messageStr = res[1];
+
+                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
+
+                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
 
                 if(!ServerData.containsChat(chatName))
                 {
@@ -284,24 +313,25 @@ public class MessageHandler implements Runnable
                 chat = Objects.requireNonNull(ServerData.getChatByName(chatName));
                 chat.addMessage(new Message(messageStr, Date.getDate(), Sessions.getSessionUser(socket)));
 
-                clientUser = Sessions.getSessionUser(socket);
-
                 MessageSender.broadcastUpdateFrom(UpdateType.MESSAGE_UPDATE, clientUser);
                 ConnectionTimers.zeroTimer(clientUser);
                 MessageSender.sendSuccess(socket, "sent");
+
+                logSuccessMessageOp(socket, clientUser.getUsername(), null, messageType);
                 break;
             }
             case CREATE_CHAT_MESSAGE:
             {
                 String chatName = parseAndCheck(socket, false, list, "name")[0];
+                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
+
+                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
 
                 if(ServerData.containsChat(chatName))
                 {
                     chatAlreadyExistError(chatName, socket);
                     return;
                 }
-
-                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
 
                 ArrayList<User> users = new ArrayList<>();
                 users.add(clientUser);
@@ -312,11 +342,16 @@ public class MessageHandler implements Runnable
                 MessageSender.broadcastUpdateFrom(UpdateType.USER_UPDATE, clientUser);
                 ConnectionTimers.zeroTimer(clientUser);
                 MessageSender.sendSuccess(socket, "hello in " + chatName + ":)");
+
+                logSuccessMessageOp(socket, clientUser.getUsername(), chatName, messageType);
                 break;
             }
             case CONNECT_TO_CHAT:
             {
                 String chatName = parseAndCheck(socket, false, list, "name")[0];
+
+                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
+                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
 
                 if(!ServerData.containsChat(chatName))
                 {
@@ -324,7 +359,6 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
-                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
                 chat = Objects.requireNonNull(ServerData.getChatByName(chatName));
 
                 if(chat.containsUser(clientUser))
@@ -338,6 +372,8 @@ public class MessageHandler implements Runnable
                 MessageSender.broadcastUpdateFrom(UpdateType.USER_UPDATE, clientUser);
                 ConnectionTimers.zeroTimer(clientUser);
                 MessageSender.sendSuccess(socket, "hello in " + chatName + ":)");
+
+                logSuccessMessageOp(socket, clientUser.getUsername(), chatName, messageType);
                 break;
             }
             default:

@@ -1,14 +1,13 @@
 package comiam.chat.server.threads;
 
+import comiam.chat.server.connection.Connection;
 import comiam.chat.server.core.ServerCore;
 import comiam.chat.server.logger.Log;
-import comiam.chat.server.connection.ConnectionTimers;
 import comiam.chat.server.utils.Pair;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -26,6 +25,8 @@ public class InputHandler implements Runnable
     private final int port;
     private static Selector selector;
 
+    private static final Object locker = new Object();
+
     public InputHandler(int port)
     {
         this.port = port;
@@ -33,7 +34,7 @@ public class InputHandler implements Runnable
 
     public static Set<SelectionKey> getSelectionKeys()
     {
-        synchronized(selector)
+        synchronized(locker)
         {
             return selector.keys();
         }
@@ -44,7 +45,7 @@ public class InputHandler implements Runnable
     {
         ServerSocket serverSocket;
 
-        synchronized(selector)
+        synchronized(locker)
         {
             try
             {
@@ -78,9 +79,9 @@ public class InputHandler implements Runnable
                     it.remove();
 
                     if(selectionKey.isAcceptable())
-                        synchronized(selector)
+                        synchronized(locker)
                         {
-                            acceptConnection(selector, serverSocket, selectionKey);
+                            Connection.acceptConnection(selector, serverSocket, selectionKey);
                         }
                     else if(selectionKey.isReadable())
                         readInputMessage(selectionKey);
@@ -179,53 +180,5 @@ public class InputHandler implements Runnable
 
         sizeBuffer.clear();
         sharedBuffer.clear();
-    }
-
-    private static void acceptConnection(Selector selector, ServerSocket serverSocket, SelectionKey selectionKey)
-    {
-        Socket socket;
-        SocketChannel channel;
-        try
-        {
-            socket = serverSocket.accept();
-            Log.info("Input Thread: Get connection from: " + socket.getInetAddress());
-            channel = socket.getChannel();
-        } catch(IOException e)
-        {
-            Log.error("Input Thread: Unable to accept connection!", e);
-            try
-            {
-                selectionKey.channel().close();
-            } catch(IOException ex)
-            {
-                ex.printStackTrace();
-            }
-            selectionKey.cancel();
-            return;
-        }
-
-        if(channel != null)
-        {
-            try
-            {
-                channel.configureBlocking(false);
-                channel.register(selector, SelectionKey.OP_READ);
-            } catch(IOException e)
-            {
-                Log.error("Input Thread: Unable to use new channel!", e);
-                try
-                {
-                    selectionKey.channel().close();
-                    socket.close();
-                } catch(IOException ex)
-                {
-                    ex.printStackTrace();
-                }
-                selectionKey.cancel();
-                return;
-            }
-        }
-        Log.info("Input Thread: Connection with " + socket.getInetAddress() + " is established!");
-        ConnectionTimers.addAuthTimer(socket);
     }
 }
