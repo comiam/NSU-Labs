@@ -57,7 +57,7 @@ public class MessageFactory
 
             Element chatList = document.createElement("chatlist");
 
-            Element chat, chatName, chatSize;
+            Element chat, chatName, chatSize, chatCreateDate;
 
             ArrayList<Chat> chats;
             synchronized((chats = ServerData.getChats()))
@@ -69,8 +69,11 @@ public class MessageFactory
                     chatName.setNodeValue(ch.getName());
                     chatSize = document.createElement("size");
                     chatSize.setNodeValue(ch.getUserSize() + "");
+                    chatCreateDate = document.createElement("date");
+                    chatCreateDate.setNodeValue(ch.getDateOfCreation());
                     chat.appendChild(chatName);
                     chat.appendChild(chatSize);
+                    chat.appendChild(chatCreateDate);
 
                     chatList.appendChild(chat);
                 }
@@ -187,17 +190,20 @@ public class MessageFactory
 
             Element chatList = document.createElement("messagelist");
 
-            Element message, messageName;
+            Element message, messageText, messageDate;
 
             synchronized(chat)
             {
                 for(var msg : chat.getMessages())
                 {
                     message = document.createElement("message");
-                    messageName = document.createElement("text");
-                    messageName.setNodeValue(msg.getText());
-                    message.appendChild(messageName);
+                    messageText = document.createElement("text");
+                    messageDate = document.createElement("date");
+                    messageDate.setNodeValue(msg.getDate());
+                    messageText.setNodeValue(msg.getText());
 
+                    message.appendChild(messageText);
+                    message.appendChild(messageDate);
                     chatList.appendChild(message);
                 }
             }

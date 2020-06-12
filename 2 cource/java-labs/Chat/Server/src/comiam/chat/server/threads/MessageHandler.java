@@ -205,11 +205,9 @@ public class MessageHandler implements Runnable
                 String chats = Objects.requireNonNull(MessageFactory.generateChatListMessage());
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
-
                 logMessageOp(socket, clientUser.getUsername(), null, messageType);
 
                 MessageSender.sendMessage(socket, chats);
-
                 ConnectionTimers.zeroTimer(clientUser);
 
                 logSuccessMessageOp(socket, clientUser.getUsername(), null, messageType);
