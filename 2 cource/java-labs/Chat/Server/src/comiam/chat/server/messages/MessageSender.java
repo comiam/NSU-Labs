@@ -11,12 +11,13 @@ import java.net.Socket;
 import java.util.Objects;
 
 import comiam.chat.server.messages.MessageNameConstants.UpdateType;
+import comiam.chat.server.xml.XMLMessageFactory;
 
 public class MessageSender
 {
     public static void sendError(Socket connection, String message)
     {
-        String xml = MessageFactory.generateSimpleMessage(MessageNameConstants.ERROR_MESSAGE, message);
+        String xml = XMLMessageFactory.generateSimpleMessage(MessageNameConstants.ERROR_MESSAGE, message);
 
         if(xml == null)
             throw new RuntimeException("Null message");
@@ -25,7 +26,7 @@ public class MessageSender
 
     public static void sendSuccess(Socket connection, String message)
     {
-        String xml = MessageFactory.generateSimpleMessage(MessageNameConstants.SUCCESS_MESSAGE, message);
+        String xml = XMLMessageFactory.generateSimpleMessage(MessageNameConstants.SUCCESS_MESSAGE, message);
 
         if(xml == null)
             throw new RuntimeException("Null message");
@@ -39,7 +40,7 @@ public class MessageSender
 
         Socket exception = Sessions.getSessionSocket(user);
         Chat[] chats = Objects.requireNonNull(ServerData.getUserChatList(user));
-        String message = MessageFactory.generateNoticeMessage(type.name(), chats.length);
+        String message = XMLMessageFactory.generateNoticeMessage(type.name(), chats.length);
         Socket[] sockets = Sessions.getSocketsOfSessionInChat(chats);
 
         for(var sock : Objects.requireNonNull(sockets))
@@ -54,16 +55,16 @@ public class MessageSender
                 switch(type)
                 {
                     case USER_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(MessageFactory.generateChatUsersListMessage(chat)));
+                        sendMessage(sock, Objects.requireNonNull(XMLMessageFactory.generateChatUsersListMessage(chat)));
                         break;
                     case ONLINE_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(MessageFactory.generateOnlineChatUsersListMessage(chat)));
+                        sendMessage(sock, Objects.requireNonNull(XMLMessageFactory.generateOnlineChatUsersListMessage(chat)));
                         break;
                     case MESSAGE_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(MessageFactory.generateChatMessageListMessage(chat)));
+                        sendMessage(sock, Objects.requireNonNull(XMLMessageFactory.generateChatMessageListMessage(chat)));
                         break;
                     case CHAT_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(MessageFactory.generateChatListMessage()));
+                        sendMessage(sock, Objects.requireNonNull(XMLMessageFactory.generateChatListMessage()));
                         break;
                     default:
                         throw new RuntimeException("Holy shit...");

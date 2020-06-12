@@ -58,6 +58,7 @@ public class Sessions
     public static synchronized void deleteSession(User user)
     {
         sessions.remove(user);
+        ConnectionTimers.removeTimer(user);
     }
 
     public static synchronized void createNewSession(Socket socket, User user)

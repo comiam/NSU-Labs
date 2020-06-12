@@ -15,6 +15,7 @@ public class MessageNameConstants
     public static final String DISCONNECT_MESSAGE               = "disconnect";
 
     /* Used on server only */
+    public static final String DEFAULT_CONFIG_XML_HEADER_NAME  = "config";
     public static final String DEFAULT_MESSAGE_XML_HEADER_NAME = "command";
     public static final String SUCCESS_MESSAGE                 = "success";
     public static final String ERROR_MESSAGE                   = "error";

@@ -8,21 +8,25 @@ import comiam.chat.server.connection.ConnectionTimers;
 
 public class ServerCore
 {
+    private static String dataBasePath;
     private static Thread inputThread;
     private static Thread messageThread;
     public static  boolean running = false;
 
-    public static void start(int port)
+    public static void start(int port, String dataBasePath)
     {
         if(running)
             return;
+
+        ServerCore.dataBasePath = dataBasePath;
 
         Log.info("Starting server threads...");
 
         inputThread = new Thread(new InputHandler(port));
         messageThread = new Thread(new MessageHandler());
 
-        ServerData.loadData();
+        if(!ServerData.loadData(ServerCore.dataBasePath))
+            return;
 
         ConnectionTimers.setTimerHandler();
         inputThread.start();
@@ -37,7 +41,7 @@ public class ServerCore
             return;
 
         if(!onError)
-            ServerData.saveData();
+            ServerData.saveData(ServerCore.dataBasePath);
 
         inputThread.interrupt();
         messageThread.interrupt();

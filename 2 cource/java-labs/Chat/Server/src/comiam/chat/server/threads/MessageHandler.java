@@ -8,12 +8,13 @@ import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.Message;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
-import comiam.chat.server.messages.MessageFactory;
+import comiam.chat.server.xml.XMLMessageFactory;
 import comiam.chat.server.messages.MessageSender;
 import comiam.chat.server.time.Date;
 import comiam.chat.server.utils.ArgChecker;
 import comiam.chat.server.utils.Hash;
 import comiam.chat.server.utils.Pair;
+import comiam.chat.server.xml.XMLParser;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
@@ -24,6 +25,8 @@ import java.util.Objects;
 import comiam.chat.server.messages.MessageNameConstants.UpdateType;
 import static comiam.chat.server.messages.LogMessages.*;
 import static comiam.chat.server.messages.MessageNameConstants.*;
+import static comiam.chat.server.xml.XMLConstants.BAD_XML_FIELD;
+import static comiam.chat.server.xml.XMLConstants.BAD_XML_HEADER;
 
 public class MessageHandler implements Runnable
 {
@@ -77,7 +80,7 @@ public class MessageHandler implements Runnable
                 continue;
             }
 
-            var message = MessageFactory.decodeXML(messageStr);
+            var message = XMLParser.decodeXML(messageStr);
 
             if(message.getFirst() != null && message.getSecond() == null)
             {
@@ -148,6 +151,8 @@ public class MessageHandler implements Runnable
             {
                 String username, password;
                 String[] res = parseAndCheck(socket, true, list, "name", "password");
+                if(res == null)
+                    return;
                 username = res[0];
                 password = res[1];
 
@@ -172,6 +177,8 @@ public class MessageHandler implements Runnable
             {
                 String username, password;
                 String[] res = parseAndCheck(socket, true, list, "name", "password");
+                if(res == null)
+                    return;
                 username = res[0];
                 password = res[1];
 
@@ -202,7 +209,7 @@ public class MessageHandler implements Runnable
             }
             case GET_CHATS_MESSAGE:
             {
-                String chats = Objects.requireNonNull(MessageFactory.generateChatListMessage());
+                String chats = Objects.requireNonNull(XMLMessageFactory.generateChatListMessage());
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
                 logMessageOp(socket, clientUser.getUsername(), null, messageType);
@@ -215,7 +222,11 @@ public class MessageHandler implements Runnable
             }
             case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
             {
-                String chatName = parseAndCheck(socket, false, list, "name")[0];
+                String[] res = parseAndCheck(socket, false, list, "name");
+                if(res == null)
+                    return;
+
+                String chatName = res[0];
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
                 logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
@@ -226,7 +237,7 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
-                String onlineUsers = MessageFactory.generateOnlineChatUsersListMessage(chatName);
+                String onlineUsers = XMLMessageFactory.generateOnlineChatUsersListMessage(chatName);
                 MessageSender.sendMessage(socket, onlineUsers);
 
                 ConnectionTimers.zeroTimer(clientUser);
@@ -235,7 +246,11 @@ public class MessageHandler implements Runnable
             }
             case GET_USERS_OF_CHAT_MESSAGE:
             {
-                String chatName = parseAndCheck(socket, false, list, "name")[0];
+                String[] res = parseAndCheck(socket, false, list, "name");
+                if(res == null)
+                    return;
+
+                String chatName = res[0];
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
                 logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
@@ -246,7 +261,7 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
-                String users = MessageFactory.generateChatUsersListMessage(chatName);
+                String users = XMLMessageFactory.generateChatUsersListMessage(chatName);
                 MessageSender.sendMessage(socket, users);
 
                 ConnectionTimers.zeroTimer(clientUser);
@@ -255,7 +270,11 @@ public class MessageHandler implements Runnable
             }
             case GET_MESSAGES_FROM_CHAT_MESSAGE:
             {
-                String chatName = parseAndCheck(socket, false, list, "name")[0];
+                String[] res = parseAndCheck(socket, false, list, "name");
+                if(res == null)
+                    return;
+
+                String chatName = res[0];
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
                 logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
@@ -266,7 +285,7 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
-                String messages = MessageFactory.generateChatMessageListMessage(chatName);
+                String messages = XMLMessageFactory.generateChatMessageListMessage(chatName);
                 MessageSender.sendMessage(socket, messages);
 
                 ConnectionTimers.zeroTimer(clientUser);
@@ -295,6 +314,9 @@ public class MessageHandler implements Runnable
             {
                 String chatName, messageStr;
                 String[] res = parseAndCheck(socket, false, list, "name", "message");
+
+                if(res == null)
+                    return;
                 chatName = res[0];
                 messageStr = res[1];
 
@@ -320,7 +342,11 @@ public class MessageHandler implements Runnable
             }
             case CREATE_CHAT_MESSAGE:
             {
-                String chatName = parseAndCheck(socket, false, list, "name")[0];
+                String[] res = parseAndCheck(socket, false, list, "name");
+                if(res == null)
+                    return;
+
+                String chatName = res[0];
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
 
                 logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
@@ -346,7 +372,11 @@ public class MessageHandler implements Runnable
             }
             case CONNECT_TO_CHAT:
             {
-                String chatName = parseAndCheck(socket, false, list, "name")[0];
+                String[] res = parseAndCheck(socket, false, list, "name");
+                if(res == null)
+                    return;
+
+                String chatName = res[0];
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
                 logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
@@ -379,22 +409,10 @@ public class MessageHandler implements Runnable
         }
     }
 
-    private String getNodeVal(NodeList list, int index)
-    {
-        return list.item(index).getTextContent().trim();
-    }
-
-    private String getNodeName(NodeList list, int index)
-    {
-        return list.item(index).getNodeName().trim();
-    }
-
     private String[] parseAndCheck(Socket socket, boolean disconnectOnError, NodeList list, String... values)
     {
-        if(values == null || values.length == 0)
-            return null;
-
-        if(list.getLength() != values.length)
+        String[] res = XMLParser.parseAndCheck(list, values);
+        if(res[0].equals(BAD_XML_HEADER))
         {
             badMessageDataError(socket);
             if(disconnectOnError)
@@ -402,27 +420,14 @@ public class MessageHandler implements Runnable
             return null;
         }
 
-        String[] result = new String[values.length];
-
-        for(int i = 0; i < values.length;i++)
+        if(res[0].equals(BAD_XML_FIELD))
         {
-            if(!getNodeName(list, i).trim().equals(values[i]))
-            {
-                badMessageDataError(socket);
-                if(disconnectOnError)
-                    Connection.disconnectIfOnline(socket);
-                return null;
-            }
-
-            if((result[i] = getNodeVal(list, i)).trim().isEmpty())
-            {
-                badFieldValueError(socket, values[i]);
-                if(disconnectOnError)
-                    Connection.disconnectIfOnline(socket);
-                return null;
-            }
+            badFieldValueError(socket, res[1]);
+            if(disconnectOnError)
+                Connection.disconnectIfOnline(socket);
+            return null;
         }
 
-        return result;
+        return res;
     }
 }

@@ -1,13 +1,12 @@
-package comiam.chat.server.messages;
+package comiam.chat.server.xml;
 
 import comiam.chat.server.data.ServerData;
 import comiam.chat.server.data.Sessions;
 import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.logger.Log;
-import comiam.chat.server.utils.Pair;
+import comiam.chat.server.messages.MessageNameConstants;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.InputSource;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -15,36 +14,13 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
-import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
 
 import static comiam.chat.server.messages.MessageNameConstants.SUCCESS_MESSAGE;
 
-public class MessageFactory
+public class XMLMessageFactory
 {
-    public static Pair<String, Document> decodeXML(String xml)
-    {
-        XMLErrorHandler errorHandler = new XMLErrorHandler();
-
-        try
-        {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setValidating(false);
-            factory.setNamespaceAware(true);
-
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            builder.setErrorHandler(errorHandler);
-            InputSource is = new InputSource(new StringReader(xml));
-            Document document = builder.parse(is);
-
-            return new Pair<>(null, document);
-        }catch (Exception e)
-        {
-            return new Pair<>(errorHandler.getMessage(), null);
-        }
-    }
-
     public static String generateChatListMessage()
     {
         try
@@ -235,7 +211,7 @@ public class MessageFactory
 
     public static String generateNoticeMessage(String message, int messageCount)
     {
-        return MessageFactory.generateSimpleMessage(MessageNameConstants.NOTICE_MESSAGE + ";" + messageCount, message);
+        return XMLMessageFactory.generateSimpleMessage(MessageNameConstants.NOTICE_MESSAGE + ";" + messageCount, message);
     }
 
     public static String generateSimpleMessage(String messageType, String message)

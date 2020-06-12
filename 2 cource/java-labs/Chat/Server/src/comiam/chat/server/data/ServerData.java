@@ -10,12 +10,13 @@ public class ServerData
     private static final ArrayList<User> users = new ArrayList<>();
     private static final ArrayList<Chat> chats = new ArrayList<>();
 
-    public static void loadData()
+    public static boolean loadData(String databasePath)
     {
-
+        //Handle exception if file databasePath not exist
+        return true;
     }
 
-    public static void saveData()
+    public static void saveData(String databasePath)
     {
 
     }

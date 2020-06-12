@@ -72,7 +72,6 @@ public class Connection
     {
         disconnectClient(Sessions.getSessionSocket(user));
         Sessions.deleteSession(user);
-        ConnectionTimers.removeTimer(user);
     }
 
     public static void disconnectClient(Socket socket)

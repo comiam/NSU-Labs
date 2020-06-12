@@ -1,40 +1,35 @@
-package comiam.chat.server;
+package comiam.chat.server.main;
 
 import comiam.chat.server.core.ServerCore;
 import comiam.chat.server.logger.Log;
-
-import static comiam.chat.server.utils.ArgChecker.*;
+import comiam.chat.server.xml.XMLParser;
 
 public class Main
 {
     public static void main(String[] args) throws Exception
     {
-        if(args.length != 2)
+        if(args.length != 1)
         {
             System.out.println("Invalid arg size!");
             return;
         }
 
-        if(isNotNumeric(args[0]))
+        var res = XMLParser.loadConfig(args[0]);
+
+        if(res == null)
         {
-            System.out.println("Invalid port value!");
+            System.out.println(XMLParser.getParserError());
             return;
         }
 
-        if(!isBoolean(args[1]))
-        {
-            System.out.println("Invalid logging flag value!");
-            return;
-        }
-
-        if(Boolean.parseBoolean(args[1]))
+        if(res.getFirst().getSecond())
         {
             Log.init();
             Log.enableInfoLogging();
             Log.enableErrorLogging();
         }
 
-        ServerCore.start(Integer.parseInt(args[0]));
+        ServerCore.start(res.getFirst().getFirst(), res.getSecond());
 
         //FIXME release terminal
 

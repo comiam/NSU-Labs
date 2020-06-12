@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Set;
 
-import static comiam.chat.server.core.Constants.MAX_MESSAGE_SIZE;
+import static comiam.chat.server.core.GlobalConstants.MAX_MESSAGE_SIZE;
 import static comiam.chat.server.utils.ByteUtils.convertToInt;
 
 public class InputHandler implements Runnable
