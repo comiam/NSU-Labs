@@ -206,11 +206,11 @@ public class XMLCore
                 userNode = document.createElement(USER_NODE_HEADER);
 
                 userName = document.createElement(NAME_NODE);
-                userName.setNodeValue(user.getUsername());
+                userName.setTextContent(user.getUsername());
                 userPassword = document.createElement(USER_PASSWORD_NODE);
-                userPassword.setNodeValue(user.getPassHash());
+                userPassword.setTextContent(user.getPassHash());
                 userActivity = document.createElement(ACTIVITY_NODE);
-                userActivity.setNodeValue(user.getLastActive());
+                userActivity.setTextContent(user.getLastActive());
 
                 userNode.appendChild(userName);
                 userNode.appendChild(userPassword);
@@ -232,7 +232,7 @@ public class XMLCore
                 {
                     userNode = document.createElement(USER_NODE_HEADER);
                     userName = document.createElement(NAME_NODE);
-                    userName.setNodeValue(user.getUsername());
+                    userName.setTextContent(user.getUsername());
 
                     chatUsers.appendChild(userNode);
                 }
@@ -241,11 +241,11 @@ public class XMLCore
                 {
                     messageNode = document.createElement(MESSAGE_NODE);
                     userName = document.createElement(NAME_NODE);
-                    userName.setNodeValue(message.getUser().getUsername());
+                    userName.setTextContent(message.getUser().getUsername());
                     textMessage = document.createElement(TEXT_NODE);
-                    textMessage.setNodeValue(message.getText());
+                    textMessage.setTextContent(message.getText());
                     userActivity = document.createElement(ACTIVITY_NODE);
-                    userActivity.setNodeValue(message.getDate());
+                    userActivity.setTextContent(message.getDate());
 
                     chatMessages.appendChild(messageNode);
                 }
@@ -253,10 +253,10 @@ public class XMLCore
                 chatNode.appendChild(chatMessages);
 
                 chatDate = document.createElement(ACTIVITY_NODE);
-                chatDate.setNodeValue(chat.getDateOfCreation());
+                chatDate.setTextContent(chat.getDateOfCreation());
 
                 chatName = document.createElement(NAME_NODE);
-                chatName.setNodeValue(chat.getName());
+                chatName.setTextContent(chat.getName());
 
                 chatNode.appendChild(chatDate);
                 chatNode.appendChild(chatName);

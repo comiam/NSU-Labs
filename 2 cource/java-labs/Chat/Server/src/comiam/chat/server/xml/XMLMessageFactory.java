@@ -42,11 +42,11 @@ public class XMLMessageFactory
                 {
                     chat = document.createElement("chat");
                     chatName = document.createElement("name");
-                    chatName.setNodeValue(ch.getName());
+                    chatName.setTextContent(ch.getName());
                     chatSize = document.createElement("size");
-                    chatSize.setNodeValue(ch.getUserSize() + "");
+                    chatSize.setTextContent(ch.getUserSize() + "");
                     chatCreateDate = document.createElement("date");
-                    chatCreateDate.setNodeValue(ch.getDateOfCreation());
+                    chatCreateDate.setTextContent(ch.getDateOfCreation());
                     chat.appendChild(chatName);
                     chat.appendChild(chatSize);
                     chat.appendChild(chatCreateDate);
@@ -88,9 +88,9 @@ public class XMLMessageFactory
                 {
                     user = document.createElement("user");
                     userName = document.createElement("name");
-                    userName.setNodeValue(usr.getUsername());
+                    userName.setTextContent(usr.getUsername());
                     userActivity = document.createElement("activity");
-                    userActivity.setNodeValue(usr.getLastActive());
+                    userActivity.setTextContent(usr.getLastActive());
                     user.appendChild(userName);
                     user.appendChild(userActivity);
 
@@ -131,9 +131,9 @@ public class XMLMessageFactory
                 {
                     user = document.createElement("user");
                     userName = document.createElement("name");
-                    userName.setNodeValue(usr.getUsername());
+                    userName.setTextContent(usr.getUsername());
                     userActivity = document.createElement("online");
-                    userActivity.setNodeValue("" + Sessions.isUserAuthorized(usr));
+                    userActivity.setTextContent("" + Sessions.isUserAuthorized(usr));
                     user.appendChild(userName);
                     user.appendChild(userActivity);
 
@@ -175,8 +175,8 @@ public class XMLMessageFactory
                     message = document.createElement("message");
                     messageText = document.createElement("text");
                     messageDate = document.createElement("date");
-                    messageDate.setNodeValue(msg.getDate());
-                    messageText.setNodeValue(msg.getText());
+                    messageDate.setTextContent(msg.getDate());
+                    messageText.setTextContent(msg.getText());
 
                     message.appendChild(messageText);
                     message.appendChild(messageDate);
@@ -222,7 +222,7 @@ public class XMLMessageFactory
             Document document = documentBuilder.newDocument();
 
             Element rootElement = document.createElement(messageType);
-            rootElement.setNodeValue(message);
+            rootElement.setTextContent(message);
             document.appendChild(rootElement);
 
             return writeXMLToMessage(document);
