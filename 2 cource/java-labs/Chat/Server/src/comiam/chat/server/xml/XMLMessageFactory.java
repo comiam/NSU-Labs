@@ -57,7 +57,7 @@ public class XMLMessageFactory
 
             rootElement.appendChild(chatList);
 
-            return writeXML(document);
+            return writeXMLToMessage(document);
         } catch (ParserConfigurationException e)
         {
             Log.error("MessageFactory: Unexpected error on creating chat list message!", e);
@@ -100,7 +100,7 @@ public class XMLMessageFactory
 
             rootElement.appendChild(userList);
 
-            return writeXML(document);
+            return writeXMLToMessage(document);
         }catch(ParserConfigurationException e)
         {
             Log.error("MessageFactory: Unexpected error on creating users chat list message!", e);
@@ -143,7 +143,7 @@ public class XMLMessageFactory
 
             rootElement.appendChild(userList);
 
-            return writeXML(document);
+            return writeXMLToMessage(document);
         }catch(ParserConfigurationException e)
         {
             Log.error("MessageFactory: Unexpected error on creating users chat list message!", e);
@@ -186,7 +186,7 @@ public class XMLMessageFactory
 
             rootElement.appendChild(chatList);
 
-            return writeXML(document);
+            return writeXMLToMessage(document);
         }catch(ParserConfigurationException e)
         {
             Log.error("MessageFactory: Unexpected error on creating message chat list message!", e);
@@ -225,7 +225,7 @@ public class XMLMessageFactory
             rootElement.setNodeValue(message);
             document.appendChild(rootElement);
 
-            return writeXML(document);
+            return writeXMLToMessage(document);
         } catch (ParserConfigurationException e)
         {
             Log.error("MessageFactory: Unexpected error on creating simple message!", e);
@@ -233,7 +233,7 @@ public class XMLMessageFactory
         }
     }
 
-    private static String writeXML(Document doc)
+    private static String writeXMLToMessage(Document doc)
     {
         try
         {

@@ -2,7 +2,11 @@ package comiam.chat.server.data;
 
 import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.User;
+import comiam.chat.server.logger.Log;
+import comiam.chat.server.xml.XMLCore;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 
 public class ServerData
@@ -12,13 +16,66 @@ public class ServerData
 
     public static boolean loadData(String databasePath)
     {
-        //Handle exception if file databasePath not exist
+        Log.info("Loading database...");
+        System.out.println("Loading database...");
+
+        File file = new File(databasePath);
+        if(file.exists())
+        {
+            System.out.println("Database file not exist. Shutting down...");
+            Log.error("Database file not exist. Shutting down...");
+            return false;
+        }
+
+        if(!file.canRead())
+        {
+            System.out.println("Can't read database file. Shutting down...");
+            Log.error("Can't read database file. Shutting down...");
+            return false;
+        }
+
+        var data = XMLCore.loadDatabase(file);
+
+        if(data == null)
+        {
+            System.out.println("Error when upload database: " + XMLCore.getParserError() + ". Shutting down...");
+            Log.error("Error when upload database: " + XMLCore.getParserError() + ". Shutting down...");
+            return false;
+        }
+
+        users.addAll(data.getFirst());
+        chats.addAll(data.getSecond());
+
+        System.out.println("Database loaded successfully!");
+        Log.info("Database loaded successfully!");
+
         return true;
     }
 
     public static void saveData(String databasePath)
     {
+        Log.info("Saving database...");
+        File file = new File(databasePath);
 
+        if(!file.exists())
+            try
+            {
+                file.createNewFile();
+            } catch(IOException e)
+            {
+                System.out.println("Can't save database in the specified folder! Data lost...");
+                Log.error("Can't save database in the specified folder! Data lost...", e);
+                return;
+            }
+
+        if(!file.canWrite())
+        {
+            System.out.println("Can't write to specified database file. Data lost...");
+            Log.error("Can't write to database file. Data lost...");
+            return;
+        }
+
+        XMLCore.saveDatabase(file, users, chats);
     }
 
     public static Chat getChatByName(String name)

@@ -14,7 +14,7 @@ import comiam.chat.server.time.Date;
 import comiam.chat.server.utils.ArgChecker;
 import comiam.chat.server.utils.Hash;
 import comiam.chat.server.utils.Pair;
-import comiam.chat.server.xml.XMLParser;
+import comiam.chat.server.xml.XMLCore;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
@@ -80,7 +80,7 @@ public class MessageHandler implements Runnable
                 continue;
             }
 
-            var message = XMLParser.decodeXML(messageStr);
+            var message = XMLCore.decodeXML(messageStr);
 
             if(message.getFirst() != null && message.getSecond() == null)
             {
@@ -411,7 +411,7 @@ public class MessageHandler implements Runnable
 
     private String[] parseAndCheck(Socket socket, boolean disconnectOnError, NodeList list, String... values)
     {
-        String[] res = XMLParser.parseAndCheck(list, values);
+        String[] res = XMLCore.parseAndCheck(list, values);
         if(res[0].equals(BAD_XML_HEADER))
         {
             badMessageDataError(socket);

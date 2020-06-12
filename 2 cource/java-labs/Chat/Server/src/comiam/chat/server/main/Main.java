@@ -2,7 +2,7 @@ package comiam.chat.server.main;
 
 import comiam.chat.server.core.ServerCore;
 import comiam.chat.server.logger.Log;
-import comiam.chat.server.xml.XMLParser;
+import comiam.chat.server.xml.XMLCore;
 
 public class Main
 {
@@ -14,11 +14,11 @@ public class Main
             return;
         }
 
-        var res = XMLParser.loadConfig(args[0]);
+        var res = XMLCore.loadConfig(args[0]);
 
         if(res == null)
         {
-            System.out.println(XMLParser.getParserError());
+            System.out.println(XMLCore.getParserError());
             return;
         }
 
