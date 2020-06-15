@@ -19,6 +19,16 @@ public class ServerData
         Log.info("Loading database...");
         System.out.println("Loading database...");
 
+        if(databasePath.equals("null"))
+        {
+            Log.info("In configuration file typed empty database!");
+            System.out.println("In configuration file typed empty database!");
+
+            Log.info("Created empty database.");
+            System.out.println("Created empty database.");
+            return true;
+        }
+
         File file = new File(databasePath);
         if(file.exists())
         {

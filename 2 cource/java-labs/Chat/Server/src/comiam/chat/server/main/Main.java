@@ -18,7 +18,7 @@ public class Main
 
         if(res == null)
         {
-            System.out.println(XMLCore.getParserError());
+            System.out.println("Error on loading configuration: " + XMLCore.getParserError());
             return;
         }
 

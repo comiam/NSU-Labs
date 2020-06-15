@@ -8,6 +8,7 @@ import comiam.chat.server.utils.Pair;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -134,6 +135,8 @@ public class InputHandler implements Runnable
                 tmpMessage.setLength(0);
                 sharedBuffer.clear();
 
+                selectionKey.cancel();
+
                 return;
             }
 
@@ -143,6 +146,8 @@ public class InputHandler implements Runnable
                 Log.error("Input Thread: Invalid size of the received message by " + address + ". Aborting...");
                 tmpMessage.setLength(0);
                 sharedBuffer.clear();
+
+                selectionKey.cancel();
 
                 return;
             }

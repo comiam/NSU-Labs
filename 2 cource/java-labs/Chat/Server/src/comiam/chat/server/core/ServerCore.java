@@ -32,6 +32,12 @@ public class ServerCore
         inputThread.start();
         messageThread.start();
 
+        String message = "Server started on port " + port + " with " +
+                (dataBasePath.equals("null") ? "empty database" : "database in " + dataBasePath) + ".";
+
+        System.out.println(message);
+        Log.info(message);
+
         running = true;
     }
 

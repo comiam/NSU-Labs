@@ -299,19 +299,23 @@ public class XMLCore
         if(values == null || values.length == 0)
             return null;
 
-        if(list.getLength() != values.length)
+        if(list.getLength() - values.length - 1 != values.length)
             return new String[] {BAD_XML_HEADER};
 
         String[] result = new String[values.length];
 
-        for(int i = 0; i < values.length;i++)
-        {
-            if(!getNodeName(list, i).trim().equals(values[i]))
-                return new String[] {BAD_XML_HEADER};
+        int realIndex = 0;
+        for(int i = 0; i < list.getLength();i++)
+            if(list.item(i).getNodeType() != Node.TEXT_NODE)
+            {
+                if(!getNodeName(list, i).equals(values[realIndex]))
+                    return new String[] {BAD_XML_HEADER};
 
-            if((result[i] = getNodeVal(list, i)).trim().isEmpty())
-                return new String[] {BAD_XML_FIELD, values[i]};
-        }
+                if((result[realIndex] = getNodeVal(list, i)).isEmpty())
+                    return new String[] {BAD_XML_FIELD, values[realIndex]};
+
+                realIndex++;
+            }
 
         return result;
     }

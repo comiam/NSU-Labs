@@ -48,7 +48,6 @@ public class Connection
                 Log.error("Input Thread: Unable to use new channel!", e);
                 try
                 {
-                    selectionKey.channel().close();
                     socket.close();
                 } catch(IOException ex)
                 {
