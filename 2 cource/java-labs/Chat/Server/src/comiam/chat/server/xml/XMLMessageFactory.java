@@ -1,7 +1,7 @@
 package comiam.chat.server.xml;
 
 import comiam.chat.server.data.ServerData;
-import comiam.chat.server.data.Sessions;
+import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.logger.Log;
 import comiam.chat.server.messages.MessageNameConstants;

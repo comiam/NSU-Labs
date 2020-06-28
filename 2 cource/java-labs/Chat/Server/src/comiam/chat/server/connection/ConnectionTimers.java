@@ -1,7 +1,7 @@
 package comiam.chat.server.connection;
 
 import comiam.chat.server.data.ServerData;
-import comiam.chat.server.data.Sessions;
+import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
 import comiam.chat.server.time.Timer;
@@ -9,8 +9,7 @@ import comiam.chat.server.time.Timer;
 import java.net.Socket;
 import java.util.HashMap;
 
-import static comiam.chat.server.core.GlobalConstants.AUTHENTICATION_TIMEOUT;
-import static comiam.chat.server.core.GlobalConstants.DEFAULT_TIMEOUT_IN_MINUTES;
+import static comiam.chat.server.core.GlobalConstants.*;
 
 public class ConnectionTimers
 {

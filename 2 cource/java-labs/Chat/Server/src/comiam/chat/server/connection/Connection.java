@@ -1,6 +1,6 @@
 package comiam.chat.server.connection;
 
-import comiam.chat.server.data.Sessions;
+import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
 import comiam.chat.server.threads.InputHandler;
@@ -69,7 +69,7 @@ public class Connection
 
     public static void disconnectClient(User user)
     {
-        disconnectClient(Sessions.getSessionSocket(user));
+        disconnectClient(Sessions.getSession(user).getConnection());
         Sessions.deleteSession(user);
     }
 

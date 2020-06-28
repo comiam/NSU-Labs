@@ -3,7 +3,7 @@ package comiam.chat.server.threads;
 import comiam.chat.server.connection.Connection;
 import comiam.chat.server.connection.ConnectionTimers;
 import comiam.chat.server.data.ServerData;
-import comiam.chat.server.data.Sessions;
+import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.Message;
 import comiam.chat.server.data.units.User;
@@ -144,19 +144,30 @@ public class MessageHandler implements Runnable
         }
 
         NodeList list = message.getDocumentElement().getChildNodes();
+        String sessionID;
 
         switch(messageType)
         {
             case SIGN_UP_MESSAGE:
             {
                 String username, password;
-                String[] res = parseAndCheck(socket, true, list, "name", "password");
+                String[] res = parseAndCheck(socket, true, list, "sessionID", "name", "password");
                 if(res == null)
                     return;
-                username = res[0];
-                password = res[1];
+
+                sessionID = res[0];
+                username = res[1];
+                password = res[2];
+
+                int status;
 
                 logMessageOp(socket, null, username, messageType);
+
+                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                {
+                    invalidSessionParsingError(sessionID, status);
+                    return;
+                }
 
                 if(ServerData.containsUsername(username))
                 {
@@ -167,8 +178,8 @@ public class MessageHandler implements Runnable
 
                 clientUser = new User(Hash.hashBytes(password.getBytes()), username, Date.getDate());
                 ServerData.addNewUser(clientUser);
-                Sessions.createNewSession(socket, clientUser);
-                MessageSender.sendSuccess(socket, "Hello, " + username + " :)");
+                sessionID = Sessions.createNewSession(socket, clientUser);
+                MessageSender.sendSuccess(socket, sessionID);
 
                 logSuccessMessageOp(socket, null, username, messageType);
                 break;
@@ -176,13 +187,23 @@ public class MessageHandler implements Runnable
             case SIGN_IN_MESSAGE:
             {
                 String username, password;
-                String[] res = parseAndCheck(socket, true, list, "name", "password");
+                String[] res = parseAndCheck(socket, true, list, "sessionID", "name", "password");
                 if(res == null)
                     return;
-                username = res[0];
-                password = res[1];
+
+                sessionID = res[0];
+                username = res[1];
+                password = res[2];
+
+                int status;
 
                 logMessageOp(socket, null, username, messageType);
+
+                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                {
+                    invalidSessionParsingError(sessionID, status);
+                    return;
+                }
 
                 if(!ServerData.containsUsername(username))
                 {
@@ -200,8 +221,8 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
-                Sessions.createNewSession(socket, clientUser);
-                MessageSender.sendSuccess(socket, "Hello, " + username + " :)");
+                sessionID = Sessions.createNewSession(socket, clientUser);
+                MessageSender.sendSuccess(socket, sessionID);
                 MessageSender.broadcastUpdateFrom(UpdateType.ONLINE_UPDATE, clientUser);
 
                 logSuccessMessageOp(socket, null, username, messageType);
@@ -209,6 +230,20 @@ public class MessageHandler implements Runnable
             }
             case GET_CHATS_MESSAGE:
             {
+                String[] res = parseAndCheck(socket, true, list, "sessionID");
+                if(res == null)
+                    return;
+
+                sessionID = res[0];
+
+                int status;
+
+                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                {
+                    invalidSessionParsingError(sessionID, status);
+                    return;
+                }
+
                 String chats = Objects.requireNonNull(XMLMessageFactory.generateChatListMessage());
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
@@ -222,11 +257,20 @@ public class MessageHandler implements Runnable
             }
             case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
             {
-                String[] res = parseAndCheck(socket, false, list, "name");
+                String[] res = parseAndCheck(socket, false, list, "sessionID", "name");
                 if(res == null)
                     return;
 
-                String chatName = res[0];
+                sessionID = res[0];
+                String chatName = res[1];
+
+                int status;
+
+                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                {
+                    invalidSessionParsingError(sessionID, status);
+                    return;
+                }
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
                 logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
@@ -246,11 +290,20 @@ public class MessageHandler implements Runnable
             }
             case GET_USERS_OF_CHAT_MESSAGE:
             {
-                String[] res = parseAndCheck(socket, false, list, "name");
+                String[] res = parseAndCheck(socket, false, list, "sessionID", "name");
                 if(res == null)
                     return;
 
-                String chatName = res[0];
+                sessionID = res[0];
+                String chatName = res[1];
+
+                int status;
+
+                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                {
+                    invalidSessionParsingError(sessionID, status);
+                    return;
+                }
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
                 logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
@@ -270,11 +323,20 @@ public class MessageHandler implements Runnable
             }
             case GET_MESSAGES_FROM_CHAT_MESSAGE:
             {
-                String[] res = parseAndCheck(socket, false, list, "name");
+                String[] res = parseAndCheck(socket, false, list, "sessionID", "name");
                 if(res == null)
                     return;
 
-                String chatName = res[0];
+                sessionID = res[0];
+                String chatName = res[1];
+
+                int status;
+
+                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                {
+                    invalidSessionParsingError(sessionID, status);
+                    return;
+                }
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
                 logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
@@ -294,6 +356,20 @@ public class MessageHandler implements Runnable
             }
             case DISCONNECT_MESSAGE:
             {
+                String[] res = parseAndCheck(socket, true, list, "sessionID");
+                if(res == null)
+                    return;
+
+                sessionID = res[0];
+
+                int status;
+
+                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                {
+                    invalidSessionParsingError(sessionID, status);
+                    return;
+                }
+
                 if(!Sessions.isClientAuthorized(socket))
                 {
                     unauthorizedRequestError(socket);
@@ -313,12 +389,21 @@ public class MessageHandler implements Runnable
             case SEND_MESSAGE_MESSAGE:
             {
                 String chatName, messageStr;
-                String[] res = parseAndCheck(socket, false, list, "name", "message");
+                String[] res = parseAndCheck(socket, false, list, "sessionID", "name", "message");
 
                 if(res == null)
                     return;
-                chatName = res[0];
-                messageStr = res[1];
+                sessionID = res[0];
+                chatName = res[1];
+                messageStr = res[2];
+
+                int status;
+
+                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                {
+                    invalidSessionParsingError(sessionID, status);
+                    return;
+                }
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
 
@@ -342,11 +427,21 @@ public class MessageHandler implements Runnable
             }
             case CREATE_CHAT_MESSAGE:
             {
-                String[] res = parseAndCheck(socket, false, list, "name");
+                String[] res = parseAndCheck(socket, false, list, "sessionID", "name");
                 if(res == null)
                     return;
 
-                String chatName = res[0];
+                sessionID = res[0];
+                String chatName = res[1];
+
+                int status;
+
+                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                {
+                    invalidSessionParsingError(sessionID, status);
+                    return;
+                }
+
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
 
                 logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
@@ -372,11 +467,20 @@ public class MessageHandler implements Runnable
             }
             case CONNECT_TO_CHAT:
             {
-                String[] res = parseAndCheck(socket, false, list, "name");
+                String[] res = parseAndCheck(socket, false, list, "sessionID", "name");
                 if(res == null)
                     return;
 
-                String chatName = res[0];
+                sessionID = res[0];
+                String chatName = res[1];
+
+                int status;
+
+                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                {
+                    invalidSessionParsingError(sessionID, status);
+                    return;
+                }
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
                 logMessageOp(socket, clientUser.getUsername(), chatName, messageType);

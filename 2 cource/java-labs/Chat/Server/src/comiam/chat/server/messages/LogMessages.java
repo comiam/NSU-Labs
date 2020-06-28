@@ -1,10 +1,13 @@
 package comiam.chat.server.messages;
 
+import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
 
 import java.net.Socket;
 
+import static comiam.chat.server.data.session.SessionConstants.SESSION_HAVE_ACTIVE_CONNECTION;
+import static comiam.chat.server.data.session.SessionConstants.SESSION_NOT_EXIST;
 import static comiam.chat.server.messages.MessageNameConstants.*;
 public class LogMessages
 {
@@ -146,5 +149,22 @@ public class LogMessages
     {
         Log.error("Backend server: User " + username + " already exist in chat " + chat + "!");
         MessageSender.sendError(victim, "Server Error: You are already in this chat!");
+    }
+
+    public static void invalidSessionParsingError(String sessionID, int error)
+    {
+        Log.error("Backend server: invalid session " + sessionID + ":\n");
+
+        switch(error)
+        {
+            case SESSION_NOT_EXIST:
+                Log.error("Session id doesn't exist!");
+                break;
+            case SESSION_HAVE_ACTIVE_CONNECTION:
+                Log.error("Session have another connection!");
+                break;
+            default:
+                Log.error("null");
+        }
     }
 }

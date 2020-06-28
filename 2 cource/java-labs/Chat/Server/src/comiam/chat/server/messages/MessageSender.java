@@ -1,7 +1,7 @@
 package comiam.chat.server.messages;
 
 import comiam.chat.server.data.ServerData;
-import comiam.chat.server.data.Sessions;
+import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
@@ -38,7 +38,7 @@ public class MessageSender
         if(!ServerData.isUserHaveChat(user))
             return;
 
-        Socket exception = Sessions.getSessionSocket(user);
+        Socket exception = Sessions.getSession(user).getConnection();
         Chat[] chats = Objects.requireNonNull(ServerData.getUserChatList(user));
         String message = XMLMessageFactory.generateNoticeMessage(type.name(), chats.length);
         Socket[] sockets = Sessions.getSocketsOfSessionInChat(chats);
