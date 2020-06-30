@@ -18,7 +18,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import static comiam.chat.server.core.GlobalConstants.MAX_MESSAGE_SIZE;
-import static comiam.chat.server.utils.ByteUtils.convertToInt;
+import static comiam.chat.server.utils.ByteUtils.byteArrayToInt;
 
 public class InputHandler implements Runnable
 {
@@ -139,7 +139,7 @@ public class InputHandler implements Runnable
                 return;
             }
 
-            size = convertToInt(sizeBuffer.array());
+            size = byteArrayToInt(sizeBuffer.array());
             if(size <= 0)
             {
                 Log.error("Input Thread: Invalid size of the received message by " + address + ". Aborting...");

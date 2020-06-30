@@ -14,6 +14,8 @@ import java.util.Objects;
 
 import static comiam.chat.server.json.JSONMessageFactory.makeFailure;
 import static comiam.chat.server.json.JSONMessageFactory.makeSuccess;
+import static comiam.chat.server.utils.ByteUtils.concatenate;
+import static comiam.chat.server.utils.ByteUtils.intToByteArray;
 
 public class MessageSender
 {
@@ -68,10 +70,13 @@ public class MessageSender
 
     public static void sendMessage(Socket connection, String message)
     {
-        /* FIXME add size of message to header */
+        byte[] messageByte = message.getBytes();
+        byte[] headerSize = intToByteArray(messageByte.length);
+
+        byte[] messagePackage = concatenate(headerSize, messageByte);
         try
         {
-            connection.getOutputStream().write(message.getBytes());
+            connection.getOutputStream().write(messagePackage);
         } catch (IOException e)
         {
             Log.error("MessageSender: Can't send message to " + connection.getInetAddress(), e);
