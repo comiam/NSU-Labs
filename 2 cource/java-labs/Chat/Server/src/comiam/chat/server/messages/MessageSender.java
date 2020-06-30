@@ -4,33 +4,31 @@ import comiam.chat.server.data.ServerData;
 import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.User;
+import comiam.chat.server.json.JSONMessageFactory;
 import comiam.chat.server.logger.Log;
+import comiam.chat.server.messages.types.UpdateType;
 
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Objects;
 
-import comiam.chat.server.messages.MessageNameConstants.UpdateType;
-import comiam.chat.server.xml.XMLMessageFactory;
+import static comiam.chat.server.json.JSONMessageFactory.makeFailure;
+import static comiam.chat.server.json.JSONMessageFactory.makeSuccess;
 
 public class MessageSender
 {
     public static void sendError(Socket connection, String message)
     {
-        String xml = XMLMessageFactory.generateSimpleMessage(MessageNameConstants.ERROR_MESSAGE, message);
+        String ans = makeSuccess(message);
 
-        if(xml == null)
-            throw new RuntimeException("Null message");
-        sendMessage(connection, xml);
+        sendMessage(connection, ans);
     }
 
     public static void sendSuccess(Socket connection, String message)
     {
-        String xml = XMLMessageFactory.generateSimpleMessage(MessageNameConstants.SUCCESS_MESSAGE, message);
+        String ans = makeFailure(message);
 
-        if(xml == null)
-            throw new RuntimeException("Null message");
-        sendMessage(connection, xml);
+        sendMessage(connection, ans);
     }
 
     public static void broadcastUpdateFrom(UpdateType type, User user)
@@ -40,7 +38,6 @@ public class MessageSender
 
         Socket exception = Sessions.getSession(user).getConnection();
         Chat[] chats = Objects.requireNonNull(ServerData.getUserChatList(user));
-        String message = XMLMessageFactory.generateNoticeMessage(type.name(), chats.length);
         Socket[] sockets = Sessions.getSocketsOfSessionInChat(chats);
 
         for(var sock : Objects.requireNonNull(sockets))
@@ -48,33 +45,30 @@ public class MessageSender
             if(sock.equals(exception))
                 continue;
 
-            sendMessage(sock, message);
-
             for(var chat : chats)
-            {
                 switch(type)
                 {
                     case USER_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(XMLMessageFactory.generateChatUsersListMessage(chat)));
+                        sendMessage(sock, Objects.requireNonNull(JSONMessageFactory.generateChatUsersList(chat)));
                         break;
                     case ONLINE_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(XMLMessageFactory.generateOnlineChatUsersListMessage(chat)));
+                        sendMessage(sock, Objects.requireNonNull(JSONMessageFactory.generateOnlineChatUsersList(chat)));
                         break;
                     case MESSAGE_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(XMLMessageFactory.generateChatMessageListMessage(chat)));
+                        sendMessage(sock, Objects.requireNonNull(JSONMessageFactory.generateChatMessageList(chat)));
                         break;
                     case CHAT_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(XMLMessageFactory.generateChatListMessage()));
+                        sendMessage(sock, Objects.requireNonNull(JSONMessageFactory.generateChatList()));
                         break;
                     default:
                         throw new RuntimeException("Holy shit...");
                 }
-            }
         }
     }
 
     public static void sendMessage(Socket connection, String message)
     {
+        /* FIXME add size of message to header */
         try
         {
             connection.getOutputStream().write(message.getBytes());

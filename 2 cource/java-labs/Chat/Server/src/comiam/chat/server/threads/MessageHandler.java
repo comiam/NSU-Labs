@@ -7,26 +7,22 @@ import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.Message;
 import comiam.chat.server.data.units.User;
+import comiam.chat.server.json.JSONMessageFactory;
 import comiam.chat.server.logger.Log;
-import comiam.chat.server.xml.XMLMessageFactory;
 import comiam.chat.server.messages.MessageSender;
+import comiam.chat.server.messages.types.Request;
+import comiam.chat.server.messages.types.UpdateType;
 import comiam.chat.server.time.Date;
-import comiam.chat.server.utils.ArgChecker;
 import comiam.chat.server.utils.Hash;
 import comiam.chat.server.utils.Pair;
-import comiam.chat.server.xml.XMLCore;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
 
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Objects;
 
-import comiam.chat.server.messages.MessageNameConstants.UpdateType;
+import static comiam.chat.server.json.JSONCore.parseFromJSON;
 import static comiam.chat.server.messages.LogMessages.*;
-import static comiam.chat.server.messages.MessageNameConstants.*;
-import static comiam.chat.server.xml.XMLConstants.BAD_XML_FIELD;
-import static comiam.chat.server.xml.XMLConstants.BAD_XML_HEADER;
+import static comiam.chat.server.messages.types.RequestType.*;
 
 public class MessageHandler implements Runnable
 {
@@ -60,36 +56,16 @@ public class MessageHandler implements Runnable
                 continue;
             }
 
-            if(ArgChecker.isNotNumeric(pair.getSecond().split("_")[0]))
-            {
-                Log.error("Backend thread: Invalid header size of message by " + pair.getFirst().getInetAddress());
-                MessageSender.sendError(pair.getFirst(), "Invalid header size of message");
-                continue;
-            }
+            Request message = parseFromJSON(pair.getSecond(), Request.class);
 
-            int size = Integer.parseInt(pair.getSecond().split("_")[0]);
-            String messageStr;
-
-            try
-            {
-                messageStr = pair.getSecond().replaceFirst(size + "_", "").substring(0, size);
-            }catch (Throwable e)
-            {
-                Log.error("Backend thread: Invalid header size of message by " + pair.getFirst().getInetAddress());
-                MessageSender.sendError(pair.getFirst(), "Invalid header size of message");
-                continue;
-            }
-
-            var message = XMLCore.decodeXML(messageStr);
-
-            if(message.getFirst() != null && message.getSecond() == null)
+            if(message == null)
             {
                 Log.error("Backend thread: Invalid message by " + pair.getFirst().getInetAddress());
-                MessageSender.sendError(pair.getFirst(), "Invalid message: " + message.getFirst());
+                MessageSender.sendError(pair.getFirst(), "Invalid message!");
                 continue;
             }
 
-            handle(pair.getFirst(), message.getSecond());
+            handle(pair.getFirst(), message);
         }
     }
 
@@ -107,29 +83,15 @@ public class MessageHandler implements Runnable
         return messages.remove(0);
     }
 
-    public void handle(Socket socket, Document message)
+    public void handle(Socket socket, Request request)
     {
-        if(message.getDocumentElement() == null)
-        {
-            badMessageDataError(socket);
-            return;
-        }
-
-        if(!message.getDocumentElement().getNodeName().equals(DEFAULT_MESSAGE_XML_HEADER_NAME))
-        {
-            badMessageDataError(socket);
-            return;
-        }
-
-        String messageType = message.getDocumentElement().getAttributes().item(0).getTextContent().trim();
-
-        if(message.getDocumentElement().getAttributes().getLength() != 1 || !isConstantName(messageType))
+        if(request.getType() == null)
         {
             badMessageTypeError(socket);
             return;
         }
 
-        if(!messageType.equals(SIGN_UP_MESSAGE) && !messageType.equals(SIGN_IN_MESSAGE) && Sessions.isClientAuthorized(socket))
+        if(request.getType() != SIGN_UP_MESSAGE && request.getType() != SIGN_IN_MESSAGE && !Sessions.isClientAuthorized(socket))
         {
             unauthorizedRequestError(socket);
             return;
@@ -137,82 +99,45 @@ public class MessageHandler implements Runnable
 
         User clientUser;
         Chat chat;
-        if((messageType.equals(SIGN_UP_MESSAGE) || messageType.equals(SIGN_IN_MESSAGE)) && (clientUser = Sessions.getSessionUser(socket)) != null)
+        int status;
+
+        if((request.getType() == SIGN_UP_MESSAGE || request.getType() == SIGN_IN_MESSAGE) && (clientUser = Sessions.getSessionUser(socket)) != null)
         {
             reloginError(clientUser, socket);
             return;
         }
 
-        NodeList list = message.getDocumentElement().getChildNodes();
-        String sessionID;
+        String name = request.getName();
+        String password = request.getPass();
+        String message = request.getMessage();
+        String sessionID = request.getSessionID();
 
-        switch(messageType)
+        if(request.getType() != SIGN_UP_MESSAGE && request.getType() != SIGN_IN_MESSAGE && Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
         {
-            case SIGN_UP_MESSAGE:
-            {
-                String username, password;
-                String[] res = parseAndCheck(socket, true, list, "sessionID", "name", "password");
-                if(res == null)
-                    return;
+            invalidSessionParsingError(sessionID, status);
+            return;
+        }
 
-                sessionID = res[0];
-                username = res[1];
-                password = res[2];
-
-                int status;
-
-                logMessageOp(socket, null, username, messageType);
-
-                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
-                {
-                    invalidSessionParsingError(sessionID, status);
-                    return;
-                }
-
-                if(ServerData.containsUsername(username))
-                {
-                    userAlreadyExistError(username, socket);
-                    Connection.disconnectIfOnline(socket);
-                    return;
-                }
-
-                clientUser = new User(Hash.hashBytes(password.getBytes()), username, Date.getDate());
-                ServerData.addNewUser(clientUser);
-                sessionID = Sessions.createNewSession(socket, clientUser);
-                MessageSender.sendSuccess(socket, sessionID);
-
-                logSuccessMessageOp(socket, null, username, messageType);
-                break;
-            }
+        switch(request.getType())
+        {
             case SIGN_IN_MESSAGE:
-            {
-                String username, password;
-                String[] res = parseAndCheck(socket, true, list, "sessionID", "name", "password");
-                if(res == null)
-                    return;
-
-                sessionID = res[0];
-                username = res[1];
-                password = res[2];
-
-                int status;
-
-                logMessageOp(socket, null, username, messageType);
-
-                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                if(checkIsNull(name, password, sessionID))
                 {
-                    invalidSessionParsingError(sessionID, status);
-                    return;
-                }
-
-                if(!ServerData.containsUsername(username))
-                {
-                    userNotExistError(username, socket);
+                    badMessageDataError(socket);
                     Connection.disconnectIfOnline(socket);
                     return;
                 }
 
-                clientUser = Objects.requireNonNull(ServerData.getUserByName(username));
+                logMessageOp(socket, name, null, request.getType());
+
+                if(!ServerData.containsUsername(name))
+                {
+                    userNotExistError(name, socket);
+                    Connection.disconnectIfOnline(socket);
+                    return;
+                }
+
+                clientUser = Objects.requireNonNull(ServerData.getUserByName(name));
 
                 if(!Hash.hashBytes(password.getBytes()).equals(clientUser.getPassHash()))
                 {
@@ -225,150 +150,189 @@ public class MessageHandler implements Runnable
                 MessageSender.sendSuccess(socket, sessionID);
                 MessageSender.broadcastUpdateFrom(UpdateType.ONLINE_UPDATE, clientUser);
 
-                logSuccessMessageOp(socket, null, username, messageType);
+                logSuccessMessageOp(socket, name, null, request.getType());
                 break;
-            }
+            case SIGN_UP_MESSAGE:
+                if(checkIsNull(name, password, sessionID))
+                {
+                    badMessageDataError(socket);
+                    Connection.disconnectIfOnline(socket);
+                    return;
+                }
+
+                logMessageOp(socket, name, null, request.getType());
+
+                if(ServerData.containsUsername(name))
+                {
+                    userAlreadyExistError(name, socket);
+                    Connection.disconnectIfOnline(socket);
+                    return;
+                }
+
+                clientUser = new User(Hash.hashBytes(password.getBytes()), name, Date.getDate());
+                ServerData.addNewUser(clientUser);
+                sessionID = Sessions.createNewSession(socket, clientUser);
+                MessageSender.sendSuccess(socket, sessionID);
+
+                logSuccessMessageOp(socket, null, name, request.getType());
+                break;
             case GET_CHATS_MESSAGE:
-            {
-                String[] res = parseAndCheck(socket, true, list, "sessionID");
-                if(res == null)
-                    return;
-
-                sessionID = res[0];
-
-                int status;
-
-                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                if(checkIsNull(sessionID))
                 {
-                    invalidSessionParsingError(sessionID, status);
+                    badMessageDataError(socket);
                     return;
                 }
 
-                String chats = Objects.requireNonNull(XMLMessageFactory.generateChatListMessage());
+                String chats = Objects.requireNonNull(JSONMessageFactory.generateChatList());
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
-                logMessageOp(socket, clientUser.getUsername(), null, messageType);
+                logMessageOp(socket, clientUser.getUsername(), null, request.getType());
 
-                MessageSender.sendMessage(socket, chats);
+                MessageSender.sendSuccess(socket, chats);
                 ConnectionTimers.zeroTimer(clientUser);
 
-                logSuccessMessageOp(socket, clientUser.getUsername(), null, messageType);
+                logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());
                 break;
-            }
-            case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
-            {
-                String[] res = parseAndCheck(socket, false, list, "sessionID", "name");
-                if(res == null)
-                    return;
-
-                sessionID = res[0];
-                String chatName = res[1];
-
-                int status;
-
-                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
-                {
-                    invalidSessionParsingError(sessionID, status);
-                    return;
-                }
-
-                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
-                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
-
-                if(!ServerData.containsChat(chatName))
-                {
-                    chatNotExistError(chatName, socket);
-                    return;
-                }
-
-                String onlineUsers = XMLMessageFactory.generateOnlineChatUsersListMessage(chatName);
-                MessageSender.sendMessage(socket, onlineUsers);
-
-                ConnectionTimers.zeroTimer(clientUser);
-                logSuccessMessageOp(socket, clientUser.getUsername(), chatName, messageType);
-                break;
-            }
             case GET_USERS_OF_CHAT_MESSAGE:
-            {
-                String[] res = parseAndCheck(socket, false, list, "sessionID", "name");
-                if(res == null)
-                    return;
-
-                sessionID = res[0];
-                String chatName = res[1];
-
-                int status;
-
-                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+            case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
+                if(checkIsNull(name, sessionID))
                 {
-                    invalidSessionParsingError(sessionID, status);
+                    badMessageDataError(socket);
                     return;
                 }
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
-                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
+                logMessageOp(socket, clientUser.getUsername(), name, request.getType());
 
-                if(!ServerData.containsChat(chatName))
+                if(!ServerData.containsChat(name))
                 {
-                    chatNotExistError(chatName, socket);
+                    chatNotExistError(name, socket);
                     return;
                 }
 
-                String users = XMLMessageFactory.generateChatUsersListMessage(chatName);
-                MessageSender.sendMessage(socket, users);
+                String usersStr = request.getType() == GET_USERS_OF_CHAT_MESSAGE ? JSONMessageFactory.generateChatUsersList(Objects.requireNonNull(ServerData.getChatByName(name))) :
+                        JSONMessageFactory.generateOnlineChatUsersList(Objects.requireNonNull(ServerData.getChatByName(name)));
+                MessageSender.sendSuccess(socket, usersStr);
 
                 ConnectionTimers.zeroTimer(clientUser);
-                logSuccessMessageOp(socket, clientUser.getUsername(), chatName, messageType);
+                logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
                 break;
-            }
             case GET_MESSAGES_FROM_CHAT_MESSAGE:
-            {
-                String[] res = parseAndCheck(socket, false, list, "sessionID", "name");
-                if(res == null)
-                    return;
-
-                sessionID = res[0];
-                String chatName = res[1];
-
-                int status;
-
-                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+                if(checkIsNull(name, sessionID))
                 {
-                    invalidSessionParsingError(sessionID, status);
+                    badMessageDataError(socket);
                     return;
                 }
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
-                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
+                logMessageOp(socket, clientUser.getUsername(), name, request.getType());
 
-                if(!ServerData.containsChat(chatName))
+                if(!ServerData.containsChat(name))
                 {
-                    chatNotExistError(chatName, socket);
+                    chatNotExistError(name, socket);
                     return;
                 }
 
-                String messages = XMLMessageFactory.generateChatMessageListMessage(chatName);
-                MessageSender.sendMessage(socket, messages);
+                String messages = JSONMessageFactory.generateChatMessageList(Objects.requireNonNull(ServerData.getChatByName(name)));
+                MessageSender.sendSuccess(socket, messages);
 
                 ConnectionTimers.zeroTimer(clientUser);
-                logSuccessMessageOp(socket, clientUser.getUsername(), chatName, messageType);
+                logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
                 break;
-            }
-            case DISCONNECT_MESSAGE:
-            {
-                String[] res = parseAndCheck(socket, true, list, "sessionID");
-                if(res == null)
-                    return;
-
-                sessionID = res[0];
-
-                int status;
-
-                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+            case SEND_MESSAGE_MESSAGE:
+                if(checkIsNull(name, message, sessionID))
                 {
-                    invalidSessionParsingError(sessionID, status);
+                    badMessageDataError(socket);
                     return;
                 }
+
+                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
+
+                logMessageOp(socket, clientUser.getUsername(), name, request.getType());
+
+                if(!ServerData.containsChat(name))
+                {
+                    chatNotExistError(name, socket);
+                    return;
+                }
+
+                chat = Objects.requireNonNull(ServerData.getChatByName(name));
+                chat.addMessage(new Message(message, Date.getDate(), Sessions.getSessionUser(socket)));
+
+                MessageSender.broadcastUpdateFrom(UpdateType.MESSAGE_UPDATE, clientUser);
+                ConnectionTimers.zeroTimer(clientUser);
+                MessageSender.sendSuccess(socket, "sent");
+
+                logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());
+                break;
+            case CREATE_CHAT_MESSAGE:
+                if(checkIsNull(name, sessionID))
+                {
+                    badMessageDataError(socket);
+                    return;
+                }
+
+                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
+
+                logMessageOp(socket, clientUser.getUsername(), name, request.getType());
+
+                if(ServerData.containsChat(name))
+                {
+                    chatAlreadyExistError(name, socket);
+                    return;
+                }
+
+                ArrayList<User> users = new ArrayList<>();
+                users.add(clientUser);
+
+                chat = new Chat(name, users, null);
+                ServerData.addNewChat(chat);
+
+                MessageSender.broadcastUpdateFrom(UpdateType.CHAT_UPDATE, clientUser);
+                ConnectionTimers.zeroTimer(clientUser);
+                MessageSender.sendSuccess(socket, "hello in " + name + ":)");
+
+                logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
+                break;
+            case CONNECT_TO_CHAT_MESSAGE:
+                if(checkIsNull(name, sessionID))
+                {
+                    badMessageDataError(socket);
+                    return;
+                }
+
+                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
+                logMessageOp(socket, clientUser.getUsername(), name, request.getType());
+
+                if(!ServerData.containsChat(name))
+                {
+                    chatNotExistError(name, socket);
+                    return;
+                }
+
+                chat = Objects.requireNonNull(ServerData.getChatByName(name));
+
+                if(chat.containsUser(clientUser))
+                {
+                    userAlreadyExistInChatError(clientUser.getUsername(), name, socket);
+                    return;
+                }
+
+                chat.addUser(Sessions.getSessionUser(socket));
+
+                MessageSender.broadcastUpdateFrom(UpdateType.USER_UPDATE, clientUser);
+                ConnectionTimers.zeroTimer(clientUser);
+                MessageSender.sendSuccess(socket, "hello in " + name + ":)");
+
+                logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
+                break;
+            case DISCONNECT_MESSAGE:
+                if(checkIsNull(sessionID))
+                {
+                    badMessageDataError(socket);
+                    return;
+                }
+
 
                 if(!Sessions.isClientAuthorized(socket))
                 {
@@ -377,161 +341,22 @@ public class MessageHandler implements Runnable
                 }
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
-                logMessageOp(socket, clientUser.getUsername(),null, messageType);
+                logMessageOp(socket, clientUser.getUsername(),null, request.getType());
 
                 MessageSender.sendSuccess(socket, "Goodbye, " + clientUser.getUsername() + "!");
                 Connection.disconnectClient(Sessions.getSessionUser(socket));
                 MessageSender.broadcastUpdateFrom(UpdateType.ONLINE_UPDATE, clientUser);
 
-                logSuccessMessageOp(socket, clientUser.getUsername(), null, messageType);
+                logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());
                 break;
-            }
-            case SEND_MESSAGE_MESSAGE:
-            {
-                String chatName, messageStr;
-                String[] res = parseAndCheck(socket, false, list, "sessionID", "name", "message");
-
-                if(res == null)
-                    return;
-                sessionID = res[0];
-                chatName = res[1];
-                messageStr = res[2];
-
-                int status;
-
-                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
-                {
-                    invalidSessionParsingError(sessionID, status);
-                    return;
-                }
-
-                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
-
-                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
-
-                if(!ServerData.containsChat(chatName))
-                {
-                    chatNotExistError(chatName, socket);
-                    return;
-                }
-
-                chat = Objects.requireNonNull(ServerData.getChatByName(chatName));
-                chat.addMessage(new Message(messageStr, Date.getDate(), Sessions.getSessionUser(socket)));
-
-                MessageSender.broadcastUpdateFrom(UpdateType.MESSAGE_UPDATE, clientUser);
-                ConnectionTimers.zeroTimer(clientUser);
-                MessageSender.sendSuccess(socket, "sent");
-
-                logSuccessMessageOp(socket, clientUser.getUsername(), null, messageType);
-                break;
-            }
-            case CREATE_CHAT_MESSAGE:
-            {
-                String[] res = parseAndCheck(socket, false, list, "sessionID", "name");
-                if(res == null)
-                    return;
-
-                sessionID = res[0];
-                String chatName = res[1];
-
-                int status;
-
-                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
-                {
-                    invalidSessionParsingError(sessionID, status);
-                    return;
-                }
-
-                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
-
-                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
-
-                if(ServerData.containsChat(chatName))
-                {
-                    chatAlreadyExistError(chatName, socket);
-                    return;
-                }
-
-                ArrayList<User> users = new ArrayList<>();
-                users.add(clientUser);
-
-                chat = new Chat(chatName, users, null);
-                ServerData.addNewChat(chat);
-
-                MessageSender.broadcastUpdateFrom(UpdateType.USER_UPDATE, clientUser);
-                ConnectionTimers.zeroTimer(clientUser);
-                MessageSender.sendSuccess(socket, "hello in " + chatName + ":)");
-
-                logSuccessMessageOp(socket, clientUser.getUsername(), chatName, messageType);
-                break;
-            }
-            case CONNECT_TO_CHAT:
-            {
-                String[] res = parseAndCheck(socket, false, list, "sessionID", "name");
-                if(res == null)
-                    return;
-
-                sessionID = res[0];
-                String chatName = res[1];
-
-                int status;
-
-                if(Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
-                {
-                    invalidSessionParsingError(sessionID, status);
-                    return;
-                }
-
-                clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
-                logMessageOp(socket, clientUser.getUsername(), chatName, messageType);
-
-                if(!ServerData.containsChat(chatName))
-                {
-                    chatNotExistError(chatName, socket);
-                    return;
-                }
-
-                chat = Objects.requireNonNull(ServerData.getChatByName(chatName));
-
-                if(chat.containsUser(clientUser))
-                {
-                    userAlreadyExistInChatError(clientUser.getUsername(), chatName, socket);
-                    return;
-                }
-
-                chat.addUser(Sessions.getSessionUser(socket));
-
-                MessageSender.broadcastUpdateFrom(UpdateType.USER_UPDATE, clientUser);
-                ConnectionTimers.zeroTimer(clientUser);
-                MessageSender.sendSuccess(socket, "hello in " + chatName + ":)");
-
-                logSuccessMessageOp(socket, clientUser.getUsername(), chatName, messageType);
-                break;
-            }
-            default:
-                badMessageDataError(socket);
         }
     }
 
-    private String[] parseAndCheck(Socket socket, boolean disconnectOnError, NodeList list, String... values)
+    private boolean checkIsNull(Object... objects)
     {
-        String[] res = XMLCore.parseAndCheck(list, values);
-        if(res[0].equals(BAD_XML_HEADER))
-        {
-            badMessageDataError(socket);
-            if(disconnectOnError)
-                Connection.disconnectIfOnline(socket);
-            return null;
-        }
-
-        if(res[0].equals(BAD_XML_FIELD))
-        {
-            badFieldValueError(socket, res[1]);
-            if(disconnectOnError)
-                Connection.disconnectIfOnline(socket);
-            return null;
-        }
-
-        return res;
+        for(var obj : objects)
+            if(obj == null)
+                return true;
+        return false;
     }
 }

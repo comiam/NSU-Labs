@@ -1,5 +1,7 @@
 package comiam.chat.server.data.units;
 
+import comiam.chat.server.data.session.Sessions;
+
 public class User
 {
     private final String passHash;
@@ -25,6 +27,9 @@ public class User
 
     public String getLastActive()
     {
-        return lastActive;
+        if(Sessions.getSession(this) != null)
+            return "Online";
+        else
+            return lastActive;
     }
 }

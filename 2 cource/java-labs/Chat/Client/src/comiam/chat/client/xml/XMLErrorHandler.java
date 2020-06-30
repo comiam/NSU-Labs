@@ -1,4 +1,4 @@
-package comiam.chat.server.xml;
+package comiam.chat.client.xml;
 
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXParseException;

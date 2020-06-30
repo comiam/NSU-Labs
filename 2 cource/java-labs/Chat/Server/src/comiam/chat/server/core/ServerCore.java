@@ -1,10 +1,10 @@
 package comiam.chat.server.core;
 
+import comiam.chat.server.connection.ConnectionTimers;
 import comiam.chat.server.data.ServerData;
 import comiam.chat.server.logger.Log;
 import comiam.chat.server.threads.InputHandler;
 import comiam.chat.server.threads.MessageHandler;
-import comiam.chat.server.connection.ConnectionTimers;
 
 public class ServerCore
 {

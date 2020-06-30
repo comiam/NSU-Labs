@@ -1,27 +1,27 @@
 package comiam.chat.server.messages;
 
-import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
+import comiam.chat.server.messages.types.RequestType;
 
 import java.net.Socket;
 
 import static comiam.chat.server.data.session.SessionConstants.SESSION_HAVE_ACTIVE_CONNECTION;
 import static comiam.chat.server.data.session.SessionConstants.SESSION_NOT_EXIST;
-import static comiam.chat.server.messages.MessageNameConstants.*;
+
 public class LogMessages
 {
-    public static void logMessageOp(Socket socket, String username, String param, String type)
+    public static void logMessageOp(Socket socket, String username, String param, RequestType type)
     {
         switch(type)
         {
             case SIGN_IN_MESSAGE:
-                Log.info("Backend thread: Client " + socket.getInetAddress() + " tries to sign in as " + param + ".");
+                Log.info("Backend thread: Client " + socket.getInetAddress() + " tries to sign in as " + username + ".");
                 break;
             case SIGN_UP_MESSAGE:
-                Log.info("Backend thread: Client " + socket.getInetAddress() + " tries to sign up as " + param + ".");
+                Log.info("Backend thread: Client " + socket.getInetAddress() + " tries to sign up as " + username + ".");
                 break;
-            case CONNECT_TO_CHAT:
+            case CONNECT_TO_CHAT_MESSAGE:
                 Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to connect to chat " + param + ".");
                 break;
             case GET_CHATS_MESSAGE:
@@ -48,17 +48,17 @@ public class LogMessages
         }
     }
 
-    public static void logSuccessMessageOp(Socket socket, String username, String param, String type)
+    public static void logSuccessMessageOp(Socket socket, String username, String param, RequestType type)
     {
         switch(type)
         {
             case SIGN_IN_MESSAGE:
-                Log.info("Backend thread: Client " + socket.getInetAddress() + " signed in successfully as " + param + ".");
+                Log.info("Backend thread: Client " + socket.getInetAddress() + " signed in successfully as " + username + ".");
                 break;
             case SIGN_UP_MESSAGE:
-                Log.info("Backend thread: Client " + socket.getInetAddress() + " signed up successfully as " + param + ".");
+                Log.info("Backend thread: Client " + socket.getInetAddress() + " signed up successfully as " + username + ".");
                 break;
-            case CONNECT_TO_CHAT:
+            case CONNECT_TO_CHAT_MESSAGE:
                 Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully connected to chat " + param + ".");
                 break;
             case GET_CHATS_MESSAGE:
@@ -107,12 +107,6 @@ public class LogMessages
     {
         Log.error("Backend thread: Bad message data in message from " + victim.getInetAddress() + "!");
         MessageSender.sendError(victim, "Server Error: Bad message data!");
-    }
-
-    public static void badFieldValueError(Socket victim, String name)
-    {
-        Log.error("Backend thread: Bad field \"" + name + "\" in message from " + victim.getInetAddress() + "!");
-        MessageSender.sendError(victim, "Server Error: Bad field \"" + name + "\"!");
     }
 
     public static void userAlreadyExistError(String username, Socket victim)

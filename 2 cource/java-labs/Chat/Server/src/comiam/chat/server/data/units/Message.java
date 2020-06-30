@@ -4,7 +4,7 @@ public class Message
 {
     private final String message;
     private final String date;
-    private final User   user;
+    private final User user;
 
     public Message(String message, String date, User user)
     {

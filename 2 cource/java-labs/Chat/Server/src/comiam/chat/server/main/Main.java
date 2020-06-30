@@ -2,10 +2,10 @@ package comiam.chat.server.main;
 
 import comiam.chat.server.core.ServerCore;
 import comiam.chat.server.logger.Log;
-import comiam.chat.server.xml.XMLCore;
 
 import java.util.Scanner;
 
+import static comiam.chat.server.json.JSONCore.parseFromFile;
 import static comiam.chat.server.main.ConsoleCommands.SHUTDOWN_SERVER;
 import static comiam.chat.server.main.ConsoleCommands.isValidCommand;
 
@@ -19,22 +19,22 @@ public class Main
             return;
         }
 
-        var res = XMLCore.loadConfig(args[0]);
+        Configuration config = parseFromFile(args[0], Configuration.class);
 
-        if(res == null)
+        if(config == null)
         {
-            System.out.println("Error on loading configuration: " + XMLCore.getParserError());
+            System.out.println("Error on loading configuration.");
             return;
         }
 
-        if(res.getFirst().getSecond())
+        if(config.isLogging())
         {
             Log.init();
             Log.enableInfoLogging();
             Log.enableErrorLogging();
         }
 
-        ServerCore.start(res.getFirst().getFirst(), res.getSecond());
+        ServerCore.start(config.getPort(), config.getDbPath());
 
         Scanner scanner = new Scanner(System.in);
         String line;

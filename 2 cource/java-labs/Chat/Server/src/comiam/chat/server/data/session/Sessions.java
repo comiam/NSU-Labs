@@ -65,6 +65,9 @@ public class Sessions
 
     public static synchronized int parseAndManageSession(String sessionID, Socket connection)
     {
+        if(sessionID == null)
+            return SESSION_NOT_EXIST;
+
         if(!haveSessionID(sessionID))
             return SESSION_NOT_EXIST;
 

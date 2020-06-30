@@ -1,13 +1,17 @@
 package comiam.chat.server.data;
 
+import com.google.gson.reflect.TypeToken;
 import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
-import comiam.chat.server.xml.XMLCore;
+import comiam.chat.server.utils.Pair;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+
+import static comiam.chat.server.json.JSONCore.parseFromFile;
+import static comiam.chat.server.json.JSONCore.saveToFile;
 
 public class ServerData
 {
@@ -44,12 +48,15 @@ public class ServerData
             return false;
         }
 
-        var data = XMLCore.loadDatabase(file);
-
-        if(data == null)
+        Pair<ArrayList<User>, ArrayList<Chat>> data;
+        try
         {
-            System.out.println("Error when upload database: " + XMLCore.getParserError() + ". Shutting down...");
-            Log.error("Error when upload database: " + XMLCore.getParserError() + ". Shutting down...");
+            data = parseFromFile(databasePath, new TypeToken<Pair<ArrayList<User>, ArrayList<Chat>>>(){}.getType());
+        }catch(Throwable e)
+        {
+            System.out.println("Error when upload database. Shutting down...");
+            e.printStackTrace();
+            Log.error("Error when upload database: Shutting down...", e);
             return false;
         }
 
@@ -85,7 +92,9 @@ public class ServerData
             return;
         }
 
-        XMLCore.saveDatabase(file, users, chats);
+        Pair<ArrayList<User>, ArrayList<Chat>> pair = new Pair<>(users, chats);
+
+        saveToFile(file, pair);
     }
 
     public static Chat getChatByName(String name)

@@ -1,4 +1,4 @@
-package comiam.chat.server.xml;
+package comiam.chat.client.xml;
 
 public class XMLConstants
 {
