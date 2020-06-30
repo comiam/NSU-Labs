@@ -6,14 +6,13 @@ import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.json.JSONMessageFactory;
 import comiam.chat.server.logger.Log;
-import comiam.chat.server.messages.types.UpdateType;
+import comiam.chat.server.messages.types.MessageType;
 
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Objects;
 
-import static comiam.chat.server.json.JSONMessageFactory.makeFailure;
-import static comiam.chat.server.json.JSONMessageFactory.makeSuccess;
+import static comiam.chat.server.json.JSONMessageFactory.*;
 import static comiam.chat.server.utils.ByteUtils.concatenate;
 import static comiam.chat.server.utils.ByteUtils.intToByteArray;
 
@@ -33,7 +32,14 @@ public class MessageSender
         sendMessage(connection, ans);
     }
 
-    public static void broadcastUpdateFrom(UpdateType type, User user)
+    public static void sendDisconnect(Socket connection)
+    {
+        String ans = makeDisconnect();
+
+        sendMessage(connection, ans);
+    }
+
+    public static void broadcastUpdateFrom(MessageType type, User user)
     {
         if(!ServerData.isUserHaveChat(user))
             return;
@@ -51,16 +57,16 @@ public class MessageSender
                 switch(type)
                 {
                     case USER_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(JSONMessageFactory.generateChatUsersList(chat)));
+                        sendMessage(sock, makeNotice(JSONMessageFactory.generateChatUsersList(chat), type));
                         break;
                     case ONLINE_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(JSONMessageFactory.generateOnlineChatUsersList(chat)));
+                        sendMessage(sock, makeNotice(JSONMessageFactory.generateOnlineChatUsersList(chat), type));
                         break;
                     case MESSAGE_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(JSONMessageFactory.generateChatMessageList(chat)));
+                        sendMessage(sock, makeNotice(JSONMessageFactory.generateChatMessageList(chat), type));
                         break;
                     case CHAT_UPDATE:
-                        sendMessage(sock, Objects.requireNonNull(JSONMessageFactory.generateChatList()));
+                        sendMessage(sock, makeNotice(JSONMessageFactory.generateChatList(), type));
                         break;
                     default:
                         throw new RuntimeException("Holy shit...");
@@ -68,7 +74,7 @@ public class MessageSender
         }
     }
 
-    public static void sendMessage(Socket connection, String message)
+    private static void sendMessage(Socket connection, String message)
     {
         byte[] messageByte = message.getBytes();
         byte[] headerSize = intToByteArray(messageByte.length);

@@ -2,7 +2,8 @@ package comiam.chat.server.json;
 
 import comiam.chat.server.data.ServerData;
 import comiam.chat.server.data.units.Chat;
-import comiam.chat.server.messages.types.Answer;
+import comiam.chat.server.messages.types.MessagePackage;
+import comiam.chat.server.messages.types.MessageType;
 import comiam.chat.server.utils.Pair;
 
 import java.util.ArrayList;
@@ -23,14 +24,14 @@ public class JSONMessageFactory
     }
 
     /**
-     * returns <name-activity> list
+     * returns <name> list
      */
     public static String generateChatUsersList(Chat chat)
     {
-        ArrayList<Pair<String, String>> chatList = new ArrayList<>();
+        ArrayList<String> chatList = new ArrayList<>();
 
         for(var user : chat.getUsers())
-            chatList.add(new Pair<>(user.getUsername(), user.getLastActive()));
+            chatList.add(user.getUsername());
 
         return JSONCore.saveToJSON(chatList);
     }
@@ -43,7 +44,7 @@ public class JSONMessageFactory
         ArrayList<Pair<String, String>> chatList = new ArrayList<>();
 
         for(var user : chat.getUsers())
-            chatList.add(new Pair<>(user.getUsername(), user.getLastActive().equals("Online") ? "Online" : "Offline"));
+            chatList.add(new Pair<>(user.getUsername(), user.isOnline() ? "Online" : "Offline"));
 
         return JSONCore.saveToJSON(chatList);
     }
@@ -55,13 +56,25 @@ public class JSONMessageFactory
 
     public static String makeSuccess(String msg)
     {
-        Answer ans = new Answer(msg, true);
+        MessagePackage ans = new MessagePackage(MessageType.SUCCESS_ANSWER, msg);
         return JSONCore.saveToJSON(ans);
     }
 
     public static String makeFailure(String msg)
     {
-        Answer ans = new Answer(msg, false);
+        MessagePackage ans = new MessagePackage(MessageType.FAILURE_ANSWER, msg);
+        return JSONCore.saveToJSON(ans);
+    }
+
+    public static String makeDisconnect()
+    {
+        MessagePackage ans = new MessagePackage(MessageType.DISCONNECT_NOTICE, null);
+        return JSONCore.saveToJSON(ans);
+    }
+
+    public static String makeNotice(String data, MessageType type)
+    {
+        MessagePackage ans = new MessagePackage(type, data);
         return JSONCore.saveToJSON(ans);
     }
 }

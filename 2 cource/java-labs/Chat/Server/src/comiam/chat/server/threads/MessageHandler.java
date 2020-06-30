@@ -11,7 +11,7 @@ import comiam.chat.server.json.JSONMessageFactory;
 import comiam.chat.server.logger.Log;
 import comiam.chat.server.messages.MessageSender;
 import comiam.chat.server.messages.types.Request;
-import comiam.chat.server.messages.types.UpdateType;
+import comiam.chat.server.messages.types.MessageType;
 import comiam.chat.server.time.Date;
 import comiam.chat.server.utils.Hash;
 import comiam.chat.server.utils.Pair;
@@ -148,7 +148,7 @@ public class MessageHandler implements Runnable
 
                 sessionID = Sessions.createNewSession(socket, clientUser);
                 MessageSender.sendSuccess(socket, sessionID);
-                MessageSender.broadcastUpdateFrom(UpdateType.ONLINE_UPDATE, clientUser);
+                MessageSender.broadcastUpdateFrom(MessageType.ONLINE_UPDATE, clientUser);
 
                 logSuccessMessageOp(socket, name, null, request.getType());
                 break;
@@ -169,7 +169,7 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
-                clientUser = new User(Hash.hashBytes(password.getBytes()), name, Date.getDate());
+                clientUser = new User(Hash.hashBytes(password.getBytes()), name);
                 ServerData.addNewUser(clientUser);
                 sessionID = Sessions.createNewSession(socket, clientUser);
                 MessageSender.sendSuccess(socket, sessionID);
@@ -259,7 +259,7 @@ public class MessageHandler implements Runnable
                 chat = Objects.requireNonNull(ServerData.getChatByName(name));
                 chat.addMessage(new Message(message, Date.getDate(), Sessions.getSessionUser(socket)));
 
-                MessageSender.broadcastUpdateFrom(UpdateType.MESSAGE_UPDATE, clientUser);
+                MessageSender.broadcastUpdateFrom(MessageType.MESSAGE_UPDATE, clientUser);
                 ConnectionTimers.zeroTimer(clientUser);
                 MessageSender.sendSuccess(socket, "sent");
 
@@ -288,7 +288,7 @@ public class MessageHandler implements Runnable
                 chat = new Chat(name, users, null);
                 ServerData.addNewChat(chat);
 
-                MessageSender.broadcastUpdateFrom(UpdateType.CHAT_UPDATE, clientUser);
+                MessageSender.broadcastUpdateFrom(MessageType.CHAT_UPDATE, clientUser);
                 ConnectionTimers.zeroTimer(clientUser);
                 MessageSender.sendSuccess(socket, "hello in " + name + ":)");
 
@@ -320,7 +320,7 @@ public class MessageHandler implements Runnable
 
                 chat.addUser(Sessions.getSessionUser(socket));
 
-                MessageSender.broadcastUpdateFrom(UpdateType.USER_UPDATE, clientUser);
+                MessageSender.broadcastUpdateFrom(MessageType.USER_UPDATE, clientUser);
                 ConnectionTimers.zeroTimer(clientUser);
                 MessageSender.sendSuccess(socket, "hello in " + name + ":)");
 
@@ -345,7 +345,7 @@ public class MessageHandler implements Runnable
 
                 MessageSender.sendSuccess(socket, "Goodbye, " + clientUser.getUsername() + "!");
                 Connection.disconnectClient(Sessions.getSessionUser(socket));
-                MessageSender.broadcastUpdateFrom(UpdateType.ONLINE_UPDATE, clientUser);
+                MessageSender.broadcastUpdateFrom(MessageType.ONLINE_UPDATE, clientUser);
 
                 logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());
                 break;

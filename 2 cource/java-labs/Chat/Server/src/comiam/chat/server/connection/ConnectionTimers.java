@@ -4,6 +4,7 @@ import comiam.chat.server.data.ServerData;
 import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
+import comiam.chat.server.messages.MessageSender;
 import comiam.chat.server.time.Timer;
 
 import java.net.Socket;
@@ -71,7 +72,10 @@ public class ConnectionTimers
         Timer.subscribeEvent(() -> {
             for (var user : ServerData.getUsers())
                 if(Sessions.isUserAuthorized(user) && timers.get(user) >= DEFAULT_TIMEOUT_IN_MINUTES)
+                {
+                    MessageSender.sendDisconnect(Sessions.getSession(user).getConnection());
                     Connection.disconnectClient(user);
+                }
             return true;
         }, 5 * Timer.MINUTE);
         Timer.start();

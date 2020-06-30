@@ -6,11 +6,13 @@ public class User
 {
     private final String passHash;
     private final String userName;
+    private final String lastActive;
 
-    public User(String passHash, String userName)
+    public User(String passHash, String userName, String lastActive)
     {
         this.passHash = passHash;
         this.userName = userName;
+        this.lastActive = lastActive;
     }
 
     public String getPassHash()
@@ -23,8 +25,11 @@ public class User
         return userName;
     }
 
-    public boolean isOnline()
+    public String getLastActive()
     {
-        return Sessions.getSession(this) != null;
+        if(Sessions.getSession(this) != null)
+            return "Online";
+        else
+            return lastActive;
     }
 }
