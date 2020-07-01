@@ -15,7 +15,7 @@ public class Connection
 
     public static boolean isCurrentConnectionAvailable()
     {
-        return currentConnection != null && currentConnection.isConnected();
+        return currentConnection != null && !currentConnection.isClosed();
     }
 
     public static void setCurrentConnection(Socket socket)

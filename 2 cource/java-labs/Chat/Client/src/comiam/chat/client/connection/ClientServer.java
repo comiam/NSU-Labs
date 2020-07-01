@@ -106,7 +106,7 @@ public class ClientServer
 
         if(!sendToServer(createPackage(saveToJSON(request))) && type != RequestType.DISCONNECT_MESSAGE)
         {
-            clearData();
+            clearData(true);
             showDefaultAlert(stage, "Oops", "Can't send message to server!", Alert.AlertType.ERROR);
             return null;
         }
@@ -114,7 +114,7 @@ public class ClientServer
         MessagePackage msgPkg = receiveFromServer();
         if(msgPkg == null && type != RequestType.DISCONNECT_MESSAGE)
         {
-            clearData();
+            clearData(true);
             showDefaultAlert(stage, "Oops", "Can't receive message from server!", Alert.AlertType.ERROR);
             return null;
         }
@@ -126,6 +126,9 @@ public class ClientServer
         {
             if(showWarning)
                 showDefaultAlert(stage, "Oops", msgPkg.getData(), Alert.AlertType.ERROR);
+
+            if(type == RequestType.SIGN_IN_MESSAGE || type == RequestType.SIGN_UP_MESSAGE)
+                clearData(false);
             return null;
         }
     }
@@ -254,10 +257,13 @@ public class ClientServer
         return doRequest(stage, RequestType.CREATE_CHAT_MESSAGE, true, name) != null;
     }
 
-    public static void clearData()
+    public static void clearData(boolean clearConnectionData)
     {
-        currentIP = null;
-        currentPort = -1;
+        if(clearConnectionData)
+        {
+            currentIP = null;
+            currentPort = -1;
+        }
         closeConnection();
     }
 }

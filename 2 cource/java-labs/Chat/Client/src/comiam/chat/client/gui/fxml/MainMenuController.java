@@ -111,7 +111,7 @@ public class MainMenuController
         {
             if(onStart)
             {
-                ClientServer.clearData();
+                ClientServer.clearData(true);
                 PaneLoader.showEnterDialog();
             } else
                 showDefaultAlert(stage, "Oops", "I can't update chat list :c", Alert.AlertType.ERROR);
