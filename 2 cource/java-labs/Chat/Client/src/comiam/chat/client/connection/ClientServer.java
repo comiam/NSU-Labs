@@ -75,6 +75,7 @@ public class ClientServer
 
     public static String doRequest(Stage stage, RequestType type, String... args)
     {
+        connectToServer(stage);
         Request request = null;
 
         switch(type)
@@ -123,6 +124,16 @@ public class ClientServer
         }
     }
 
+    public static boolean connectToChat(Stage stage, String chatName)
+    {
+        return doRequest(stage, RequestType.CONNECT_TO_CHAT_MESSAGE, chatName) != null;
+    }
+
+    public static boolean sendMessage(Stage stage, String chatName, String message)
+    {
+        return doRequest(stage, RequestType.SEND_MESSAGE_MESSAGE, chatName, message) != null;
+    }
+
     public static boolean authorize(Stage stage, boolean signIn, String username, String password)
     {
         String data;
@@ -132,6 +143,7 @@ public class ClientServer
         LocalData.setCurrentSessionID(data);
         stage.close();
 
+        LocalData.setUsername(username);
         MainMenu.show(username);
         return true;
     }

@@ -31,6 +31,14 @@ public class InputHandler implements Runnable
         this.port = port;
     }
 
+    public static void wakeUpSamurai()
+    {
+        synchronized(locker)
+        {
+            selector.wakeup();
+        }
+    }
+
     public static Set<SelectionKey> getSelectionKeys()
     {
         synchronized(locker)
@@ -66,6 +74,16 @@ public class InputHandler implements Runnable
             try
             {
                 int count = selector.select();
+
+                if(Thread.currentThread().isInterrupted())
+                {
+                    try
+                    {
+                        selector.close();
+                    }catch(Throwable ignored){}
+                    return;
+                }
+
                 if(count == 0)
                     continue;
 

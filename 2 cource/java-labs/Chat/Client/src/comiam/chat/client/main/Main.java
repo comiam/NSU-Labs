@@ -12,7 +12,6 @@ public class Main extends Application {
         EnterDialog.show();
     }
 
-
     public static void main(String[] args) {
         launch(args);
     }

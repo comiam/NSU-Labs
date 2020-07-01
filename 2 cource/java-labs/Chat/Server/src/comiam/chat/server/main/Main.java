@@ -46,6 +46,7 @@ public class Main
 
             if(line.split(" ").length == 0)
                 continue;
+
             if(!isValidCommand(line))
             {
                 println("Unknown command: " + line);
@@ -66,7 +67,7 @@ public class Main
 
     private static void printNewLine()
     {
-        System.out.println("> ");
+        System.out.print("> ");
         System.out.flush();
     }
 

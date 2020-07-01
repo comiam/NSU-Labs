@@ -5,6 +5,7 @@ import comiam.chat.server.data.ServerData;
 import comiam.chat.server.logger.Log;
 import comiam.chat.server.threads.InputHandler;
 import comiam.chat.server.threads.MessageHandler;
+import comiam.chat.server.time.Timer;
 
 public class ServerCore
 {
@@ -51,6 +52,9 @@ public class ServerCore
 
         inputThread.interrupt();
         messageThread.interrupt();
+
+        InputHandler.wakeUpSamurai();
+        Timer.stop();
 
         running = false;
     }

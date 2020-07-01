@@ -27,12 +27,13 @@
     </MenuBar>
       <HBox alignment="TOP_RIGHT" prefHeight="35.0" prefWidth="280.0" stylesheets="@style.css">
          <children>
-            <Button alignment="CENTER" maxHeight="1.7976931348623157E308" mnemonicParsing="false" onAction="#addChat" style="-fx-font-size: 15; -fx-font-weight: bold;" text="+" />
+            <Button fx:id="updateButton" maxHeight="1.7976931348623157E308" mnemonicParsing="false" style="-fx-font-weight: bold;" text="upd" />
+            <Button fx:id="addChatButton" alignment="CENTER" maxHeight="1.7976931348623157E308" mnemonicParsing="false" style="-fx-font-size: 15; -fx-font-weight: bold;" text="+" />
          </children>
       </HBox>
-      <VBox prefHeight="340.0" prefWidth="280.0">
+      <VBox prefHeight="340.0" prefWidth="280.0" stylesheets="@style.css">
          <children>
-            <ScrollPane hbarPolicy="NEVER" prefHeight="371.0" prefWidth="280.0">
+            <ScrollPane fx:id="parentScroll" hbarPolicy="NEVER" prefHeight="371.0" prefWidth="280.0">
                <content>
                   <VBox fx:id="chatBox" maxWidth="1.7976931348623157E308" prefHeight="337.0" prefWidth="280.0" />
                </content>

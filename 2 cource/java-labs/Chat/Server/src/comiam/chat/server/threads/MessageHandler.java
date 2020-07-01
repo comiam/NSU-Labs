@@ -352,7 +352,6 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
-
                 if(!Sessions.isClientAuthorized(socket))
                 {
                     unauthorizedRequestError(socket);
