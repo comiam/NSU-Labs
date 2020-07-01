@@ -8,6 +8,7 @@ import comiam.chat.server.utils.Pair;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -45,6 +46,19 @@ public class InputHandler implements Runnable
         {
             return selector.keys();
         }
+    }
+
+    public static void closeChannelKey(SelectionKey key, Socket socket)
+    {
+        try
+        {
+            key.channel().close();
+            socket.close();
+        } catch (IOException e)
+        {
+            e.printStackTrace();
+        }
+        key.cancel();
     }
 
     @Override
@@ -87,21 +101,21 @@ public class InputHandler implements Runnable
                 if(count == 0)
                     continue;
 
-                Set<?> key = selector.selectedKeys();
-                Iterator<?> it = key.iterator();
-
-                while(it.hasNext())
+                synchronized(locker)
                 {
-                    selectionKey = (SelectionKey) it.next();
-                    it.remove();
+                    Set<?> key = selector.selectedKeys();
+                    Iterator<?> it = key.iterator();
 
-                    if(selectionKey.isAcceptable())
-                        synchronized(locker)
-                        {
+                    while(it.hasNext())
+                    {
+                        selectionKey = (SelectionKey) it.next();
+                        it.remove();
+
+                        if(selectionKey.isAcceptable())
                             Connection.acceptConnection(selector, serverSocket, selectionKey);
-                        }
-                    else if(selectionKey.isReadable())
-                        readInputMessage(selectionKey);
+                        else if(selectionKey.isReadable())
+                            readInputMessage(selectionKey);
+                    }
                 }
             } catch(Throwable e)
             {

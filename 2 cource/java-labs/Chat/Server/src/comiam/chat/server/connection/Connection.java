@@ -90,14 +90,6 @@ public class Connection
                 }
 
         assert key != null;
-        try
-        {
-            key.channel().close();
-            socket.close();
-        } catch (IOException e)
-        {
-            e.printStackTrace();
-        }
-        key.cancel();
+        InputHandler.closeChannelKey(key, socket);
     }
 }

@@ -269,7 +269,10 @@ public class MainMenuController
     @FXML
     private void exitFromAcc()
     {
-
+        ClientServer.disconnect();
+        ClientServer.clearData(true);
+        stage.close();
+        PaneLoader.showEnterDialog();
     }
 
     @FXML
