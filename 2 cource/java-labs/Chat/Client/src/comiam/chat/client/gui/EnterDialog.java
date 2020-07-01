@@ -1,5 +1,6 @@
 package comiam.chat.client.gui;
 
+import comiam.chat.client.gui.fxml.EnterController;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -14,7 +15,11 @@ public class EnterDialog
         {
             Stage newWindow = new Stage();
 
-            Parent root = FXMLLoader.load(EnterDialog.class.getResource("../gui/fxml/enter.fxml"));
+            FXMLLoader loader = new FXMLLoader(EnterDialog.class.getResource("../gui/fxml/enter.fxml"));
+            Parent root = loader.load();
+            EnterController controller = loader.getController();
+            controller.setStage(newWindow);
+
             newWindow.setTitle("Hello");
             newWindow.setResizable(false);
             newWindow.setScene(new Scene(root, 226, 296));

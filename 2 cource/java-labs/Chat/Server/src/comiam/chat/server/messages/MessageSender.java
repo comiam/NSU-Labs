@@ -10,6 +10,7 @@ import comiam.chat.server.messages.types.MessageType;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.Objects;
 
 import static comiam.chat.server.json.JSONMessageFactory.*;
@@ -20,14 +21,14 @@ public class MessageSender
 {
     public static void sendError(Socket connection, String message)
     {
-        String ans = makeSuccess(message);
+        String ans = makeFailure(message);
 
         sendMessage(connection, ans);
     }
 
     public static void sendSuccess(Socket connection, String message)
     {
-        String ans = makeFailure(message);
+        String ans = makeSuccess(message);
 
         sendMessage(connection, ans);
     }
@@ -82,7 +83,7 @@ public class MessageSender
         byte[] messagePackage = concatenate(headerSize, messageByte);
         try
         {
-            connection.getOutputStream().write(messagePackage);
+            connection.getChannel().write(ByteBuffer.wrap(messagePackage));
         } catch (IOException e)
         {
             Log.error("MessageSender: Can't send message to " + connection.getInetAddress(), e);

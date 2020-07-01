@@ -1,4 +1,4 @@
-package comiam.chat.server.data.units;
+package comiam.chat.client.data.units;
 
 public class Message
 {

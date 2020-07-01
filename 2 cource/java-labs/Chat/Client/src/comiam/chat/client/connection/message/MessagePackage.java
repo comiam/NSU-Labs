@@ -1,4 +1,4 @@
-package comiam.chat.server.messages.types;
+package comiam.chat.client.connection.message;
 
 public class MessagePackage
 {

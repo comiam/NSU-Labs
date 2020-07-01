@@ -1,4 +1,4 @@
-package comiam.chat.client.util;
+package comiam.chat.client.utils;
 
 public class Pair<A, B>
 {

@@ -56,6 +56,8 @@ public class MessageHandler implements Runnable
                 continue;
             }
 
+            System.out.println(pair.getSecond());
+
             Request message = parseFromJSON(pair.getSecond(), Request.class);
 
             if(message == null)
@@ -121,7 +123,7 @@ public class MessageHandler implements Runnable
         switch(request.getType())
         {
             case SIGN_IN_MESSAGE:
-                if(checkIsNull(name, password, sessionID))
+                if(checkIsNull(name, password))
                 {
                     badMessageDataError(socket);
                     Connection.disconnectIfOnline(socket);
@@ -153,7 +155,7 @@ public class MessageHandler implements Runnable
                 logSuccessMessageOp(socket, name, null, request.getType());
                 break;
             case SIGN_UP_MESSAGE:
-                if(checkIsNull(name, password, sessionID))
+                if(checkIsNull(name, password))
                 {
                     badMessageDataError(socket);
                     Connection.disconnectIfOnline(socket);
@@ -174,7 +176,7 @@ public class MessageHandler implements Runnable
                 sessionID = Sessions.createNewSession(socket, clientUser);
                 MessageSender.sendSuccess(socket, sessionID);
 
-                logSuccessMessageOp(socket, null, name, request.getType());
+                logSuccessMessageOp(socket, name, null, request.getType());
                 break;
             case GET_CHATS_MESSAGE:
                 if(checkIsNull(sessionID))

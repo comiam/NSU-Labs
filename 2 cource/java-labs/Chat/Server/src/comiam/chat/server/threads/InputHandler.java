@@ -14,6 +14,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -115,12 +116,9 @@ public class InputHandler implements Runnable
     private static void readInputMessage(SelectionKey selectionKey)
     {
         StringBuilder tmpMessage = new StringBuilder();
-        ByteBuffer sizeBuffer = ByteBuffer.allocateDirect(4);
         ByteBuffer sharedBuffer = ByteBuffer.allocateDirect(2048);
         SocketChannel socketChannel = (SocketChannel) selectionKey.channel();
 
-        int bytes;
-        int totalBytes = 0;
         int size;
 
         String address = socketChannel.socket().getInetAddress().toString();
@@ -128,7 +126,7 @@ public class InputHandler implements Runnable
 
         try
         {
-            if(socketChannel.read(sizeBuffer) <= 4)
+            if(socketChannel.read(sharedBuffer) < 4)
             {
                 Log.error("Input Thread: The header size of the received message by " + address + " is too small. Aborting...");
                 tmpMessage.setLength(0);
@@ -138,9 +136,11 @@ public class InputHandler implements Runnable
 
                 return;
             }
+            sharedBuffer.flip();
 
-            size = byteArrayToInt(sizeBuffer.array());
-            if(size <= 0)
+            size = sharedBuffer.getInt();
+
+            if(size <= 0 || size >= MAX_MESSAGE_SIZE)
             {
                 Log.error("Input Thread: Invalid size of the received message by " + address + ". Aborting...");
                 tmpMessage.setLength(0);
@@ -151,29 +151,13 @@ public class InputHandler implements Runnable
                 return;
             }
 
-            while((bytes = socketChannel.read(sharedBuffer)) > 0)
-            {
-                totalBytes += bytes;
-
-                if(totalBytes >= MAX_MESSAGE_SIZE)
-                {
-                    Log.error("Input Thread: The size of the received message by " + address + " is greater than the maximum allowed. Aborting...");
-
-                    tmpMessage.setLength(0);
-                    sharedBuffer.clear();
-
-                    selectionKey.cancel();
-                    return;
-                }
-
-                tmpMessage.append(StandardCharsets.UTF_8.decode(sharedBuffer).toString());
-            }
+            tmpMessage.append(StandardCharsets.UTF_8.decode(sharedBuffer.limit(size + 4)).toString());
 
             if(tmpMessage.toString().isEmpty())
                 Log.error("Input Thread: Received message by " + address + " is empty!");
             else
             {
-                MessageHandler.addNewMessage(socketChannel.socket(), size + "_" + tmpMessage.toString());
+                MessageHandler.addNewMessage(socketChannel.socket(), tmpMessage.toString());
                 Log.info("Input Thread: Message by " + address + " received successfully!");
             }
         } catch(IOException e)
@@ -182,7 +166,6 @@ public class InputHandler implements Runnable
             selectionKey.cancel();
         }
 
-        sizeBuffer.clear();
         sharedBuffer.clear();
     }
 }

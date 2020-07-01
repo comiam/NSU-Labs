@@ -1,41 +1,21 @@
-package comiam.chat.server.data.units;
-
-import comiam.chat.server.time.Date;
+package comiam.chat.client.data.units;
 
 import java.util.ArrayList;
 
 public class Chat
 {
     private final String             name;
-    private final String             dateCreate;
     private final ArrayList<User>    users = new ArrayList<>();
     private final ArrayList<Message> messages = new ArrayList<>();
-
-    public Chat(String name, String date, ArrayList<User> users, ArrayList<Message> messages)
-    {
-        this.name  = name;
-        this.dateCreate = date;
-
-        if(users != null)
-            this.users.addAll(users);
-        if(messages != null)
-            this.messages.addAll(messages);
-    }
 
     public Chat(String name, ArrayList<User> users, ArrayList<Message> messages)
     {
         this.name  = name;
-        this.dateCreate = Date.getDate();
 
         if(users != null)
             this.users.addAll(users);
         if(messages != null)
             this.messages.addAll(messages);
-    }
-
-    public String getDateOfCreation()
-    {
-        return dateCreate;
     }
 
     public String getName()

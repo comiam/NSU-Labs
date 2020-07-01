@@ -1,23 +1,13 @@
-package comiam.chat.server.data.units;
-
-import comiam.chat.server.data.session.Sessions;
+package comiam.chat.client.data.units;
 
 public class User
 {
-    private final String passHash;
     private final String userName;
-    private final String lastActive;
+    private boolean online = false;
 
-    public User(String passHash, String userName, String lastActive)
+    public User(String userName)
     {
-        this.passHash = passHash;
         this.userName = userName;
-        this.lastActive = lastActive;
-    }
-
-    public String getPassHash()
-    {
-        return passHash;
     }
 
     public String getUsername()
@@ -25,11 +15,13 @@ public class User
         return userName;
     }
 
-    public String getLastActive()
+    public void setOnline(boolean online)
     {
-        if(Sessions.getSession(this) != null)
-            return "Online";
-        else
-            return lastActive;
+        this.online = online;
+    }
+
+    public boolean isOnline()
+    {
+        return online;
     }
 }

@@ -10,6 +10,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 public class Connection
@@ -81,7 +82,7 @@ public class Connection
         SelectionKey key = null;
 
         for(var sock : InputHandler.getSelectionKeys())
-            if(((SocketChannel) sock.channel()).socket().equals(socket))
+            if(((ServerSocketChannel) sock.channel()).socket().equals(socket))
             {
                 key = sock;
                 break;
