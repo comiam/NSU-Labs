@@ -18,6 +18,12 @@ public class ServerData
 {
     private static final ArrayList<User> users = new ArrayList<>();
     private static final ArrayList<Chat> chats = new ArrayList<>();
+    private static final User serverNotifier = new User("12132455432434", "server");
+
+    public static User getServerNotifier()
+    {
+        return serverNotifier;
+    }
 
     public static boolean loadData(String databasePath)
     {

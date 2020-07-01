@@ -242,7 +242,7 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
-                String messages = JSONMessageFactory.generateChatMessageList(Objects.requireNonNull(ServerData.getChatByName(name)));
+                String messages = JSONMessageFactory.generateChatMessageList(Objects.requireNonNull(ServerData.getChatByName(name)), false);
                 MessageSender.sendSuccess(socket, messages);
 
                 ConnectionTimers.zeroTimer(clientUser);
@@ -275,9 +275,9 @@ public class MessageHandler implements Runnable
 
                 chat.addMessage(new Message(message, Date.getDate(), Objects.requireNonNull(Sessions.getSessionUser(socket)).getUsername()));
 
+                MessageSender.sendSuccess(socket, "sent");
                 MessageSender.broadcastUpdateFrom(MessageType.MESSAGE_UPDATE, clientUser);
                 ConnectionTimers.zeroTimer(clientUser);
-                MessageSender.sendSuccess(socket, "sent");
 
                 logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());
                 break;
@@ -303,10 +303,10 @@ public class MessageHandler implements Runnable
 
                 chat = new Chat(name, users, null);
                 ServerData.addNewChat(chat);
+                MessageSender.sendSuccess(socket, "hello in " + name + ":)");
 
                 MessageSender.broadcastUpdateFrom(MessageType.CHAT_UPDATE, clientUser);
                 ConnectionTimers.zeroTimer(clientUser);
-                MessageSender.sendSuccess(socket, "hello in " + name + ":)");
 
                 logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
                 break;
@@ -334,11 +334,15 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
-                chat.addUser(Sessions.getSessionUser(socket));
+                chat.addUser(clientUser);
 
-                MessageSender.broadcastUpdateFrom(MessageType.USER_UPDATE, clientUser);
-                ConnectionTimers.zeroTimer(clientUser);
+                chat.addMessage(new Message("Wow, " + Objects.requireNonNull(Sessions.getSessionUser(socket)).getUsername() + " is there!", Date.getDate(), ServerData.getServerNotifier().getUsername()));
                 MessageSender.sendSuccess(socket, "hello in " + name + ":)");
+
+                MessageSender.broadcastUpdateFrom(MessageType.CHAT_UPDATE, clientUser);
+                MessageSender.broadcastUpdateFrom(MessageType.MESSAGE_UPDATE, clientUser);
+
+                ConnectionTimers.zeroTimer(clientUser);
 
                 logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
                 break;

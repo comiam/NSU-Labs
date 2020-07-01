@@ -3,6 +3,7 @@ package comiam.chat.client.gui;
 import comiam.chat.client.connection.ClientServer;
 import comiam.chat.client.gui.fxml.EnterController;
 import comiam.chat.client.gui.fxml.MainMenuController;
+import comiam.chat.client.time.Timer;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
@@ -19,7 +20,8 @@ public class PaneLoader
     {
         try
         {
-            FXMLLoader loader = new FXMLLoader(PaneLoader.class.getResource("../gui/fxml/messagepane.fxml"));
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(EnterController.class.getResource("messagepane.fxml"));
             Node root = loader.load();
 
             return (VBox) root;
@@ -35,7 +37,8 @@ public class PaneLoader
         {
             Stage newWindow = new Stage();
 
-            FXMLLoader loader = new FXMLLoader(PaneLoader.class.getResource("../gui/fxml/enter.fxml"));
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(EnterController.class.getResource("enter.fxml"));
             Parent root = loader.load();
             EnterController controller = loader.getController();
             controller.setStage(newWindow);
@@ -54,13 +57,14 @@ public class PaneLoader
 
     }
 
-    public static void showMainMenu(String name)
+    public static MainMenuController showMainMenu(String name)
     {
         try
         {
             Stage newWindow = new Stage();
 
-            FXMLLoader loader = new FXMLLoader(PaneLoader.class.getResource("../gui/fxml/mainmenu.fxml"));
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(EnterController.class.getResource("mainmenu.fxml"));
             Parent root = loader.load();
             MainMenuController controller = loader.getController();
             controller.setStage(newWindow);
@@ -71,19 +75,31 @@ public class PaneLoader
             newWindow.centerOnScreen();
             newWindow.setOnCloseRequest((e) ->
             {
+                if(Timer.isRunning())
+                    Timer.stop();
                 ClientServer.disconnect();
                 Platform.exit();
             });
             newWindow.show();
 
-            if(!MainMenuController.isLoadedSuccessfully())
+            if(!controller.isLoadedSuccessfully())
+            {
                 newWindow.close();
+                if(Timer.isRunning())
+                    Timer.stop();
+                Platform.exit();
+                System.exit(1);
+            }
+            return controller;
         }catch(Throwable e)
         {
             showExceptionDialog(null, e);
-            Platform.exit();
-            System.exit(1);
         }
 
+        if(Timer.isRunning())
+            Timer.stop();
+        Platform.exit();
+        System.exit(1);
+        return null;
     }
 }

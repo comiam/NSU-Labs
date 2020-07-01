@@ -51,13 +51,27 @@ public class Sessions
         return null;
     }
 
+    public static synchronized Socket[] getAllSockets()
+    {
+        if(sessions.size() == 0)
+            return null;
+
+        Socket[] res = new Socket[sessions.size()];
+
+        int index = 0;
+        for(var ses : sessions.values())
+            res[index++] = ses.getConnection();
+
+        return res;
+    }
+
     public static synchronized Socket[] getSocketsOfSessionInChat(Chat[] chats)
     {
         ArrayList<Socket> sockets = new ArrayList<>();
 
         for(var chat : chats)
             for(var user : chat.getUsers())
-                if(sessions.containsKey(user))
+                if(sessions.containsKey(user) && !sockets.contains(sessions.get(user).getConnection()))
                     sockets.add(sessions.get(user).getConnection());
 
         return sockets.isEmpty() ? null : (Socket[]) sockets.toArray(new Socket[sockets.size()]);

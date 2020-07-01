@@ -14,7 +14,7 @@ public class UserSession
     {
         UserSession session = new UserSession();
         session.activeConnection = activeConnection;
-        session.id = Hash.hashBytes(Date.getDate().getBytes());
+        session.id = Hash.hashBytes((Date.getDateForSession() + activeConnection.hashCode()).getBytes());
 
         return session;
     }

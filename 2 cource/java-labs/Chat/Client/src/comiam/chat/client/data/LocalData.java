@@ -1,18 +1,35 @@
 package comiam.chat.client.data;
 
-import comiam.chat.client.utils.Pair;
-
-import java.util.ArrayList;
-
 public class LocalData
 {
     private static String currentSessionID;
-    private static ArrayList<Pair<String, Integer>> cachedChats = new ArrayList<>();
     private static String username;
+    private static String password;
+    private static boolean disconnected = false;
+
+    public static boolean isDisconnected()
+    {
+        return disconnected;
+    }
+
+    public static void setDisconnected(boolean disconnected)
+    {
+        LocalData.disconnected = disconnected;
+    }
+
+    public static void setPassword(String password)
+    {
+        LocalData.password = password;
+    }
 
     public static void setUsername(String username)
     {
         LocalData.username = username;
+    }
+
+    public static String getPassword()
+    {
+        return password;
     }
 
     public static String getUsername()
@@ -28,15 +45,5 @@ public class LocalData
     public static void setCurrentSessionID(String sessionID)
     {
         currentSessionID = sessionID;
-    }
-
-    public static ArrayList<Pair<String, Integer>> getCachedChats()
-    {
-        return cachedChats;
-    }
-
-    public static void setCachedChats(ArrayList<Pair<String, Integer>> cachedChats)
-    {
-        LocalData.cachedChats = cachedChats;
     }
 }

@@ -4,13 +4,13 @@ public class Message
 {
     private final String message;
     private final String date;
-    private final User user;
+    private final String username;
 
-    public Message(String message, String date, User user)
+    public Message(String message, String date, String username)
     {
         this.message = message;
         this.date = date;
-        this.user = user;
+        this.username = username;
     }
 
     public String getText()
@@ -23,9 +23,9 @@ public class Message
         return date;
     }
 
-    public User getUser()
+    public String getUsername()
     {
-        return user;
+        return username;
     }
 }
 

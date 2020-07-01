@@ -42,38 +42,36 @@ public class MessageSender
 
     public static void broadcastUpdateFrom(MessageType type, User user)
     {
-        if(!ServerData.isUserHaveChat(user))
-            return;
-
         Socket exception = Sessions.getSession(user).getConnection();
-        Chat[] chats = Objects.requireNonNull(ServerData.getUserChatList(user));
-        Socket[] sockets = Sessions.getSocketsOfSessionInChat(chats);
 
-        if(sockets == null)
-            return;
-
-        for(var sock : sockets)
+        switch(type)
         {
-            if(sock.equals(exception))
-                continue;
+            case MESSAGE_UPDATE:
+                if(!ServerData.isUserHaveChat(user))
+                    return;
 
-            for(var chat : chats)
-                switch(type)
-                {
-                    case USER_UPDATE:
-                        sendMessage(sock, makeNotice(JSONMessageFactory.generateChatUsersList(chat), type));
-                        break;
-                    case MESSAGE_UPDATE:
-                        sendMessage(sock, makeNotice(JSONMessageFactory.generateChatMessageList(chat), type));
-                        break;
-                    case CHAT_UPDATE:
-                        sendMessage(sock, makeNotice(JSONMessageFactory.generateChatList(), type));
-                        break;
-                    default:
-                        throw new RuntimeException("Holy shit...");
-                }
+                Chat[] chats = Objects.requireNonNull(ServerData.getUserChatList(user));
+                Socket[] sockets = Sessions.getSocketsOfSessionInChat(chats);
+
+                if(sockets == null)
+                    return;
+
+                for(var sock : sockets)
+                    if(!sock.equals(exception))
+                        for(var chat : chats)
+                            sendMessage(sock, makeNotice(JSONMessageFactory.generateChatMessageList(chat, true), type));
+                break;
+            case CHAT_UPDATE:
+                if(Sessions.getAllSockets() != null)
+                    for(var sock : Sessions.getAllSockets())
+                        if(!sock.equals(exception))
+                            sendMessage(sock, makeNotice(JSONMessageFactory.generateChatList(), type));
+                break;
+            default:
+                throw new RuntimeException("Holy shit...");
         }
     }
+
 
     private static void sendMessage(Socket connection, String message)
     {
@@ -84,7 +82,7 @@ public class MessageSender
         try
         {
             connection.getChannel().write(ByteBuffer.wrap(messagePackage));
-        } catch (IOException e)
+        } catch(IOException e)
         {
             Log.error("MessageSender: Can't send message to " + connection.getInetAddress(), e);
         }

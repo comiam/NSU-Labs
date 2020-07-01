@@ -8,4 +8,9 @@ public class Date
     {
         return new SimpleDateFormat("dd.MM.yyyy_hh:mm").format(new java.util.Date());
     }
+
+    public static String getDateForSession()
+    {
+        return new SimpleDateFormat("dd.MM.yyyy_hh:mm::ss::SSSS").format(new java.util.Date());
+    }
 }

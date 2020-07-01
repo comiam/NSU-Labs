@@ -41,14 +41,41 @@ public class MainMenuController
     @FXML
     private VBox chatBox;
 
-    VBox msgBox;
-    
+    private VBox msgBox;
+
     private Stage stage;
 
+    private TextArea messageArea;
 
-    private static boolean loadedSuccessfully = false;
+    private String openedChatName = null;
 
-    public static boolean isLoadedSuccessfully()
+    private boolean loadedSuccessfully = false;
+
+    private ArrayList<Message> currentMessages;
+
+    public void appendNewMessages(ArrayList<Message> newPack)
+    {
+        if(openedChatName == null)
+            return;
+
+        if(currentMessages.size() >= newPack.size())
+            return;
+
+        for(int i = currentMessages.size();i < newPack.size();i++)
+        {
+            currentMessages.add(newPack.get(i));
+            int finalI = i;
+            Platform.runLater(() -> messageArea.appendText(newPack.get(finalI).getUsername() + "(" + newPack.get(finalI).getDate() + "): " + newPack.get(finalI).getText() + "\n"));
+        }
+    }
+
+
+    public String getOpenedChatName()
+    {
+        return openedChatName;
+    }
+
+    public boolean isLoadedSuccessfully()
     {
         return loadedSuccessfully;
     }
@@ -67,6 +94,16 @@ public class MainMenuController
         loadChatList(true);
     }
 
+    public void loadChatList(ArrayList<Pair<String, Integer>> list)
+    {
+        Platform.runLater(() -> {
+            chatBox.getChildren().clear();
+
+            for(var chat : list)
+                addNewChat(chat.getFirst(), chat.getSecond());
+        });
+    }
+
     private void loadChatList(boolean onStart)
     {
         ArrayList<Pair<String, Integer>> list = ClientServer.getChatLists(stage);
@@ -76,7 +113,7 @@ public class MainMenuController
             {
                 ClientServer.clearData();
                 PaneLoader.showEnterDialog();
-            }else
+            } else
                 showDefaultAlert(stage, "Oops", "I can't update chat list :c", Alert.AlertType.ERROR);
             return;
         }
@@ -91,7 +128,7 @@ public class MainMenuController
     private void openChat(ArrayList<Message> messages, String nameChat)
     {
         updateButton.setVisible(false);
-        addChatButton.setOnAction((e)->exitFromChat());
+        addChatButton.setOnAction((e) -> exitFromChat());
         addChatButton.setText("exit");
 
         msgBox = PaneLoader.getMessagePane();
@@ -103,12 +140,12 @@ public class MainMenuController
         msgBox.setMaxHeight(chatPanel.getMaxHeight());
         msgBox.setMinWidth(chatPanel.getMinWidth());
 
-        TextArea area = (TextArea) ((ScrollPane)msgBox.getChildren().get(0)).getContent();
+        TextArea area = (TextArea) ((ScrollPane) msgBox.getChildren().get(0)).getContent();
         TextField field = (TextField) msgBox.getChildren().get(1);
 
         area.setFont(Font.font(area.getFont().getFamily(), FontPosture.REGULAR, 12));
         for(var msg : messages)
-            area.appendText(msg.getUser().getUsername() + "(" + msg.getDate() + "): " + msg.getText() + "\n");
+            area.appendText(msg.getUsername() + "(" + msg.getDate() + "): " + msg.getText() + "\n");
 
         field.setPromptText("input message...");
         field.setMaxWidth(Double.MAX_VALUE);
@@ -120,23 +157,33 @@ public class MainMenuController
                     showDefaultAlert(stage, "Oops", "Can't send message to server... Try again!", Alert.AlertType.ERROR);
                 else
                 {
-                    area.appendText(LocalData.getUsername() + "(" + Date.getDate() + "): " + field.getText().trim() + "\n");
+                    String date = Date.getDate();
+                    area.appendText(LocalData.getUsername() + "(" + date + "): " + field.getText().trim() + "\n");
+                    currentMessages.add(new Message(field.getText().trim(), date, LocalData.getUsername()));
                     field.setText("");
                 }
             }
         });
         mainPanel.getChildren().remove(chatPanel);
         mainPanel.getChildren().add(msgBox);
+
+        messageArea = area;
+        openedChatName = nameChat;
+        currentMessages = messages;
     }
 
     private void exitFromChat()
     {
         updateButton.setVisible(true);
-        addChatButton.setOnAction((e)->addChat());
+        addChatButton.setOnAction((e) -> addChat());
         addChatButton.setText("+");
 
         mainPanel.getChildren().remove(msgBox);
         mainPanel.getChildren().add(chatPanel);
+
+        messageArea = null;
+        openedChatName = null;
+        currentMessages = null;
     }
 
     private void addNewChat(String name, int count)
@@ -149,24 +196,19 @@ public class MainMenuController
             ArrayList<String> users = ClientServer.getUserFromChat(stage, name);
             if(users == null)
             {
-                showDefaultAlert(stage, "Oops", "Can't get user list, sorry...", Alert.AlertType.ERROR);
-                return;
-            }
-            boolean connected = false;
-
-            for(var usr : users)
-                if(usr.equals(LocalData.getUsername()))
-                {
-                    connected = true;
-                    break;
-                }
-
-            if(!connected)
-            {
-                connected = ClientServer.connectToChat(stage, name);
+                boolean connected = ClientServer.connectToChat(stage, name);
                 if(!connected)
                 {
                     showDefaultAlert(stage, "Oops", "Can't connect to chat!", Alert.AlertType.ERROR);
+                    return;
+                }
+                loadChatList(false);
+
+
+                users = ClientServer.getUserFromChat(stage, name);
+                if(users == null)
+                {
+                    showDefaultAlert(stage, "Oops", "Can't get user list, sorry...", Alert.AlertType.ERROR);
                     return;
                 }
             }

@@ -2,6 +2,7 @@ package comiam.chat.server.json;
 
 import comiam.chat.server.data.ServerData;
 import comiam.chat.server.data.units.Chat;
+import comiam.chat.server.data.units.Message;
 import comiam.chat.server.messages.types.MessagePackage;
 import comiam.chat.server.messages.types.MessageType;
 import comiam.chat.server.utils.Pair;
@@ -36,9 +37,9 @@ public class JSONMessageFactory
         return JSONCore.saveToJSON(chatList);
     }
 
-    public static String generateChatMessageList(Chat chat)
+    public static String generateChatMessageList(Chat chat, boolean forBroadcast)
     {
-        return  JSONCore.saveToJSON(chat.getMessages());
+        return JSONCore.saveToJSON(forBroadcast ? new Pair<>(chat.getName(), chat.getMessages()) : chat.getMessages());
     }
 
     public static String makeSuccess(String msg)
