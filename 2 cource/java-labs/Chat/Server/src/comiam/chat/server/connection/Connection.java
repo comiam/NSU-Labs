@@ -82,11 +82,12 @@ public class Connection
         SelectionKey key = null;
 
         for(var sock : InputHandler.getSelectionKeys())
-            if(((ServerSocketChannel) sock.channel()).socket().equals(socket))
-            {
-                key = sock;
-                break;
-            }
+            if(sock.channel() instanceof SocketChannel)
+                if(((SocketChannel) sock.channel()).socket().equals(socket))
+                {
+                    key = sock;
+                    break;
+                }
 
         assert key != null;
         try

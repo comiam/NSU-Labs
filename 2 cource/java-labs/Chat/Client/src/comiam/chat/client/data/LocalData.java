@@ -1,13 +1,19 @@
 package comiam.chat.client.data;
 
-import comiam.chat.client.data.units.Chat;
-
-import java.util.ArrayList;
-
 public class LocalData
 {
     private static String currentSessionID;
-    private static ArrayList<Chat> chats = new ArrayList<>();
+    private static String username;
+
+    public static void setUsername(String username)
+    {
+        LocalData.username = username;
+    }
+
+    public static String getUsername()
+    {
+        return username;
+    }
 
     public static String getCurrentSessionID()
     {

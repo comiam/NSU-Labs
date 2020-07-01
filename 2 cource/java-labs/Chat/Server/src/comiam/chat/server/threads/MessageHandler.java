@@ -56,8 +56,6 @@ public class MessageHandler implements Runnable
                 continue;
             }
 
-            System.out.println(pair.getSecond());
-
             Request message = parseFromJSON(pair.getSecond(), Request.class);
 
             if(message == null)
@@ -212,6 +210,12 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
+                if(!Objects.requireNonNull(ServerData.getChatByName(name)).containsUser(clientUser))
+                {
+                    userNotExistInChatError(clientUser.getUsername(), name, socket);
+                    return;
+                }
+
                 String usersStr = request.getType() == GET_USERS_OF_CHAT_MESSAGE ? JSONMessageFactory.generateChatUsersList(Objects.requireNonNull(ServerData.getChatByName(name))) :
                         JSONMessageFactory.generateOnlineChatUsersList(Objects.requireNonNull(ServerData.getChatByName(name)));
                 MessageSender.sendSuccess(socket, usersStr);
@@ -232,6 +236,12 @@ public class MessageHandler implements Runnable
                 if(!ServerData.containsChat(name))
                 {
                     chatNotExistError(name, socket);
+                    return;
+                }
+
+                if(!Objects.requireNonNull(ServerData.getChatByName(name)).containsUser(clientUser))
+                {
+                    userNotExistInChatError(clientUser.getUsername(), name, socket);
                     return;
                 }
 
@@ -259,6 +269,13 @@ public class MessageHandler implements Runnable
                 }
 
                 chat = Objects.requireNonNull(ServerData.getChatByName(name));
+
+                if(!chat.containsUser(clientUser))
+                {
+                    userNotExistInChatError(clientUser.getUsername(), name, socket);
+                    return;
+                }
+
                 chat.addMessage(new Message(message, Date.getDate(), Sessions.getSessionUser(socket)));
 
                 MessageSender.broadcastUpdateFrom(MessageType.MESSAGE_UPDATE, clientUser);
@@ -346,8 +363,8 @@ public class MessageHandler implements Runnable
                 logMessageOp(socket, clientUser.getUsername(),null, request.getType());
 
                 MessageSender.sendSuccess(socket, "Goodbye, " + clientUser.getUsername() + "!");
-                Connection.disconnectClient(Sessions.getSessionUser(socket));
                 MessageSender.broadcastUpdateFrom(MessageType.ONLINE_UPDATE, clientUser);
+                Connection.disconnectClient(Sessions.getSessionUser(socket));
 
                 logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());
                 break;

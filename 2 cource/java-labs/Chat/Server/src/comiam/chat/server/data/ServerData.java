@@ -121,7 +121,7 @@ public class ServerData
             if(chat.containsUser(user))
                 res.add(chat);
 
-        return res.isEmpty() ? null : (Chat[]) res.toArray();
+        return res.isEmpty() ? null : (Chat[]) res.toArray(new Chat[res.size()]);
     }
 
     public static boolean containsChat(String name)

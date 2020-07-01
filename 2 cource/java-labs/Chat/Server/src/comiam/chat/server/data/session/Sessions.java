@@ -60,7 +60,7 @@ public class Sessions
                 if(sessions.containsKey(user))
                     sockets.add(sessions.get(user).getConnection());
 
-        return sockets.isEmpty() ? null : (Socket[]) sockets.toArray();
+        return sockets.isEmpty() ? null : (Socket[]) sockets.toArray(new Socket[sockets.size()]);
     }
 
     public static synchronized int parseAndManageSession(String sessionID, Socket connection)
@@ -74,7 +74,7 @@ public class Sessions
         UserSession userSession = getSession(sessionID);
 
         assert userSession != null;
-        if(userSession.haveActiveConnection() && userSession.getConnection().equals(connection))
+        if(userSession.haveActiveConnection() && !userSession.getConnection().equals(connection))
             return SESSION_HAVE_ACTIVE_CONNECTION;
 
         if(!userSession.haveActiveConnection())

@@ -48,7 +48,7 @@ public class ConnectionTimers
     public static void addAuthTimer(Socket connection)
     {
         Timer.subscribeEvent(() -> {
-            if(!connection.isClosed() || Sessions.isClientAuthorized(connection))
+            if(!connection.isClosed() && !Sessions.isClientAuthorized(connection))
             {
                 Log.error("Backend thread: Authentication with " + connection.getInetAddress() + ": timed out. Disconnect from server...");
                 Connection.disconnectClient(connection);

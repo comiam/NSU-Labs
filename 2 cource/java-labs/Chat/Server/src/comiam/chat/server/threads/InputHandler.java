@@ -14,12 +14,10 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
 
 import static comiam.chat.server.core.GlobalConstants.MAX_MESSAGE_SIZE;
-import static comiam.chat.server.utils.ByteUtils.byteArrayToInt;
 
 public class InputHandler implements Runnable
 {

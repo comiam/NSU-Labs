@@ -1,34 +1,37 @@
 package comiam.chat.client.connection;
 
+import com.google.gson.reflect.TypeToken;
 import comiam.chat.client.connection.message.MessagePackage;
 import comiam.chat.client.connection.message.MessageType;
 import comiam.chat.client.connection.message.Request;
 import comiam.chat.client.connection.message.RequestType;
 import comiam.chat.client.data.LocalData;
+import comiam.chat.client.data.units.Message;
+import comiam.chat.client.gui.MainMenu;
 import comiam.chat.client.utils.Pair;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 
-import static comiam.chat.client.connection.Connection.receiveFromServer;
-import static comiam.chat.client.connection.Connection.sendToServer;
+import static comiam.chat.client.connection.Connection.*;
 import static comiam.chat.client.gui.Dialogs.showDefaultAlert;
 import static comiam.chat.client.gui.Dialogs.showInputDialog;
+import static comiam.chat.client.json.JSONCore.parseFromJSON;
 import static comiam.chat.client.json.JSONCore.saveToJSON;
 import static comiam.chat.client.utils.ByteUtils.createPackage;
 import static comiam.chat.client.utils.IPUtils.getDataIP;
 
 public class ClientServer
 {
-    private static Socket currentConnection;
     private static String currentIP;
     private static int currentPort;
 
     public static boolean connectToServer(Stage stage)
     {
-        if(currentConnection == null || !currentConnection.isConnected())
+        if(!isCurrentConnectionAvailable())
         {
             if(currentIP == null)
             {
@@ -64,50 +67,140 @@ public class ClientServer
                 return false;
             }
 
-            currentConnection = socket;
+            setCurrentConnection(socket);
         }
 
         return true;
     }
 
-    public static boolean authorize(Stage stage, boolean signIn, String username, String password)
+    public static String doRequest(Stage stage, RequestType type, String... args)
     {
-        Request request = new Request(signIn ? RequestType.SIGN_IN_MESSAGE : RequestType.SIGN_UP_MESSAGE, username, password);
+        Request request = null;
 
-        if(!sendToServer(currentConnection, createPackage(saveToJSON(request))))
+        switch(type)
         {
-            closeConnection();
-            showDefaultAlert(stage, "Oops", "Can't send message to server!", Alert.AlertType.ERROR);
-            return false;
+            case SIGN_IN_MESSAGE:
+            case SIGN_UP_MESSAGE:
+                request = new Request(type, args[0], args[1]);
+                break;
+            case GET_CHATS_MESSAGE:
+            case DISCONNECT_MESSAGE:
+                request = new Request(type, LocalData.getCurrentSessionID());
+                break;
+            case GET_USERS_OF_CHAT_MESSAGE:
+            case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
+            case GET_MESSAGES_FROM_CHAT_MESSAGE:
+            case CREATE_CHAT_MESSAGE:
+            case CONNECT_TO_CHAT_MESSAGE:
+                request = new Request(type, args[0], null, LocalData.getCurrentSessionID());
+                break;
+            case SEND_MESSAGE_MESSAGE:
+                request = new Request(type, args[0], args[1], LocalData.getCurrentSessionID());
+                break;
         }
 
-        MessagePackage msgPkg = receiveFromServer(currentConnection);
+        if(!sendToServer(createPackage(saveToJSON(request))))
+        {
+            clearData();
+            showDefaultAlert(stage, "Oops", "Can't send message to server!", Alert.AlertType.ERROR);
+            return null;
+        }
+
+        MessagePackage msgPkg = receiveFromServer();
         if(msgPkg == null)
         {
-            closeConnection();
+            clearData();
             showDefaultAlert(stage, "Oops", "Can't receive message from server!", Alert.AlertType.ERROR);
-            return false;
+            return null;
         }
 
         if(msgPkg.getType() == MessageType.SUCCESS_ANSWER)
-        {
-            LocalData.setCurrentSessionID(msgPkg.getData());
-            stage.close();
-            return true;
-        }else
+            return msgPkg.getData();
+        else
         {
             showDefaultAlert(stage, "Oops", msgPkg.getData(), Alert.AlertType.ERROR);
-            return false;
+            return null;
         }
     }
 
-    private static void closeConnection()
+    public static boolean authorize(Stage stage, boolean signIn, String username, String password)
     {
-        try
+        String data;
+        if((data = doRequest(stage, signIn ? RequestType.SIGN_IN_MESSAGE : RequestType.SIGN_UP_MESSAGE, username, password)) == null)
+            return false;
+
+        LocalData.setCurrentSessionID(data);
+        stage.close();
+
+        MainMenu.show(username);
+        return true;
+    }
+
+    public static ArrayList<Pair<String, Integer>> getChatLists(Stage stage)
+    {
+        String data;
+        if((data = doRequest(stage, RequestType.GET_CHATS_MESSAGE)) == null)
+            return null;
+
+        ArrayList<Pair<String, Integer>> chatList = parseFromJSON(data, new TypeToken<ArrayList<Pair<String, Integer>>>(){}.getType());
+
+        if(chatList == null)
         {
-            currentIP = null;
-            currentPort = -1;
-            currentConnection.close();
-        }catch(Throwable ignored){}
+            showDefaultAlert(stage, "Oops", "Cannot get chat list!", Alert.AlertType.ERROR);
+            return null;
+        }
+
+        return chatList;
+    }
+
+    public static ArrayList<String> getUserFromChat(Stage stage, String name)
+    {
+        String data;
+        if((data = doRequest(stage, RequestType.GET_USERS_OF_CHAT_MESSAGE, name)) == null)
+            return null;
+
+        ArrayList<String> chatList = parseFromJSON(data, new TypeToken<ArrayList<String>>(){}.getType());
+
+        if(chatList == null)
+        {
+            showDefaultAlert(stage, "Oops", "Cannot get user list!", Alert.AlertType.ERROR);
+            return null;
+        }
+
+        return chatList;
+    }
+
+    public static ArrayList<Message> getMessagesFromChat(Stage stage, String name)
+    {
+        String data;
+        if((data = doRequest(stage, RequestType.GET_MESSAGES_FROM_CHAT_MESSAGE, name)) == null)
+            return null;
+
+        ArrayList<Message> chatList = parseFromJSON(data, new TypeToken<ArrayList<Message>>(){}.getType());
+
+        if(chatList == null)
+        {
+            showDefaultAlert(stage, "Oops", "Cannot get message list!", Alert.AlertType.ERROR);
+            return null;
+        }
+
+        return chatList;
+    }
+
+    public static void disconnect()
+    {
+        doRequest(null, RequestType.DISCONNECT_MESSAGE);
+    }
+
+    public static boolean createChat(Stage stage, String name)
+    {
+        return doRequest(stage, RequestType.CREATE_CHAT_MESSAGE, name) != null;
+    }
+
+    public static void clearData()
+    {
+        currentIP = null;
+        currentPort = -1;
+        closeConnection();
     }
 }

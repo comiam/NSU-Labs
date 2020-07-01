@@ -1,6 +1,7 @@
 package comiam.chat.client.gui;
 
-import comiam.chat.client.gui.fxml.EnterController;
+import comiam.chat.client.connection.ClientServer;
+import comiam.chat.client.gui.fxml.MainMenuController;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -9,23 +10,28 @@ import javafx.stage.Stage;
 
 import static comiam.chat.client.gui.Dialogs.showExceptionDialog;
 
-public class EnterDialog
+public class MainMenu
 {
-    public static void show()
+    public static void show(String name)
     {
         try
         {
             Stage newWindow = new Stage();
 
-            FXMLLoader loader = new FXMLLoader(EnterDialog.class.getResource("../gui/fxml/enter.fxml"));
+            FXMLLoader loader = new FXMLLoader(EnterDialog.class.getResource("../gui/fxml/mainmenu.fxml"));
             Parent root = loader.load();
-            EnterController controller = loader.getController();
+            MainMenuController controller = loader.getController();
             controller.setStage(newWindow);
 
-            newWindow.setTitle("Hello");
+            newWindow.setTitle("Hello, " + name + ":)");
             newWindow.setResizable(false);
-            newWindow.setScene(new Scene(root, 226, 296));
+            newWindow.setScene(new Scene(root, 280, 400));
             newWindow.centerOnScreen();
+            newWindow.setOnCloseRequest((e) ->
+            {
+                ClientServer.disconnect();
+                Platform.exit();
+            });
             newWindow.show();
         }catch(Throwable e)
         {

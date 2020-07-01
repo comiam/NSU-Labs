@@ -3,9 +3,11 @@ package comiam.chat.client.json;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import java.lang.reflect.Type;
+
 public class JSONCore
 {
-    public static <T> T parseFromJSON(String json, Class<T> tClass)
+    public static <T> T parseFromJSON(String json, Type tClass)
     {
         try
         {

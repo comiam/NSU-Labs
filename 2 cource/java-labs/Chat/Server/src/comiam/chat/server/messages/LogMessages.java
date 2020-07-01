@@ -145,9 +145,15 @@ public class LogMessages
         MessageSender.sendError(victim, "Server Error: You are already in this chat!");
     }
 
+    public static void userNotExistInChatError(String username, String chat, Socket victim)
+    {
+        Log.error("Backend server: User " + username + " not exist in chat " + chat + "!");
+        MessageSender.sendError(victim, "Server Error: You don't connected to this chat!");
+    }
+
     public static void invalidSessionParsingError(String sessionID, int error)
     {
-        Log.error("Backend server: invalid session " + sessionID + ":\n");
+        Log.error("Backend server: invalid session " + sessionID + ":");
 
         switch(error)
         {
