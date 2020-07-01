@@ -14,10 +14,10 @@ public class ServerCore
     private static Thread messageThread;
     public static  boolean running = false;
 
-    public static void start(int port, String dataBasePath)
+    public static boolean start(int port, String dataBasePath)
     {
         if(running)
-            return;
+            return false;
 
         ServerCore.dataBasePath = dataBasePath;
 
@@ -27,7 +27,7 @@ public class ServerCore
         messageThread = new Thread(new MessageHandler());
 
         if(!ServerData.loadData(ServerCore.dataBasePath))
-            return;
+            return false;
 
         ConnectionTimers.setTimerHandler();
         inputThread.start();
@@ -40,6 +40,8 @@ public class ServerCore
         Log.info(message);
 
         running = true;
+
+        return true;
     }
 
     public static void shutdown(boolean onError)

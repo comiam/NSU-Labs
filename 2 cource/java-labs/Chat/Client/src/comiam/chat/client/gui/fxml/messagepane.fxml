@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox prefHeight="340.0" prefWidth="280.0" stylesheets="@style.css" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
+  <children>
+      <ScrollPane hbarPolicy="NEVER" prefHeight="308.0" prefWidth="280.0">
+         <content>
+            <TextArea editable="false" focusTraversable="false" maxWidth="1.7976931348623157E308" prefHeight="306.0" prefWidth="279.0" wrapText="true" />
+         </content>
+      </ScrollPane>
+      <TextField />
+  </children>
+</VBox>

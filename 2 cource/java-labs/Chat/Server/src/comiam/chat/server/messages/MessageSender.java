@@ -49,7 +49,10 @@ public class MessageSender
         Chat[] chats = Objects.requireNonNull(ServerData.getUserChatList(user));
         Socket[] sockets = Sessions.getSocketsOfSessionInChat(chats);
 
-        for(var sock : Objects.requireNonNull(sockets))
+        if(sockets == null)
+            return;
+
+        for(var sock : sockets)
         {
             if(sock.equals(exception))
                 continue;
@@ -59,9 +62,6 @@ public class MessageSender
                 {
                     case USER_UPDATE:
                         sendMessage(sock, makeNotice(JSONMessageFactory.generateChatUsersList(chat), type));
-                        break;
-                    case ONLINE_UPDATE:
-                        sendMessage(sock, makeNotice(JSONMessageFactory.generateOnlineChatUsersList(chat), type));
                         break;
                     case MESSAGE_UPDATE:
                         sendMessage(sock, makeNotice(JSONMessageFactory.generateChatMessageList(chat), type));

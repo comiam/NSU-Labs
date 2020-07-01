@@ -42,8 +42,8 @@ public class Dialogs
     public static void showExceptionDialog(Stage root, Throwable ex, String... message)
     {
         Alert alert = new Alert(Alert.AlertType.ERROR);
-        alert.setTitle("Ошибка!");
-        alert.setHeaderText("К сожалению, произошла ошибка в приложении :(" + (message.length > 0 ? "\n" + message[0] : ""));
+        alert.setTitle("Error!");
+        alert.setHeaderText("Unfortunately, happened error in app :(" + (message.length > 0 ? "\n" + message[0] : ""));
         alert.setContentText(ex.getMessage());
 
         StringWriter sw = new StringWriter();
@@ -51,7 +51,7 @@ public class Dialogs
         ex.printStackTrace(pw);
         String exceptionText = sw.toString();
 
-        Label label = new Label("Стэк ошибки:");
+        Label label = new Label("Error stack:");
 
         TextArea textArea = new TextArea(exceptionText);
         textArea.setEditable(false);

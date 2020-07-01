@@ -13,6 +13,11 @@ public class User
         this.userName = userName;
     }
 
+    public boolean equals(User another)
+    {
+        return this.passHash.equals(another.passHash) && this.userName.equals(another.userName);
+    }
+
     public String getPassHash()
     {
         return passHash;

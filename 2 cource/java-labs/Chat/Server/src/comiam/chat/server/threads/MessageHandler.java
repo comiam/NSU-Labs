@@ -148,7 +148,6 @@ public class MessageHandler implements Runnable
 
                 sessionID = Sessions.createNewSession(socket, clientUser);
                 MessageSender.sendSuccess(socket, sessionID);
-                MessageSender.broadcastUpdateFrom(MessageType.ONLINE_UPDATE, clientUser);
 
                 logSuccessMessageOp(socket, name, null, request.getType());
                 break;
@@ -194,7 +193,6 @@ public class MessageHandler implements Runnable
                 logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());
                 break;
             case GET_USERS_OF_CHAT_MESSAGE:
-            case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
                 if(checkIsNull(name, sessionID))
                 {
                     badMessageDataError(socket);
@@ -216,8 +214,7 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
-                String usersStr = request.getType() == GET_USERS_OF_CHAT_MESSAGE ? JSONMessageFactory.generateChatUsersList(Objects.requireNonNull(ServerData.getChatByName(name))) :
-                        JSONMessageFactory.generateOnlineChatUsersList(Objects.requireNonNull(ServerData.getChatByName(name)));
+                String usersStr = JSONMessageFactory.generateChatUsersList(Objects.requireNonNull(ServerData.getChatByName(name)));
                 MessageSender.sendSuccess(socket, usersStr);
 
                 ConnectionTimers.zeroTimer(clientUser);
@@ -276,7 +273,7 @@ public class MessageHandler implements Runnable
                     return;
                 }
 
-                chat.addMessage(new Message(message, Date.getDate(), Sessions.getSessionUser(socket)));
+                chat.addMessage(new Message(message, Date.getDate(), Objects.requireNonNull(Sessions.getSessionUser(socket)).getUsername()));
 
                 MessageSender.broadcastUpdateFrom(MessageType.MESSAGE_UPDATE, clientUser);
                 ConnectionTimers.zeroTimer(clientUser);
@@ -362,7 +359,6 @@ public class MessageHandler implements Runnable
                 logMessageOp(socket, clientUser.getUsername(),null, request.getType());
 
                 MessageSender.sendSuccess(socket, "Goodbye, " + clientUser.getUsername() + "!");
-                MessageSender.broadcastUpdateFrom(MessageType.ONLINE_UPDATE, clientUser);
                 Connection.disconnectClient(Sessions.getSessionUser(socket));
 
                 logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());

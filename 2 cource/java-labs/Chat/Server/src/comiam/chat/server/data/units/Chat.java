@@ -36,7 +36,10 @@ public class Chat
 
     public boolean containsUser(User user)
     {
-        return users.contains(user);
+        for(var usr : users)
+            if(usr.equals(user))
+                return true;
+        return false;
     }
 
     public void addUser(User user)

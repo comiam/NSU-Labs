@@ -34,7 +34,8 @@ public class Main
             Log.enableErrorLogging();
         }
 
-        ServerCore.start(config.getPort(), config.getDbPath());
+        if(!ServerCore.start(config.getPort(), config.getDbPath()))
+            return;
 
         Scanner scanner = new Scanner(System.in);
         String line;

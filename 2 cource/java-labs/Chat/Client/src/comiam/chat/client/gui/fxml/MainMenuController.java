@@ -3,7 +3,7 @@ package comiam.chat.client.gui.fxml;
 import comiam.chat.client.connection.ClientServer;
 import comiam.chat.client.data.LocalData;
 import comiam.chat.client.data.units.Message;
-import comiam.chat.client.gui.EnterDialog;
+import comiam.chat.client.gui.PaneLoader;
 import comiam.chat.client.time.Date;
 import comiam.chat.client.utils.Pair;
 import javafx.application.Platform;
@@ -27,23 +27,31 @@ import static comiam.chat.client.gui.Dialogs.showInputDialog;
 public class MainMenuController
 {
     @FXML
-    private ScrollPane parentScroll;
-
-    @FXML
     private Button addChatButton;
 
     @FXML
     private Button updateButton;
 
     @FXML
-    private VBox chatBox;
+    private VBox chatPanel;
 
     @FXML
-    private VBox messageBox;
+    private VBox mainPanel;
 
-    private TextArea messageTextField;
+    @FXML
+    private VBox chatBox;
 
+    VBox msgBox;
+    
     private Stage stage;
+
+
+    private static boolean loadedSuccessfully = false;
+
+    public static boolean isLoadedSuccessfully()
+    {
+        return loadedSuccessfully;
+    }
 
     public void setStage(Stage stage)
     {
@@ -66,13 +74,13 @@ public class MainMenuController
         {
             if(onStart)
             {
-                stage.close();
                 ClientServer.clearData();
-                EnterDialog.show();
+                PaneLoader.showEnterDialog();
             }else
                 showDefaultAlert(stage, "Oops", "I can't update chat list :c", Alert.AlertType.ERROR);
             return;
         }
+        loadedSuccessfully = true;
 
         chatBox.getChildren().clear();
 
@@ -86,40 +94,39 @@ public class MainMenuController
         addChatButton.setOnAction((e)->exitFromChat());
         addChatButton.setText("exit");
 
-        parentScroll.getChildrenUnmodifiable().remove(chatBox);
+        msgBox = PaneLoader.getMessagePane();
+        assert msgBox != null;
+        msgBox.setPrefHeight(chatPanel.getPrefHeight());
+        msgBox.setPrefWidth(chatPanel.getPrefWidth());
+        msgBox.setMinHeight(chatPanel.getMinHeight());
+        msgBox.setMinWidth(chatPanel.getMinWidth());
+        msgBox.setMaxHeight(chatPanel.getMaxHeight());
+        msgBox.setMinWidth(chatPanel.getMinWidth());
 
-        messageBox = new VBox();
-        messageBox.setMinHeight(350);
-        messageBox.setMaxWidth(Double.MAX_VALUE);
+        TextArea area = (TextArea) ((ScrollPane)msgBox.getChildren().get(0)).getContent();
+        TextField field = (TextField) msgBox.getChildren().get(1);
 
-        messageTextField = new TextArea();
-        messageTextField.setMaxHeight(Double.MAX_VALUE);
-        messageTextField.setMaxWidth(330);
-        messageTextField.setFont(Font.font(messageTextField.getFont().getFamily(), FontPosture.REGULAR, 14));
+        area.setFont(Font.font(area.getFont().getFamily(), FontPosture.REGULAR, 12));
         for(var msg : messages)
-            messageTextField.appendText(msg.getUser().getUsername() + "(" + msg.getDate() + "): " + msg.getText() + "\n");
+            area.appendText(msg.getUser().getUsername() + "(" + msg.getDate() + "): " + msg.getText() + "\n");
 
-        messageBox.getChildren().add(messageTextField);
-
-        TextField messageField = new TextField();
-        messageField.setPromptText("input message...");
-        messageField.setMaxWidth(Double.MAX_VALUE);
-        messageField.setMinHeight(20);
-        messageField.setOnKeyReleased((e) -> {
-            if(e.getCode() == KeyCode.ENTER && !messageField.getText().trim().isEmpty())
+        field.setPromptText("input message...");
+        field.setMaxWidth(Double.MAX_VALUE);
+        field.setMinHeight(20);
+        field.setOnKeyReleased((e) -> {
+            if(e.getCode() == KeyCode.ENTER && !field.getText().trim().isEmpty())
             {
-                if(!ClientServer.sendMessage(stage, nameChat, messageField.getText().trim()))
+                if(!ClientServer.sendMessage(stage, nameChat, field.getText().trim()))
                     showDefaultAlert(stage, "Oops", "Can't send message to server... Try again!", Alert.AlertType.ERROR);
                 else
                 {
-                    messageTextField.appendText(LocalData.getUsername() + "(" + Date.getDate() + "): " + messageField.getText().trim() + "\n");
-                    messageField.setText("");
+                    area.appendText(LocalData.getUsername() + "(" + Date.getDate() + "): " + field.getText().trim() + "\n");
+                    field.setText("");
                 }
             }
         });
-        messageBox.getChildren().add(messageField);
-
-        parentScroll.setContent(messageBox);
+        mainPanel.getChildren().remove(chatPanel);
+        mainPanel.getChildren().add(msgBox);
     }
 
     private void exitFromChat()
@@ -128,8 +135,8 @@ public class MainMenuController
         addChatButton.setOnAction((e)->addChat());
         addChatButton.setText("+");
 
-        parentScroll.getChildrenUnmodifiable().remove(messageBox);
-        parentScroll.setContent(chatBox);
+        mainPanel.getChildren().remove(msgBox);
+        mainPanel.getChildren().add(chatPanel);
     }
 
     private void addNewChat(String name, int count)
@@ -148,14 +155,12 @@ public class MainMenuController
             boolean connected = false;
 
             for(var usr : users)
-            {
-                System.out.println(usr);
                 if(usr.equals(LocalData.getUsername()))
                 {
                     connected = true;
                     break;
                 }
-            }
+
             if(!connected)
             {
                 connected = ClientServer.connectToChat(stage, name);

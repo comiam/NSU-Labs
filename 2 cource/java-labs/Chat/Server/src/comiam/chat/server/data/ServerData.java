@@ -4,6 +4,7 @@ import com.google.gson.reflect.TypeToken;
 import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
+import comiam.chat.server.time.Date;
 import comiam.chat.server.utils.Pair;
 
 import java.io.File;
@@ -34,7 +35,7 @@ public class ServerData
         }
 
         File file = new File(databasePath);
-        if(file.exists())
+        if(!file.exists())
         {
             System.out.println("Database file not exist. Shutting down...");
             Log.error("Database file not exist. Shutting down...");
@@ -72,6 +73,10 @@ public class ServerData
     public static void saveData(String databasePath)
     {
         Log.info("Saving database...");
+
+        if(databasePath == null || databasePath.equals("null"))
+            databasePath = "newDB" + Date.getDate();
+
         File file = new File(databasePath);
 
         if(!file.exists())

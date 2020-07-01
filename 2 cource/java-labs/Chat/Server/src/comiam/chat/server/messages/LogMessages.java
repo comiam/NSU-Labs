@@ -30,9 +30,6 @@ public class LogMessages
             case GET_MESSAGES_FROM_CHAT_MESSAGE:
                 Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to get messages from chat " + param + ".");
                 break;
-            case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
-                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to get online users list from chat " + param + ".");
-                break;
             case GET_USERS_OF_CHAT_MESSAGE:
                 Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") tries to get users list from chat " + param + ".");
                 break;
@@ -66,9 +63,6 @@ public class LogMessages
                 break;
             case GET_MESSAGES_FROM_CHAT_MESSAGE:
                 Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully got messages from chat " + param + ".");
-                break;
-            case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
-                Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully got online users list from chat " + param + ".");
                 break;
             case GET_USERS_OF_CHAT_MESSAGE:
                 Log.info("Backend thread: Client " + socket.getInetAddress() + "(" + username + ") successfully got users list from chat " + param + ".");

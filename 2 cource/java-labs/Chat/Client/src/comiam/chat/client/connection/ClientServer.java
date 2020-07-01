@@ -7,7 +7,7 @@ import comiam.chat.client.connection.message.Request;
 import comiam.chat.client.connection.message.RequestType;
 import comiam.chat.client.data.LocalData;
 import comiam.chat.client.data.units.Message;
-import comiam.chat.client.gui.MainMenu;
+import comiam.chat.client.gui.PaneLoader;
 import comiam.chat.client.utils.Pair;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
@@ -89,7 +89,6 @@ public class ClientServer
                 request = new Request(type, LocalData.getCurrentSessionID());
                 break;
             case GET_USERS_OF_CHAT_MESSAGE:
-            case GET_ONLINE_USERS_OF_CHAT_MESSAGE:
             case GET_MESSAGES_FROM_CHAT_MESSAGE:
             case CREATE_CHAT_MESSAGE:
             case CONNECT_TO_CHAT_MESSAGE:
@@ -144,7 +143,7 @@ public class ClientServer
         stage.close();
 
         LocalData.setUsername(username);
-        MainMenu.show(username);
+        PaneLoader.showMainMenu(username);
         return true;
     }
 
