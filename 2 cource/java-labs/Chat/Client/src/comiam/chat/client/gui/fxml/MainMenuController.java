@@ -278,6 +278,6 @@ public class MainMenuController
     @FXML
     private void showInfo()
     {
-
+        PaneLoader.showAboutDevelopersDialog(stage);
     }
 }

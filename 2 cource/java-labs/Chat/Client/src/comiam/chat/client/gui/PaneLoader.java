@@ -9,9 +9,12 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import static comiam.chat.client.gui.Dialogs.centerChild;
 import static comiam.chat.client.gui.Dialogs.showExceptionDialog;
 
 public class PaneLoader
@@ -101,5 +104,32 @@ public class PaneLoader
         Platform.exit();
         System.exit(1);
         return null;
+    }
+
+    public static void showAboutDevelopersDialog(Stage rootStage)
+    {
+        try
+        {
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(EnterController.class.getResource("aboutdevs.fxml"));
+            AnchorPane page = loader.load();
+
+            Stage dialogStage = new Stage();
+            dialogStage.setTitle("About developer");
+            dialogStage.initModality(Modality.WINDOW_MODAL);
+            dialogStage.initOwner(rootStage);
+
+            if(rootStage != null)
+                centerChild(dialogStage, rootStage);
+
+            Scene scene = new Scene(page);
+            dialogStage.setScene(scene);
+            dialogStage.setResizable(false);
+
+            dialogStage.show();
+        } catch (Throwable e)
+        {
+            Dialogs.showExceptionDialog(rootStage, e);
+        }
     }
 }
