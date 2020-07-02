@@ -10,13 +10,13 @@ import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontPosture;
-import javafx.scene.text.FontWeight;
+import javafx.scene.text.*;
+import javafx.stage.Popup;
 import javafx.stage.Stage;
 
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ public class MainMenuController
 
     private Stage stage;
 
-    private TextArea messageArea;
+    private TextFlow messageArea;
 
     private String openedChatName = null;
 
@@ -74,10 +74,10 @@ public class MainMenuController
         {
             currentMessages.add(newPack.get(i));
             int finalI = i;
-            Platform.runLater(() -> messageArea.appendText(newPack.get(finalI).getUsername() + "(" + newPack.get(finalI).getDate() + "): " + newPack.get(finalI).getText() + "\n"));
+
+            Platform.runLater(() -> addMessage(messageArea, newPack.get(finalI).getUsername(), newPack.get(finalI).getDate(), newPack.get(finalI).getText()));
         }
     }
-
 
     public String getOpenedChatName()
     {
@@ -178,6 +178,8 @@ public class MainMenuController
         userList = PaneLoader.getUserListPane();
 
         assert userList != null;
+        ((ScrollPane) userList.getChildren().get(1)).setContent(getTextFlow());
+
         fillUserList(userArr);
 
         mainPanel.getChildren().remove(msgBox);
@@ -202,7 +204,6 @@ public class MainMenuController
                 return;
             }
         }
-        System.out.println(true);
 
         fillUserList(userArr);
     }
@@ -210,16 +211,11 @@ public class MainMenuController
     private void fillUserList(ArrayList<Pair<String, String>> userArr)
     {
         Platform.runLater(() -> {
-            VBox users = (VBox) ((ScrollPane) userList.getChildren().get(1)).getContent();
+            TextFlow users = (TextFlow) ((ScrollPane) userList.getChildren().get(1)).getContent();
             users.getChildren().clear();
 
             for(var usr : userArr)
-            {
-                Label userLabel = new Label(usr.getFirst() + ". Last active: " + usr.getSecond());
-                userLabel.setWrapText(true);
-                userLabel.setFont(Font.font(userLabel.getFont().getFamily(), FontPosture.REGULAR, 13));
-                users.getChildren().add(userLabel);
-            }
+                addUserToList(users, usr);
         });
     }
 
@@ -240,12 +236,13 @@ public class MainMenuController
         msgBox.setMaxHeight(chatPanel.getMaxHeight());
         msgBox.setMinWidth(chatPanel.getMinWidth());
 
-        TextArea area = (TextArea) ((ScrollPane) msgBox.getChildren().get(0)).getContent();
+        TextFlow msgArea = getTextFlow();
+        ((ScrollPane) msgBox.getChildren().get(0)).setContent(msgArea);
+
         TextField field = (TextField) msgBox.getChildren().get(1);
 
-        area.setFont(Font.font(area.getFont().getFamily(), FontPosture.REGULAR, 12));
         for(var msg : messages)
-            area.appendText(msg.getUsername() + "(" + msg.getDate() + "): " + msg.getText() + "\n");
+            addMessage(msgArea, msg.getUsername(), msg.getDate(), msg.getText());
 
         field.setPromptText("input message...");
         field.setMaxWidth(Double.MAX_VALUE);
@@ -258,7 +255,7 @@ public class MainMenuController
                 else
                 {
                     String date = Date.getDate();
-                    area.appendText(LocalData.getUsername() + "(" + date + "): " + field.getText().trim() + "\n");
+                    addMessage(msgArea, LocalData.getUsername(), date, field.getText().trim());
                     currentMessages.add(new Message(field.getText().trim(), date, LocalData.getUsername()));
                     field.setText("");
                 }
@@ -267,9 +264,79 @@ public class MainMenuController
         mainPanel.getChildren().remove(chatPanel);
         mainPanel.getChildren().add(msgBox);
 
-        messageArea = area;
+        messageArea = msgArea;
         openedChatName = nameChat;
         currentMessages = messages;
+    }
+
+    private void addUserToList(TextFlow userFlow, Pair<String, String> usr)
+    {
+        Text username0 = new Text("User: ");
+        username0.setFont(Font.font(username0.getFont().getFamily(), FontWeight.NORMAL, FontPosture.REGULAR, 13));
+
+        Text username1 = new Text(usr.getFirst() + "\n");
+        username1.setFont(Font.font(username1.getFont().getFamily(), FontWeight.BOLD, FontPosture.REGULAR, 13));
+
+        Text lastActive = new Text("Last active: " + usr.getSecond() + "\n");
+        lastActive.setFont(Font.font(lastActive.getFont().getFamily(), FontWeight.NORMAL, FontPosture.REGULAR, 12));
+        lastActive.setUnderline(true);
+
+        userFlow.getChildren().addAll(username0, username1, lastActive);
+    }
+
+    private void addMessage(TextFlow msgArea, String username, String date, String message)
+    {
+        if(username.equals("server"))
+        {
+            Label messageT = new Label(message + "\n");
+            messageT.setFont(Font.font(messageT.getFont().getFamily(), FontWeight.NORMAL, FontPosture.ITALIC, 14));
+            messageT.setTextFill(Color.RED);
+            messageT.setMinWidth(msgArea.getPrefWidth());
+            messageT.setAlignment(Pos.TOP_CENTER);
+            setPopup(messageT, date);
+
+            msgArea.getChildren().add(messageT);
+        }else
+        {
+            Text usernameT = new Text(username + "\n");
+            usernameT.setFont(Font.font(usernameT.getFont().getFamily(), FontWeight.BOLD, FontPosture.REGULAR, 13));
+            msgArea.getChildren().add(usernameT);
+
+            Text messageT = new Text(message + "\n");
+            messageT.setFont(Font.font(messageT.getFont().getFamily(), FontWeight.NORMAL, FontPosture.ITALIC, 15));
+            setPopup(messageT, date);
+
+            msgArea.getChildren().add(messageT);
+        }
+    }
+
+    private TextFlow getTextFlow()
+    {
+        TextFlow msgArea = new TextFlow();
+        msgArea.setPrefHeight(306);
+        msgArea.setPrefWidth(279);
+        msgArea.setMaxWidth(Double.MAX_VALUE);
+        msgArea.setMaxHeight(Region.USE_COMPUTED_SIZE);
+        msgArea.setMinHeight(Region.USE_COMPUTED_SIZE);
+        msgArea.setMinWidth(Region.USE_COMPUTED_SIZE);
+
+        return msgArea;
+    }
+
+    private void setPopup(Node text, String popupMsg)
+    {
+        Label label = new Label(popupMsg);
+        label.setBackground(new Background(new BackgroundFill(Color.LIGHTGRAY, CornerRadii.EMPTY, Insets.EMPTY)));
+        Popup popup = new Popup();
+        popup.getContent().add(label);
+
+        double offset = 5;
+        text.setOnMouseMoved((e) -> {
+            popup.setAnchorX(e.getScreenX() + offset * 2);
+            popup.setAnchorY(e.getScreenY() + offset);
+        });
+        text.setOnMouseEntered(e -> popup.show(text, e.getScreenX(), e.getScreenY() + offset));
+        text.setOnMouseExited(e -> popup.hide());
     }
 
     private void exitFromChat()
