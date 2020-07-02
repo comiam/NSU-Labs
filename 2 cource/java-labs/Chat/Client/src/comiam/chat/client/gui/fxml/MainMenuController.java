@@ -7,6 +7,7 @@ import comiam.chat.client.gui.PaneLoader;
 import comiam.chat.client.time.Date;
 import comiam.chat.client.utils.Pair;
 import javafx.application.Platform;
+import javafx.collections.ListChangeListener;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -46,16 +47,12 @@ public class MainMenuController
     private VBox userList;
 
     private Stage stage;
-
     private TextFlow messageArea;
-
     private String openedChatName = null;
+    private ArrayList<Message> currentMessages;
 
     private boolean loadedSuccessfully = false;
-
     private boolean userListIsOpened = false;
-
-    private ArrayList<Message> currentMessages;
 
     public boolean isUserListIsOpened()
     {
@@ -178,7 +175,15 @@ public class MainMenuController
         userList = PaneLoader.getUserListPane();
 
         assert userList != null;
-        ((ScrollPane) userList.getChildren().get(1)).setContent(getTextFlow());
+        TextFlow userFlow = getTextFlow();
+        userFlow.getChildren().addListener(
+                (ListChangeListener<Node>) ((change) -> {
+                    userFlow.layout();
+                    ((ScrollPane) userList.getChildren().get(1)).layout();
+                    ((ScrollPane) userList.getChildren().get(1)).setVvalue(1.0f);
+                }));
+
+        ((ScrollPane) userList.getChildren().get(1)).setContent(userFlow);
 
         fillUserList(userArr);
 
@@ -237,6 +242,14 @@ public class MainMenuController
         msgBox.setMinWidth(chatPanel.getMinWidth());
 
         TextFlow msgArea = getTextFlow();
+
+        msgArea.getChildren().addListener(
+                (ListChangeListener<Node>) ((change) -> {
+                    msgArea.layout();
+                    ((ScrollPane) msgBox.getChildren().get(0)).layout();
+                    ((ScrollPane) msgBox.getChildren().get(0)).setVvalue(1.0f);
+                }));
+
         ((ScrollPane) msgBox.getChildren().get(0)).setContent(msgArea);
 
         TextField field = (TextField) msgBox.getChildren().get(1);
@@ -288,7 +301,7 @@ public class MainMenuController
     {
         if(username.equals("server"))
         {
-            Label messageT = new Label(message + "\n");
+            Label messageT = new Label(message);
             messageT.setFont(Font.font(messageT.getFont().getFamily(), FontWeight.NORMAL, FontPosture.ITALIC, 14));
             messageT.setTextFill(Color.RED);
             messageT.setMinWidth(msgArea.getPrefWidth());
@@ -298,11 +311,11 @@ public class MainMenuController
             msgArea.getChildren().add(messageT);
         }else
         {
-            Text usernameT = new Text(username + "\n");
+            Text usernameT = new Text((msgArea.getChildren().isEmpty() ? "" : "\n") + username + "\n");
             usernameT.setFont(Font.font(usernameT.getFont().getFamily(), FontWeight.BOLD, FontPosture.REGULAR, 13));
             msgArea.getChildren().add(usernameT);
 
-            Text messageT = new Text(message + "\n");
+            Text messageT = new Text(message);
             messageT.setFont(Font.font(messageT.getFont().getFamily(), FontWeight.NORMAL, FontPosture.ITALIC, 15));
             setPopup(messageT, date);
 
@@ -397,6 +410,8 @@ public class MainMenuController
         nameL.setMaxWidth(140);
         nameL.setWrapText(false);
         nameL.setFont(Font.font(nameL.getFont().getFamily(), FontWeight.BOLD, FontPosture.REGULAR, 14));
+        setPopup(nameL, name);
+
         Label userCount = new Label(count + " users");
         chatHB.getChildren().addAll(nameL, userCount);
         chatHB.setOnMouseEntered((e) -> chatHB.setBackground(new Background(new BackgroundFill(Color.LIGHTGRAY, CornerRadii.EMPTY, Insets.EMPTY))));

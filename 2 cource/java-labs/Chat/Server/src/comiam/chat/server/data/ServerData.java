@@ -1,6 +1,7 @@
 package comiam.chat.server.data;
 
 import com.google.gson.reflect.TypeToken;
+import comiam.chat.server.core.ServerCore;
 import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
@@ -81,7 +82,7 @@ public class ServerData
         Log.info("Saving database...");
 
         if(databasePath == null || databasePath.equals("null"))
-            databasePath = "newDB" + Date.getDate();
+            ServerCore.setNewDBPath(databasePath = "newDB" + Date.getDate());
 
         File file = new File(databasePath);
 

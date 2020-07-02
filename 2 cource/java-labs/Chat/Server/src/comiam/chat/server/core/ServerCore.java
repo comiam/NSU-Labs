@@ -49,6 +49,11 @@ public class ServerCore
         ServerData.saveData(ServerCore.dataBasePath);
     }
 
+    public static void setNewDBPath(String path)
+    {
+        dataBasePath = path;
+    }
+
     public static void shutdown()
     {
         if(!running)
