@@ -44,13 +44,15 @@ public class ServerCore
         return true;
     }
 
-    public static void shutdown(boolean onError)
+    public static void forceSaveDB()
+    {
+        ServerData.saveData(ServerCore.dataBasePath);
+    }
+
+    public static void shutdown()
     {
         if(!running)
             return;
-
-        if(!onError)
-            ServerData.saveData(ServerCore.dataBasePath);
 
         inputThread.interrupt();
         messageThread.interrupt();

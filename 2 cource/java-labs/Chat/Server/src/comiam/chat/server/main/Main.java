@@ -57,7 +57,7 @@ public class Main
             switch(line)
             {
                 case SHUTDOWN_SERVER:
-                    ServerCore.shutdown(false);
+                    ServerCore.shutdown();
                     break console;
                     /* etc */
                 default:

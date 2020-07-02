@@ -76,7 +76,7 @@ public class InputHandler implements Runnable
             } catch(IOException e)
             {
                 Log.error("Input Thread: Can't open selector! Server shutting down...");
-                ServerCore.shutdown(true);
+                ServerCore.shutdown();
                 return;
             }
         }

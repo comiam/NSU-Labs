@@ -10,6 +10,7 @@ import comiam.chat.server.utils.Pair;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Objects;
 
 import static comiam.chat.server.json.JSONCore.parseFromFile;
 import static comiam.chat.server.json.JSONCore.saveToFile;
@@ -55,20 +56,18 @@ public class ServerData
             return false;
         }
 
-        Pair<ArrayList<User>, ArrayList<Chat>> data;
-        try
-        {
-            data = parseFromFile(databasePath, new TypeToken<Pair<ArrayList<User>, ArrayList<Chat>>>(){}.getType());
-        }catch(Throwable e)
+        Pair<ArrayList<User>, ArrayList<Chat>> data = parseFromFile(databasePath, new TypeToken<Pair<ArrayList<User>, ArrayList<Chat>>>(){}.getType());
+        if(data == null)
         {
             System.out.println("Error when upload database. Shutting down...");
-            e.printStackTrace();
-            Log.error("Error when upload database: Shutting down...", e);
+            Log.error("Error when upload database: Shutting down...");
             return false;
         }
 
-        users.addAll(data.getFirst());
-        chats.addAll(data.getSecond());
+        if(data.getFirst() != null)
+            users.addAll(data.getFirst());
+        if(data.getSecond() != null)
+            chats.addAll(data.getSecond());
 
         System.out.println("Database loaded successfully!");
         Log.info("Database loaded successfully!");

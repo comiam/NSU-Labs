@@ -2,6 +2,7 @@ package comiam.chat.server.threads;
 
 import comiam.chat.server.connection.Connection;
 import comiam.chat.server.connection.ConnectionTimers;
+import comiam.chat.server.core.ServerCore;
 import comiam.chat.server.data.ServerData;
 import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.Chat;
@@ -184,8 +185,11 @@ public class MessageHandler implements Runnable
 
                 clientUser = new User(Hash.hashBytes(password.getBytes()), name);
                 ServerData.addNewUser(clientUser);
+
                 sessionID = Sessions.createNewSession(socket, clientUser);
                 MessageSender.sendSuccess(socket, sessionID);
+
+                ServerCore.forceSaveDB();
 
                 logSuccessMessageOp(socket, name, null, request.getType());
                 break;
@@ -293,6 +297,8 @@ public class MessageHandler implements Runnable
                 MessageSender.broadcastUpdateFrom(MessageType.MESSAGE_UPDATE, clientUser, chat);
                 ConnectionTimers.zeroTimer(clientUser);
 
+                ServerCore.forceSaveDB();
+
                 logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());
                 break;
             case CREATE_CHAT_MESSAGE:
@@ -324,6 +330,8 @@ public class MessageHandler implements Runnable
 
                 MessageSender.broadcastUpdateFrom(MessageType.CHAT_UPDATE, clientUser, null);
                 ConnectionTimers.zeroTimer(clientUser);
+
+                ServerCore.forceSaveDB();
 
                 logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
                 break;
@@ -360,6 +368,8 @@ public class MessageHandler implements Runnable
                 MessageSender.broadcastUpdateFrom(MessageType.MESSAGE_UPDATE, clientUser, chat);
 
                 ConnectionTimers.zeroTimer(clientUser);
+
+                ServerCore.forceSaveDB();
 
                 logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
                 break;
