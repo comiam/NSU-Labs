@@ -2,7 +2,7 @@ package comiam.chat.server.messages.types;
 
 public class Request
 {
-    private RequestType type;
+    private final RequestType type;
     private String sessionID;
 
     private String name;

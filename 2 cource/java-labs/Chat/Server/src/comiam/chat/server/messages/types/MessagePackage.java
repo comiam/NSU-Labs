@@ -3,7 +3,7 @@ package comiam.chat.server.messages.types;
 public class MessagePackage
 {
     private final MessageType type;
-    private String data = null;
+    private final String data;
 
     public MessagePackage(MessageType type, String data)
     {

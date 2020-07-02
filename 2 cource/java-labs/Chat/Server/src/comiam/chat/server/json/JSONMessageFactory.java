@@ -2,7 +2,6 @@ package comiam.chat.server.json;
 
 import comiam.chat.server.data.ServerData;
 import comiam.chat.server.data.units.Chat;
-import comiam.chat.server.data.units.Message;
 import comiam.chat.server.messages.types.MessagePackage;
 import comiam.chat.server.messages.types.MessageType;
 import comiam.chat.server.utils.Pair;
@@ -38,12 +37,8 @@ public class JSONMessageFactory
             for(int i = chat.getMessages().size() - 1; i >= 0; i--)
             {
                 var msg = chat.getMessages().get(i);
-                if(msg.getUsername().equals(user.getUsername()))
-                {
-                    lastActive = msg.getDate();
-                    break;
-                }
-                else if(msg.getUsername().equals(ServerData.getServerNotifier().getUsername()) && msg.getText().contains(" " + user.getUsername() + " "))
+                if(msg.getUsername().equals(user.getUsername()) ||
+                        msg.getUsername().equals(ServerData.getServerNotifier().getUsername()) && msg.getText().contains(" " + user.getUsername() + " "))
                 {
                     lastActive = msg.getDate();
                     break;

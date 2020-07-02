@@ -5,6 +5,7 @@ import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
 import comiam.chat.server.time.Date;
+import comiam.chat.server.utils.Hash;
 import comiam.chat.server.utils.Pair;
 
 import java.io.File;
@@ -19,7 +20,7 @@ public class ServerData
 {
     private static final ArrayList<User> users = new ArrayList<>();
     private static final ArrayList<Chat> chats = new ArrayList<>();
-    private static final User serverNotifier = new User("12132455432434", "server");
+    private static final User serverNotifier = new User(Hash.hashBytes("12132455432434".getBytes()), "server");
 
     public static User getServerNotifier()
     {

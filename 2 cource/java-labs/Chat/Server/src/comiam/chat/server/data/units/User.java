@@ -1,7 +1,5 @@
 package comiam.chat.server.data.units;
 
-import comiam.chat.server.data.session.Sessions;
-
 public class User
 {
     private final String passHash;
@@ -28,10 +26,5 @@ public class User
     public String getUsername()
     {
         return userName;
-    }
-
-    public boolean isOnline()
-    {
-        return Sessions.getSession(this) != null;
     }
 }

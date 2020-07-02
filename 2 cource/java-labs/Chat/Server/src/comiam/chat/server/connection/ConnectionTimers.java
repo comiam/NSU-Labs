@@ -4,7 +4,6 @@ import comiam.chat.server.data.ServerData;
 import comiam.chat.server.data.session.Sessions;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
-import comiam.chat.server.messages.MessageSender;
 import comiam.chat.server.time.Timer;
 
 import java.net.Socket;

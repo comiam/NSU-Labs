@@ -11,7 +11,6 @@ import comiam.chat.server.messages.types.MessageType;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.util.Objects;
 
 import static comiam.chat.server.json.JSONMessageFactory.*;
 import static comiam.chat.server.utils.ByteUtils.concatenate;
