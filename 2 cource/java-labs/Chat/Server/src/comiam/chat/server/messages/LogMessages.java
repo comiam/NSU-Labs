@@ -15,6 +15,9 @@ public class LogMessages
     {
         switch(type)
         {
+            case CHECK_CONNECTED_MESSAGE:
+                Log.info("Backend thread: Client " + socket.getInetAddress() + " checking connection...");
+                break;
             case SIGN_IN_MESSAGE:
                 Log.info("Backend thread: Client " + socket.getInetAddress() + " tries to sign in as " + username + ".");
                 break;
@@ -107,6 +110,12 @@ public class LogMessages
     {
         Log.error("Backend server: User " + username + " already exist in system! Disconnect " + victim.getInetAddress() + " from server...");
         MessageSender.sendError(victim, "Server Error: User " + username + " already exist in system!");
+    }
+
+    public static void userAlreadyConnectedError(String username, Socket victim)
+    {
+        Log.error("Backend server: User " + username + " already connected in system! Disconnect " + victim.getInetAddress() + " from server...");
+        MessageSender.sendError(victim, "Server Error: User " + username + " already connected in chat!");
     }
 
     public static void userNotExistError(String username, Socket victim)

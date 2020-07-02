@@ -33,14 +33,7 @@ public class MessageSender
         sendMessage(connection, ans);
     }
 
-    public static void sendDisconnect(Socket connection)
-    {
-        String ans = makeDisconnect();
-
-        sendMessage(connection, ans);
-    }
-
-    public static void broadcastUpdateFrom(MessageType type, User user)
+    public static void broadcastUpdateFrom(MessageType type, User user, Chat chat)
     {
         Socket exception = Sessions.getSession(user).getConnection();
 
@@ -50,16 +43,14 @@ public class MessageSender
                 if(!ServerData.isUserHaveChat(user))
                     return;
 
-                Chat[] chats = Objects.requireNonNull(ServerData.getUserChatList(user));
-                Socket[] sockets = Sessions.getSocketsOfSessionInChat(chats);
+                Socket[] sockets = Sessions.getSocketsOfSessionInChat(chat);
 
                 if(sockets == null)
                     return;
 
                 for(var sock : sockets)
                     if(!sock.equals(exception))
-                        for(var chat : chats)
-                            sendMessage(sock, makeNotice(JSONMessageFactory.generateChatMessageList(chat, true), type));
+                        sendMessage(sock, makeNotice(JSONMessageFactory.generateChatMessageList(chat, true), type));
                 break;
             case CHAT_UPDATE:
                 if(Sessions.getAllSockets() != null)

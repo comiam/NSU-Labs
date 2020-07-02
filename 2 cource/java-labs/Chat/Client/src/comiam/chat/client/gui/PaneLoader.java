@@ -34,6 +34,21 @@ public class PaneLoader
         }
     }
 
+    public static VBox getUserListPane()
+    {
+        try
+        {
+            FXMLLoader loader = new FXMLLoader();
+            loader.setLocation(EnterController.class.getResource("userlist.fxml"));
+            Node root = loader.load();
+
+            return (VBox) root;
+        }catch(Throwable e)
+        {
+            return null;
+        }
+    }
+
     public static void showEnterDialog()
     {
         try

@@ -72,10 +72,7 @@ public class ConnectionTimers
         Timer.subscribeEvent(() -> {
             for (var user : ServerData.getUsers())
                 if(Sessions.isUserAuthorized(user) && timers.get(user) >= DEFAULT_TIMEOUT_IN_MINUTES)
-                {
-                    MessageSender.sendDisconnect(Sessions.getSession(user).getConnection());
                     Connection.disconnectClient(user);
-                }
             return true;
         }, 5 * Timer.MINUTE);
         Timer.start();

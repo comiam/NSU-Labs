@@ -2,6 +2,7 @@ package comiam.chat.server.messages.types;
 
 public enum RequestType
 {
+    CHECK_CONNECTED_MESSAGE,
     SIGN_IN_MESSAGE,
     SIGN_UP_MESSAGE,
     GET_CHATS_MESSAGE,

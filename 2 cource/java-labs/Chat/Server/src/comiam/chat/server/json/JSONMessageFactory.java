@@ -29,10 +29,29 @@ public class JSONMessageFactory
      */
     public static String generateChatUsersList(Chat chat)
     {
-        ArrayList<String> chatList = new ArrayList<>();
+        ArrayList<Pair<String, String>> chatList = new ArrayList<>();
 
         for(var user : chat.getUsers())
-            chatList.add(user.getUsername());
+        {
+            String lastActive = "null";
+
+            for(int i = chat.getMessages().size() - 1; i >= 0; i--)
+            {
+                var msg = chat.getMessages().get(i);
+                if(msg.getUsername().equals(user.getUsername()))
+                {
+                    lastActive = msg.getDate();
+                    break;
+                }
+                else if(msg.getUsername().equals(ServerData.getServerNotifier().getUsername()) && msg.getText().contains(" " + user.getUsername() + " "))
+                {
+                    lastActive = msg.getDate();
+                    break;
+                }
+            }
+
+            chatList.add(new Pair<>(user.getUsername(), lastActive));
+        }
 
         return JSONCore.saveToJSON(chatList);
     }
@@ -51,12 +70,6 @@ public class JSONMessageFactory
     public static String makeFailure(String msg)
     {
         MessagePackage ans = new MessagePackage(MessageType.FAILURE_ANSWER, msg);
-        return JSONCore.saveToJSON(ans);
-    }
-
-    public static String makeDisconnect()
-    {
-        MessagePackage ans = new MessagePackage(MessageType.DISCONNECT_NOTICE, null);
         return JSONCore.saveToJSON(ans);
     }
 

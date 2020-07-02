@@ -31,9 +31,9 @@ public class ClientServer
     private static String currentIP;
     private static int currentPort;
 
-    public static boolean connectToServer(Stage stage)
+    public static boolean connectToServer(Stage stage, boolean showError)
     {
-        if(!isCurrentConnectionAvailable())
+        if(!checkConnection().getFirst())
         {
             if(currentIP == null)
             {
@@ -63,9 +63,8 @@ public class ClientServer
                 socket.connect(new InetSocketAddress(currentIP, currentPort), 5000);
             }catch(Throwable e)
             {
-                showDefaultAlert(stage, "Oops", "Can't connect to server!", Alert.AlertType.ERROR);
-                currentIP = null;
-                currentPort = 0;
+                if(showError)
+                    showDefaultAlert(stage, "Oops", "Can't connect to server!", Alert.AlertType.ERROR);
                 return false;
             }
 
@@ -77,9 +76,12 @@ public class ClientServer
 
     public static String doRequest(Stage stage, RequestType type, boolean showWarning, String... args)
     {
-        connectToServer(stage);
-        if(LocalData.isDisconnected() && type != RequestType.SIGN_IN_MESSAGE && type != RequestType.SIGN_UP_MESSAGE)
-            authorize(stage, true, true, LocalData.getUsername(), LocalData.getPassword());
+        if(!connectToServer(stage, type != RequestType.DISCONNECT_MESSAGE))
+            return null;
+
+        if(!checkConnection().getSecond() && type != RequestType.SIGN_IN_MESSAGE && type != RequestType.SIGN_UP_MESSAGE &&
+                !authorize(stage, true, true, LocalData.getUsername(), LocalData.getPassword()))
+                    return null;
 
         Request request = null;
 
@@ -106,7 +108,7 @@ public class ClientServer
 
         if(!sendToServer(createPackage(saveToJSON(request))) && type != RequestType.DISCONNECT_MESSAGE)
         {
-            clearData(true);
+            clearData(false);
             showDefaultAlert(stage, "Oops", "Can't send message to server!", Alert.AlertType.ERROR);
             return null;
         }
@@ -114,7 +116,7 @@ public class ClientServer
         MessagePackage msgPkg = receiveFromServer();
         if(msgPkg == null && type != RequestType.DISCONNECT_MESSAGE)
         {
-            clearData(true);
+            clearData(false);
             showDefaultAlert(stage, "Oops", "Can't receive message from server!", Alert.AlertType.ERROR);
             return null;
         }
@@ -150,7 +152,6 @@ public class ClientServer
             return false;
 
         LocalData.setCurrentSessionID(data);
-        LocalData.setDisconnected(false);
 
         if(!secondTime)
         {
@@ -173,15 +174,18 @@ public class ClientServer
                         case MESSAGE_UPDATE:
                             Pair<String, ArrayList<Message>> messagePack = parseFromJSON(msgPkg.getData(), new TypeToken<Pair<String, ArrayList<Message>>>(){}.getType());
                             assert messagePack != null;
+
                             if(messagePack.getFirst().equals(controller.getOpenedChatName()))
+                            {
                                 controller.appendNewMessages(messagePack.getSecond());
+                                if(controller.isUserListIsOpened())
+                                    controller.updateUsers();
+                            }
                             break;
                         case CHAT_UPDATE:
                             ArrayList<Pair<String, Integer>> list = parseFromJSON(msgPkg.getData(), new TypeToken<ArrayList<Pair<String, Integer>>>(){}.getType());
                             controller.loadChatList(list);
                             break;
-                        case DISCONNECT_NOTICE:
-                            LocalData.setDisconnected(true);
                         default:
                             throw new RuntimeException("What the fuck...");
                     }
@@ -212,13 +216,13 @@ public class ClientServer
         return chatList;
     }
 
-    public static ArrayList<String> getUserFromChat(Stage stage, String name)
+    public static ArrayList<Pair<String, String>> getUserFromChat(Stage stage, String name)
     {
         String data;
         if((data = doRequest(stage, RequestType.GET_USERS_OF_CHAT_MESSAGE, false, name)) == null)
             return null;
 
-        ArrayList<String> chatList = parseFromJSON(data, new TypeToken<ArrayList<String>>(){}.getType());
+        ArrayList<Pair<String, String>> chatList = parseFromJSON(data, new TypeToken<ArrayList<Pair<String, String>>>(){}.getType());
 
         if(chatList == null)
         {
@@ -249,7 +253,6 @@ public class ClientServer
     public static void disconnect()
     {
         doRequest(null, RequestType.DISCONNECT_MESSAGE, false);
-        LocalData.setDisconnected(true);
     }
 
     public static boolean createChat(Stage stage, String name)
@@ -265,5 +268,24 @@ public class ClientServer
             currentPort = -1;
         }
         closeConnection();
+    }
+
+    /**
+     * @return a pair of booleans - connected state and authorized state
+     */
+    public static Pair<Boolean, Boolean> checkConnection()
+    {
+        Request request = new Request(RequestType.CHECK_CONNECTED_MESSAGE, null);
+
+
+        if(!sendToServer(createPackage(saveToJSON(request))))
+            return new Pair<>(false, false);
+
+
+        MessagePackage msgPkg = receiveFromServer();
+        if(msgPkg == null)
+            return new Pair<>(false, false);
+
+        return new Pair<>(true, msgPkg.getData().equals("true"));
     }
 }

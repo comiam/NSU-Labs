@@ -13,11 +13,6 @@ public class Connection
     private static Socket currentConnection;
     private static final Object connectionLocker = new Object();
 
-    public static boolean isCurrentConnectionAvailable()
-    {
-        return currentConnection != null && !currentConnection.isClosed();
-    }
-
     public static void setCurrentConnection(Socket socket)
     {
         currentConnection = socket;

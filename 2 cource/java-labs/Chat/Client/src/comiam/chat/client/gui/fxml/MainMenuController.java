@@ -43,6 +43,8 @@ public class MainMenuController
 
     private VBox msgBox;
 
+    private VBox userList;
+
     private Stage stage;
 
     private TextArea messageArea;
@@ -51,7 +53,14 @@ public class MainMenuController
 
     private boolean loadedSuccessfully = false;
 
+    private boolean userListIsOpened = false;
+
     private ArrayList<Message> currentMessages;
+
+    public boolean isUserListIsOpened()
+    {
+        return userListIsOpened;
+    }
 
     public void appendNewMessages(ArrayList<Message> newPack)
     {
@@ -114,7 +123,13 @@ public class MainMenuController
                 ClientServer.clearData(true);
                 PaneLoader.showEnterDialog();
             } else
+            {
+                var pair = ClientServer.checkConnection();
+
+                if(!pair.getFirst())
+                    return;
                 showDefaultAlert(stage, "Oops", "I can't update chat list :c", Alert.AlertType.ERROR);
+            }
             return;
         }
         loadedSuccessfully = true;
@@ -125,9 +140,94 @@ public class MainMenuController
             addNewChat(chat.getFirst(), chat.getSecond());
     }
 
+    private void exitFromUserList()
+    {
+        updateButton.setVisible(true);
+        addChatButton.setOnAction((e) -> exitFromChat());
+
+        mainPanel.getChildren().remove(userList);
+        mainPanel.getChildren().add(msgBox);
+
+        userList = null;
+        userListIsOpened = false;
+    }
+
+    private void showUserList()
+    {
+        var userArr = ClientServer.getUserFromChat(stage, openedChatName);
+
+        if(userArr == null)
+        {
+            var pair = ClientServer.checkConnection();
+
+            if(!pair.getFirst())
+                return;
+
+            userArr = ClientServer.getUserFromChat(stage, openedChatName);
+            if(userArr == null)
+            {
+                showDefaultAlert(stage, "Oops", "Can't get user list, sorry...", Alert.AlertType.ERROR);
+                return;
+            }
+        }
+        userListIsOpened = true;
+
+        updateButton.setVisible(false);
+        addChatButton.setOnAction((e) -> exitFromUserList());
+
+        userList = PaneLoader.getUserListPane();
+
+        assert userList != null;
+        fillUserList(userArr);
+
+        mainPanel.getChildren().remove(msgBox);
+        mainPanel.getChildren().add(userList);
+    }
+
+    public void updateUsers()
+    {
+        var userArr = ClientServer.getUserFromChat(stage, openedChatName);
+
+        if(userArr == null)
+        {
+            var pair = ClientServer.checkConnection();
+
+            if(!pair.getFirst())
+                return;
+
+            userArr = ClientServer.getUserFromChat(stage, openedChatName);
+            if(userArr == null)
+            {
+                showDefaultAlert(stage, "Oops", "Can't get user list, sorry...", Alert.AlertType.ERROR);
+                return;
+            }
+        }
+        System.out.println(true);
+
+        fillUserList(userArr);
+    }
+
+    private void fillUserList(ArrayList<Pair<String, String>> userArr)
+    {
+        Platform.runLater(() -> {
+            VBox users = (VBox) ((ScrollPane) userList.getChildren().get(1)).getContent();
+            users.getChildren().clear();
+
+            for(var usr : userArr)
+            {
+                Label userLabel = new Label(usr.getFirst() + ". Last active: " + usr.getSecond());
+                userLabel.setWrapText(true);
+                userLabel.setFont(Font.font(userLabel.getFont().getFamily(), FontPosture.REGULAR, 13));
+                users.getChildren().add(userLabel);
+            }
+        });
+    }
+
     private void openChat(ArrayList<Message> messages, String nameChat)
     {
-        updateButton.setVisible(false);
+        updateButton.setText("users");
+        updateButton.setOnAction((e) -> showUserList());
+
         addChatButton.setOnAction((e) -> exitFromChat());
         addChatButton.setText("exit");
 
@@ -174,7 +274,9 @@ public class MainMenuController
 
     private void exitFromChat()
     {
-        updateButton.setVisible(true);
+        updateButton.setText("upd");
+        updateButton.setOnAction((e) -> loadChatList(false));
+
         addChatButton.setOnAction((e) -> addChat());
         addChatButton.setText("+");
 
@@ -193,9 +295,15 @@ public class MainMenuController
         chatHB.setMinHeight(50);
         chatHB.setOnMouseClicked((e) -> {
             chatHB.setBackground(null);
-            ArrayList<String> users = ClientServer.getUserFromChat(stage, name);
-            if(users == null)
+
+            ArrayList<Message> messages = ClientServer.getMessagesFromChat(stage, name);
+            if(messages == null)
             {
+                var pair = ClientServer.checkConnection();
+
+                if(!pair.getFirst())
+                    return;
+
                 boolean connected = ClientServer.connectToChat(stage, name);
                 if(!connected)
                 {
@@ -205,19 +313,12 @@ public class MainMenuController
                 loadChatList(false);
 
 
-                users = ClientServer.getUserFromChat(stage, name);
-                if(users == null)
+                messages = ClientServer.getMessagesFromChat(stage, name);
+                if(messages == null)
                 {
-                    showDefaultAlert(stage, "Oops", "Can't get user list, sorry...", Alert.AlertType.ERROR);
+                    showDefaultAlert(stage, "Oops", "Can't get messages list, sorry...", Alert.AlertType.ERROR);
                     return;
                 }
-            }
-
-            ArrayList<Message> messages = ClientServer.getMessagesFromChat(stage, name);
-            if(messages == null)
-            {
-                showDefaultAlert(stage, "Oops", "Can't get messages list, sorry...", Alert.AlertType.ERROR);
-                return;
             }
 
             openChat(messages, name);
@@ -245,7 +346,7 @@ public class MainMenuController
 
         while(name == null)
         {
-            name = showInputDialog(stage, "Dialog", "lol", "Please input ip address of server with port:");
+            name = showInputDialog(stage, "Dialog", "lol", "Please input chat name:");
             if(name == null)
                 return;
 
@@ -254,7 +355,13 @@ public class MainMenuController
             if(created)
                 addNewChat(name, 1);
             else
+            {
+                var pair = ClientServer.checkConnection();
+
+                if(!pair.getFirst())
+                    return;
                 showDefaultAlert(stage, "Oops", "Can't create new chat :c", Alert.AlertType.ERROR);
+            }
         }
     }
 

@@ -15,6 +15,8 @@ public class User
 
     public boolean equals(User another)
     {
+        if(another == null)
+            return false;
         return this.passHash.equals(another.passHash) && this.userName.equals(another.userName);
     }
 

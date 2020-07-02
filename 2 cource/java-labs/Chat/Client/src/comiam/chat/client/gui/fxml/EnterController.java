@@ -33,7 +33,7 @@ public class EnterController
             return;
         }
 
-        if(!connectToServer(stage))
+        if(!connectToServer(stage, true))
             return;
         authorize(stage, true, false, usernameTF.getText().trim(), passwordTF.getText().trim());
     }
@@ -47,7 +47,7 @@ public class EnterController
             return;
         }
 
-        if(!connectToServer(stage))
+        if(!connectToServer(stage, true))
             return;
         authorize(stage, false, false, usernameTF.getText().trim(), passwordTF.getText().trim());
     }

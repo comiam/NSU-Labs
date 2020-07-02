@@ -91,6 +91,13 @@ public class MessageHandler implements Runnable
             return;
         }
 
+        if(request.getType() == CHECK_CONNECTED_MESSAGE)
+        {
+            logMessageOp(socket, null, null, request.getType());
+            MessageSender.sendSuccess(socket, Sessions.isClientAuthorized(socket) + "");
+            return;
+        }
+
         if(request.getType() != SIGN_UP_MESSAGE && request.getType() != SIGN_IN_MESSAGE && !Sessions.isClientAuthorized(socket))
         {
             unauthorizedRequestError(socket);
@@ -138,6 +145,13 @@ public class MessageHandler implements Runnable
                 }
 
                 clientUser = Objects.requireNonNull(ServerData.getUserByName(name));
+
+                if(Sessions.getSession(clientUser) != null)
+                {
+                    userAlreadyConnectedError(name, socket);
+                    Connection.disconnectIfOnline(socket);
+                    return;
+                }
 
                 if(!Hash.hashBytes(password.getBytes()).equals(clientUser.getPassHash()))
                 {
@@ -276,7 +290,7 @@ public class MessageHandler implements Runnable
                 chat.addMessage(new Message(message, Date.getDate(), Objects.requireNonNull(Sessions.getSessionUser(socket)).getUsername()));
 
                 MessageSender.sendSuccess(socket, "sent");
-                MessageSender.broadcastUpdateFrom(MessageType.MESSAGE_UPDATE, clientUser);
+                MessageSender.broadcastUpdateFrom(MessageType.MESSAGE_UPDATE, clientUser, chat);
                 ConnectionTimers.zeroTimer(clientUser);
 
                 logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());
@@ -303,9 +317,12 @@ public class MessageHandler implements Runnable
 
                 chat = new Chat(name, users, null);
                 ServerData.addNewChat(chat);
+
+                chat.addMessage(new Message("Wow, " + Objects.requireNonNull(Sessions.getSessionUser(socket)).getUsername() + " is there!", Date.getDate(), ServerData.getServerNotifier().getUsername()));
+
                 MessageSender.sendSuccess(socket, "hello in " + name + ":)");
 
-                MessageSender.broadcastUpdateFrom(MessageType.CHAT_UPDATE, clientUser);
+                MessageSender.broadcastUpdateFrom(MessageType.CHAT_UPDATE, clientUser, null);
                 ConnectionTimers.zeroTimer(clientUser);
 
                 logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
@@ -339,8 +356,8 @@ public class MessageHandler implements Runnable
                 chat.addMessage(new Message("Wow, " + Objects.requireNonNull(Sessions.getSessionUser(socket)).getUsername() + " is there!", Date.getDate(), ServerData.getServerNotifier().getUsername()));
                 MessageSender.sendSuccess(socket, "hello in " + name + ":)");
 
-                MessageSender.broadcastUpdateFrom(MessageType.CHAT_UPDATE, clientUser);
-                MessageSender.broadcastUpdateFrom(MessageType.MESSAGE_UPDATE, clientUser);
+                MessageSender.broadcastUpdateFrom(MessageType.CHAT_UPDATE, clientUser, null);
+                MessageSender.broadcastUpdateFrom(MessageType.MESSAGE_UPDATE, clientUser, chat);
 
                 ConnectionTimers.zeroTimer(clientUser);
 

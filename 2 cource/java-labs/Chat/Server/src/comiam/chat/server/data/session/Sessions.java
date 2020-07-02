@@ -14,6 +14,15 @@ public class Sessions
 {
     private static final HashMap<User, UserSession> sessions = new HashMap<>();
 
+    private static User getSessionUser(User user)
+    {
+        for(var usr : sessions.keySet())
+            if(usr.equals(user))
+                return usr;
+
+        return null;
+    }
+
     public static boolean isClientAuthorized(Socket connection)
     {
         return getSession(connection) != null && getSession(connection).haveActiveConnection();
@@ -26,7 +35,7 @@ public class Sessions
 
     public static synchronized UserSession getSession(User user)
     {
-        return sessions.getOrDefault(user, null);
+        return sessions.getOrDefault(getSessionUser(user), null);
     }
 
     public static synchronized UserSession getSession(Socket connection)
@@ -65,14 +74,13 @@ public class Sessions
         return res;
     }
 
-    public static synchronized Socket[] getSocketsOfSessionInChat(Chat[] chats)
+    public static synchronized Socket[] getSocketsOfSessionInChat(Chat chat)
     {
         ArrayList<Socket> sockets = new ArrayList<>();
 
-        for(var chat : chats)
-            for(var user : chat.getUsers())
-                if(sessions.containsKey(user) && !sockets.contains(sessions.get(user).getConnection()))
-                    sockets.add(sessions.get(user).getConnection());
+        for(var user : chat.getUsers())
+            if(sessions.containsKey(getSessionUser(user)) && !sockets.contains(sessions.get(getSessionUser(user)).getConnection()))
+                sockets.add(sessions.get(getSessionUser(user)).getConnection());
 
         return sockets.isEmpty() ? null : (Socket[]) sockets.toArray(new Socket[sockets.size()]);
     }
@@ -116,7 +124,7 @@ public class Sessions
      */
     public static synchronized void deleteSession(User user)
     {
-        sessions.remove(user);
+        sessions.remove(getSessionUser(user));
         ConnectionTimers.removeTimer(user);
     }
 
