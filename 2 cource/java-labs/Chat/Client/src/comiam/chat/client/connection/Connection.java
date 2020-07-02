@@ -73,7 +73,6 @@ public class Connection
                 return parseFromJSON(new String(msg), MessagePackage.class);
             } catch(Throwable e)
             {
-                e.printStackTrace();
                 return null;
             }
         }

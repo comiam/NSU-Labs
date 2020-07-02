@@ -147,7 +147,8 @@ public class MessageHandler implements Runnable
 
                 clientUser = Objects.requireNonNull(ServerData.getUserByName(name));
 
-                if(Sessions.getSession(clientUser) != null)
+                var session = Sessions.getSession(clientUser);
+                if(session != null && session.haveActiveConnection())
                 {
                     userAlreadyConnectedError(name, socket);
                     Connection.disconnectIfOnline(socket);

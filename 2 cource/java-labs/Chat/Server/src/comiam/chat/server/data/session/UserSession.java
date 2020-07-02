@@ -4,6 +4,7 @@ import comiam.chat.server.time.Date;
 import comiam.chat.server.utils.Hash;
 
 import java.net.Socket;
+import java.nio.ByteBuffer;
 
 public class UserSession
 {
@@ -21,7 +22,19 @@ public class UserSession
 
     public boolean haveActiveConnection()
     {
-        return activeConnection != null && !activeConnection.isClosed();
+        if(activeConnection == null || activeConnection.isClosed() || !activeConnection.isConnected())
+            return false;
+
+        try
+        {
+            ByteBuffer buffer = ByteBuffer.allocateDirect(16);
+            if(activeConnection.getChannel().read(buffer) == -1)
+                return false;
+        } catch (Exception e)
+        {
+            return false;
+        }
+        return true;
     }
 
     public String getID()
