@@ -9,6 +9,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
@@ -63,6 +64,7 @@ public class PaneLoader
 
             newWindow.setTitle("Hello");
             newWindow.setResizable(false);
+            newWindow.getIcons().add(new Image(EnterController.class.getResource("ico.png").toExternalForm()));
             newWindow.setScene(new Scene(root, 226, 296));
             newWindow.centerOnScreen();
             newWindow.show();
@@ -89,6 +91,7 @@ public class PaneLoader
 
             newWindow.setTitle("Hello, " + name + ":)");
             newWindow.setResizable(false);
+            newWindow.getIcons().add(new Image(EnterController.class.getResource("ico.png").toExternalForm()));
             newWindow.setScene(new Scene(root, 280, 400));
             newWindow.centerOnScreen();
             newWindow.setOnCloseRequest((e) ->
