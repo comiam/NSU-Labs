@@ -299,11 +299,10 @@ public class ClientServer
      */
     public static Pair<Boolean, Boolean> checkConnection()
     {
-        Request request = new Request(RequestType.CHECK_CONNECTED_MESSAGE, null);
+        Request request = new Request(RequestType.CHECK_CONNECTED_MESSAGE, LocalData.getCurrentSessionID());
 
         if(!sendToServer(createPackage(saveToJSON(request))))
             return new Pair<>(false, false);
-
 
         MessagePackage msgPkg = receiveFromServer();
         if(msgPkg == null)

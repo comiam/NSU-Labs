@@ -8,7 +8,6 @@ import comiam.chat.server.json.JSONMessageFactory;
 import comiam.chat.server.logger.Log;
 import comiam.chat.server.messages.types.MessageType;
 
-import java.io.IOException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 
@@ -72,7 +71,7 @@ public class MessageSender
         try
         {
             connection.getChannel().write(ByteBuffer.wrap(messagePackage));
-        } catch(IOException e)
+        } catch(Throwable e)
         {
             Log.error("MessageSender: Can't send message to " + connection.getInetAddress(), e);
         }

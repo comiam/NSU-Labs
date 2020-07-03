@@ -23,16 +23,6 @@ public class Sessions
         return null;
     }
 
-    public static boolean isClientAuthorized(Socket connection)
-    {
-        return getSession(connection) != null && getSession(connection).haveActiveConnection();
-    }
-
-    public static boolean isUserAuthorized(User user)
-    {
-        return getSession(user) != null && getSession(user).haveActiveConnection();
-    }
-
     public static synchronized UserSession getSession(User user)
     {
         return sessions.getOrDefault(getSessionUser(user), null);
@@ -45,6 +35,9 @@ public class Sessions
 
     public static synchronized UserSession getSession(String ID)
     {
+        if(ID == null)
+            return null;
+
         for(var key : sessions.keySet())
             if(sessions.get(key).idEquals(ID))
                 return sessions.get(key);
@@ -82,7 +75,7 @@ public class Sessions
             if(sessions.containsKey(getSessionUser(user)) && !sockets.contains(sessions.get(getSessionUser(user)).getConnection()))
                 sockets.add(sessions.get(getSessionUser(user)).getConnection());
 
-        return sockets.isEmpty() ? null : (Socket[]) sockets.toArray(new Socket[sockets.size()]);
+        return sockets.isEmpty() ? null : sockets.toArray(new Socket[sockets.size()]);
     }
 
     public static synchronized int parseAndManageSession(String sessionID, Socket connection)

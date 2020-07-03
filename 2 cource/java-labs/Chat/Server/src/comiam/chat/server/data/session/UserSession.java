@@ -22,7 +22,7 @@ public class UserSession
 
     public boolean haveActiveConnection()
     {
-        if(activeConnection == null || activeConnection.isClosed() || !activeConnection.isConnected())
+        if(activeConnection == null || activeConnection.isClosed())
             return false;
 
         try

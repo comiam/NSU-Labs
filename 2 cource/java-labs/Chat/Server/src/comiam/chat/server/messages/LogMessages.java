@@ -15,9 +15,6 @@ public class LogMessages
     {
         switch(type)
         {
-            case CHECK_CONNECTED_MESSAGE:
-                Log.info("Backend thread: Client " + socket.getInetAddress() + " checking connection...");
-                break;
             case SIGN_IN_MESSAGE:
                 Log.info("Backend thread: Client " + socket.getInetAddress() + " tries to sign in as " + username + ".");
                 break;
@@ -88,12 +85,6 @@ public class LogMessages
         MessageSender.sendError(victim, "Server Error: Unknown message type!");
     }
 
-    public static void unauthorizedRequestError(Socket victim)
-    {
-        Log.error("Backend thread: Unauthorized request from " + victim.getInetAddress() + "! Disconnect from server...");
-        MessageSender.sendError(victim, "Server Error: Authenticate first!");
-    }
-
     public static void reloginError(User user, Socket victim)
     {
         Log.error("Backend thread: Trying to authenticate to " + user.getUsername() + ": this user client is authenticated!");
@@ -154,7 +145,7 @@ public class LogMessages
         MessageSender.sendError(victim, "Server Error: You don't connected to this chat!");
     }
 
-    public static void invalidSessionParsingError(String sessionID, int error)
+    public static void invalidSessionParsingError(Socket victim, String sessionID, int error)
     {
         Log.error("Backend server: invalid session " + sessionID + ":");
 
@@ -162,9 +153,11 @@ public class LogMessages
         {
             case SESSION_NOT_EXIST:
                 Log.error("Session id doesn't exist!");
+                MessageSender.sendError(victim, "Server Error: Your session id doesn't exist! Authenticate first!");
                 break;
             case SESSION_HAVE_ACTIVE_CONNECTION:
                 Log.error("Session have another connection!");
+                MessageSender.sendError(victim, "Server Error: Session have another active connection!");
                 break;
             default:
                 Log.error("null");

@@ -61,12 +61,6 @@ public class Connection
         ConnectionTimers.addAuthTimer(socket);
     }
 
-    public static void disconnectIfOnline(Socket socket)
-    {
-        if(!Sessions.isClientAuthorized(socket))
-            disconnectClient(socket);
-    }
-
     public static void disconnectClient(User user)
     {
         disconnectClient(Sessions.getSession(user).getConnection());

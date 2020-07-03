@@ -94,20 +94,23 @@ public class MessageHandler implements Runnable
 
         if(request.getType() == CHECK_CONNECTED_MESSAGE)
         {
-            logMessageOp(socket, null, null, request.getType());
-            MessageSender.sendSuccess(socket, Sessions.isClientAuthorized(socket) + "");
-            return;
-        }
-
-        if(request.getType() != SIGN_UP_MESSAGE && request.getType() != SIGN_IN_MESSAGE && !Sessions.isClientAuthorized(socket))
-        {
-            unauthorizedRequestError(socket);
+            MessageSender.sendSuccess(socket, (Sessions.getSession(request.getSessionID()) != null) + "");
             return;
         }
 
         User clientUser;
         Chat chat;
+        String name = request.getName();
+        String password = request.getPass();
+        String message = request.getMessage();
+        String sessionID = request.getSessionID();
         int status;
+
+        if(request.getType() != SIGN_UP_MESSAGE && request.getType() != SIGN_IN_MESSAGE && Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
+        {
+            invalidSessionParsingError(socket, sessionID, status);
+            return;
+        }
 
         if((request.getType() == SIGN_UP_MESSAGE || request.getType() == SIGN_IN_MESSAGE) && (clientUser = Sessions.getSessionUser(socket)) != null)
         {
@@ -115,24 +118,13 @@ public class MessageHandler implements Runnable
             return;
         }
 
-        String name = request.getName();
-        String password = request.getPass();
-        String message = request.getMessage();
-        String sessionID = request.getSessionID();
-
-        if(request.getType() != SIGN_UP_MESSAGE && request.getType() != SIGN_IN_MESSAGE && Sessions.isErrorStatus(status = Sessions.parseAndManageSession(sessionID, socket)))
-        {
-            invalidSessionParsingError(sessionID, status);
-            return;
-        }
-
         switch(request.getType())
         {
             case SIGN_IN_MESSAGE:
-                if(checkIsNull(name, password))
+                if(objIsNull(name, password))
                 {
                     badMessageDataError(socket);
-                    Connection.disconnectIfOnline(socket);
+                    Connection.disconnectClient(socket);
                     return;
                 }
 
@@ -141,24 +133,25 @@ public class MessageHandler implements Runnable
                 if(!ServerData.containsUsername(name))
                 {
                     userNotExistError(name, socket);
-                    Connection.disconnectIfOnline(socket);
+                    Connection.disconnectClient(socket);
                     return;
                 }
 
                 clientUser = Objects.requireNonNull(ServerData.getUserByName(name));
 
                 var session = Sessions.getSession(clientUser);
+
                 if(session != null && session.haveActiveConnection())
                 {
                     userAlreadyConnectedError(name, socket);
-                    Connection.disconnectIfOnline(socket);
+                    Connection.disconnectClient(socket);
                     return;
                 }
 
                 if(!Hash.hashBytes(password.getBytes()).equals(clientUser.getPassHash()))
                 {
                     wrongPasswordError(socket);
-                    Connection.disconnectIfOnline(socket);
+                    Connection.disconnectClient(socket);
                     return;
                 }
 
@@ -168,10 +161,10 @@ public class MessageHandler implements Runnable
                 logSuccessMessageOp(socket, name, null, request.getType());
                 break;
             case SIGN_UP_MESSAGE:
-                if(checkIsNull(name, password))
+                if(objIsNull(name, password))
                 {
                     badMessageDataError(socket);
-                    Connection.disconnectIfOnline(socket);
+                    Connection.disconnectClient(socket);
                     return;
                 }
 
@@ -180,7 +173,7 @@ public class MessageHandler implements Runnable
                 if(ServerData.containsUsername(name))
                 {
                     userAlreadyExistError(name, socket);
-                    Connection.disconnectIfOnline(socket);
+                    Connection.disconnectClient(socket);
                     return;
                 }
 
@@ -195,12 +188,6 @@ public class MessageHandler implements Runnable
                 logSuccessMessageOp(socket, name, null, request.getType());
                 break;
             case GET_CHATS_MESSAGE:
-                if(checkIsNull(sessionID))
-                {
-                    badMessageDataError(socket);
-                    return;
-                }
-
                 String chats = Objects.requireNonNull(JSONMessageFactory.generateChatList());
 
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
@@ -212,7 +199,7 @@ public class MessageHandler implements Runnable
                 logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());
                 break;
             case GET_USERS_OF_CHAT_MESSAGE:
-                if(checkIsNull(name, sessionID))
+                if(objIsNull(name))
                 {
                     badMessageDataError(socket);
                     return;
@@ -240,7 +227,7 @@ public class MessageHandler implements Runnable
                 logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
                 break;
             case GET_MESSAGES_FROM_CHAT_MESSAGE:
-                if(checkIsNull(name, sessionID))
+                if(objIsNull(name))
                 {
                     badMessageDataError(socket);
                     return;
@@ -268,7 +255,7 @@ public class MessageHandler implements Runnable
                 logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
                 break;
             case SEND_MESSAGE_MESSAGE:
-                if(checkIsNull(name, message, sessionID))
+                if(objIsNull(name, message))
                 {
                     badMessageDataError(socket);
                     return;
@@ -303,7 +290,7 @@ public class MessageHandler implements Runnable
                 logSuccessMessageOp(socket, clientUser.getUsername(), null, request.getType());
                 break;
             case CREATE_CHAT_MESSAGE:
-                if(checkIsNull(name, sessionID))
+                if(objIsNull(name))
                 {
                     badMessageDataError(socket);
                     return;
@@ -337,7 +324,7 @@ public class MessageHandler implements Runnable
                 logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
                 break;
             case CONNECT_TO_CHAT_MESSAGE:
-                if(checkIsNull(name, sessionID))
+                if(objIsNull(name))
                 {
                     badMessageDataError(socket);
                     return;
@@ -375,18 +362,6 @@ public class MessageHandler implements Runnable
                 logSuccessMessageOp(socket, clientUser.getUsername(), name, request.getType());
                 break;
             case DISCONNECT_MESSAGE:
-                if(checkIsNull(sessionID))
-                {
-                    badMessageDataError(socket);
-                    return;
-                }
-
-                if(!Sessions.isClientAuthorized(socket))
-                {
-                    unauthorizedRequestError(socket);
-                    return;
-                }
-
                 clientUser = Objects.requireNonNull(Sessions.getSessionUser(socket));
                 logMessageOp(socket, clientUser.getUsername(),null, request.getType());
 
@@ -398,7 +373,7 @@ public class MessageHandler implements Runnable
         }
     }
 
-    private boolean checkIsNull(Object... objects)
+    private boolean objIsNull(Object... objects)
     {
         for(var obj : objects)
             if(obj == null)

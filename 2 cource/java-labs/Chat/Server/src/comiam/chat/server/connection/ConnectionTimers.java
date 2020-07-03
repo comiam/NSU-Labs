@@ -47,7 +47,7 @@ public class ConnectionTimers
     public static void addAuthTimer(Socket connection)
     {
         Timer.subscribeEvent(() -> {
-            if(!connection.isClosed() && !Sessions.isClientAuthorized(connection))
+            if(!connection.isClosed() && Sessions.getSession(connection) != null)
             {
                 Log.error("Backend thread: Authentication with " + connection.getInetAddress() + ": timed out. Disconnect from server...");
                 Connection.disconnectClient(connection);
@@ -70,7 +70,7 @@ public class ConnectionTimers
         Timer.subscribeEvent(ConnectionTimers::incTimers, Timer.SECOND);
         Timer.subscribeEvent(() -> {
             for (var user : ServerData.getUsers())
-                if(Sessions.isUserAuthorized(user) && timers.get(user) >= DEFAULT_TIMEOUT_IN_MINUTES)
+                if(Sessions.getSession(user) != null && timers.get(user) >= DEFAULT_TIMEOUT_IN_MINUTES)
                     Connection.disconnectClient(user);
             return true;
         }, 5 * Timer.MINUTE);
