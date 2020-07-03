@@ -6,6 +6,7 @@ import comiam.chat.server.data.units.Chat;
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.json.JSONMessageFactory;
 import comiam.chat.server.logger.Log;
+import comiam.chat.server.messages.types.ErrorType;
 import comiam.chat.server.messages.types.MessageType;
 
 import java.net.Socket;
@@ -17,9 +18,9 @@ import static comiam.chat.server.utils.ByteUtils.intToByteArray;
 
 public class MessageSender
 {
-    public static void sendError(Socket connection, String message)
+    public static void sendError(Socket connection, ErrorType errorType)
     {
-        String ans = makeFailure(message);
+        String ans = makeFailure(errorType);
 
         sendMessage(connection, ans);
     }

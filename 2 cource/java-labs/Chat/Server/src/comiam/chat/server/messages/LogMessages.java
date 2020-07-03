@@ -2,6 +2,7 @@ package comiam.chat.server.messages;
 
 import comiam.chat.server.data.units.User;
 import comiam.chat.server.logger.Log;
+import comiam.chat.server.messages.types.ErrorType;
 import comiam.chat.server.messages.types.RequestType;
 
 import java.net.Socket;
@@ -82,67 +83,67 @@ public class LogMessages
     public static void badMessageTypeError(Socket victim)
     {
         Log.error("Backend thread: Unknown message type sent from " + victim.getInetAddress());
-        MessageSender.sendError(victim, "Server Error: Unknown message type!");
+        MessageSender.sendError(victim, ErrorType.BAD_MESSAGE_TYPE);
     }
 
     public static void reloginError(User user, Socket victim)
     {
         Log.error("Backend thread: Trying to authenticate to " + user.getUsername() + ": this user client is authenticated!");
-        MessageSender.sendError(victim, "Server Error: You are already authenticated, exit from session first!");
+        MessageSender.sendError(victim, ErrorType.RELOGIN_ERROR);
     }
 
     public static void badMessageDataError(Socket victim)
     {
         Log.error("Backend thread: Bad message data in message from " + victim.getInetAddress() + "!");
-        MessageSender.sendError(victim, "Server Error: Bad message data!");
+        MessageSender.sendError(victim, ErrorType.BAD_MESSAGE_DATA);
     }
 
     public static void userAlreadyExistError(String username, Socket victim)
     {
         Log.error("Backend server: User " + username + " already exist in system! Disconnect " + victim.getInetAddress() + " from server...");
-        MessageSender.sendError(victim, "Server Error: User " + username + " already exist in system!");
+        MessageSender.sendError(victim, ErrorType.USER_ALREADY_EXIST);
     }
 
     public static void userAlreadyConnectedError(String username, Socket victim)
     {
         Log.error("Backend server: User " + username + " already connected in system! Disconnect " + victim.getInetAddress() + " from server...");
-        MessageSender.sendError(victim, "Server Error: User " + username + " already connected in chat!");
+        MessageSender.sendError(victim, ErrorType.USER_ALREADY_CONNECTED);
     }
 
     public static void userNotExistError(String username, Socket victim)
     {
         Log.error("Backend server: User " + username + " doesn't exist in system! Disconnect " + victim.getInetAddress() + " from server...");
-        MessageSender.sendError(victim, "Server Error: User " + username + " doesn't exist in system!");
+        MessageSender.sendError(victim, ErrorType.USER_NOT_EXIST);
     }
 
     public static void chatAlreadyExistError(String chatName, Socket victim)
     {
         Log.error("Backend server: Chat " + chatName + " already exist in system!");
-        MessageSender.sendError(victim, "Server Error: Chat " + chatName + " already exist in system!");
+        MessageSender.sendError(victim, ErrorType.CHAT_ALREADY_EXIST);
     }
 
     public static void chatNotExistError(String chatName, Socket victim)
     {
         Log.error("Backend server: Chat " + chatName + " doesn't exist in system!");
-        MessageSender.sendError(victim, "Server Error: Chat " + chatName + " doesn't exist in system!");
+        MessageSender.sendError(victim, ErrorType.CHAT_NOT_EXIST);
     }
 
     public static void wrongPasswordError(Socket victim)
     {
         Log.error("Backend server: Wrong password on signing in! Disconnect " + victim.getInetAddress() + " from server...");
-        MessageSender.sendError(victim, "Server Error: Wrong password!");
+        MessageSender.sendError(victim, ErrorType.WRONG_PASSWORD);
     }
 
     public static void userAlreadyExistInChatError(String username, String chat, Socket victim)
     {
         Log.error("Backend server: User " + username + " already exist in chat " + chat + "!");
-        MessageSender.sendError(victim, "Server Error: You are already in this chat!");
+        MessageSender.sendError(victim, ErrorType.USER_ALREADY_EXIST_IN_CHAT);
     }
 
     public static void userNotExistInChatError(String username, String chat, Socket victim)
     {
         Log.error("Backend server: User " + username + " not exist in chat " + chat + "!");
-        MessageSender.sendError(victim, "Server Error: You don't connected to this chat!");
+        MessageSender.sendError(victim, ErrorType.USER_NOT_EXIST_IN_CHAT);
     }
 
     public static void invalidSessionParsingError(Socket victim, String sessionID, int error)
@@ -153,11 +154,11 @@ public class LogMessages
         {
             case SESSION_NOT_EXIST:
                 Log.error("Session id doesn't exist!");
-                MessageSender.sendError(victim, "Server Error: Your session id doesn't exist! Authenticate first!");
+                MessageSender.sendError(victim, ErrorType.SESSION_NOT_EXIST);
                 break;
             case SESSION_HAVE_ACTIVE_CONNECTION:
                 Log.error("Session have another connection!");
-                MessageSender.sendError(victim, "Server Error: Session have another active connection!");
+                MessageSender.sendError(victim, ErrorType.SESSION_HAVE_ACTIVE_CONNECTION);
                 break;
             default:
                 Log.error("null");

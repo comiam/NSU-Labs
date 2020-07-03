@@ -2,6 +2,7 @@ package comiam.chat.server.json;
 
 import comiam.chat.server.data.ServerData;
 import comiam.chat.server.data.units.Chat;
+import comiam.chat.server.messages.types.ErrorType;
 import comiam.chat.server.messages.types.MessagePackage;
 import comiam.chat.server.messages.types.MessageType;
 import comiam.chat.server.utils.Pair;
@@ -62,9 +63,9 @@ public class JSONMessageFactory
         return JSONCore.saveToJSON(ans);
     }
 
-    public static String makeFailure(String msg)
+    public static String makeFailure(ErrorType errorType)
     {
-        MessagePackage ans = new MessagePackage(MessageType.FAILURE_ANSWER, msg);
+        MessagePackage ans = new MessagePackage(MessageType.FAILURE_ANSWER, JSONCore.saveToJSON(errorType));
         return JSONCore.saveToJSON(ans);
     }
 

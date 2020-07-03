@@ -1,6 +1,8 @@
 package comiam.chat.client.gui.fxml;
 
 import comiam.chat.client.connection.ClientServer;
+import comiam.chat.client.connection.Connection;
+import comiam.chat.client.connection.message.ErrorType;
 import comiam.chat.client.data.LocalData;
 import comiam.chat.client.data.units.Message;
 import comiam.chat.client.gui.PaneLoader;
@@ -122,6 +124,7 @@ public class MainMenuController
                 PaneLoader.showEnterDialog();
             } else
             {
+                checkOnFallingRelogin();
                 var pair = ClientServer.checkConnection();
 
                 if(!pair.getFirst())
@@ -155,6 +158,7 @@ public class MainMenuController
         var userArr = ClientServer.getUserFromChat(stage, chatName.getText());
         if(userArr == null)
         {
+            checkOnFallingRelogin();
             var pair = ClientServer.checkConnection();
 
             if(!pair.getFirst())
@@ -162,7 +166,10 @@ public class MainMenuController
 
             userArr = ClientServer.getUserFromChat(stage, chatName.getText());
             if(userArr == null)
+            {
+                checkOnFallingRelogin();
                 return;
+            }
         }
 
         fillUserList(userArr);
@@ -173,6 +180,7 @@ public class MainMenuController
         var list = ClientServer.getChatLists(stage);
         if(list == null)
         {
+            checkOnFallingRelogin();
             var pair = ClientServer.checkConnection();
 
             if(!pair.getFirst())
@@ -180,7 +188,10 @@ public class MainMenuController
 
             list = ClientServer.getChatLists(stage);
             if(list == null)
+            {
+                checkOnFallingRelogin();
                 return;
+            }
         }
 
         loadChatList(list);
@@ -191,6 +202,7 @@ public class MainMenuController
         var list = ClientServer.getMessagesFromChat(stage, chatName.getText());
         if(list == null)
         {
+            checkOnFallingRelogin();
             var pair = ClientServer.checkConnection();
 
             if(!pair.getFirst())
@@ -198,7 +210,10 @@ public class MainMenuController
 
             list = ClientServer.getMessagesFromChat(stage, chatName.getText());
             if(list == null)
+            {
+                checkOnFallingRelogin();
                 return;
+            }
         }
 
         ArrayList<Message> finalList = list;
@@ -218,6 +233,7 @@ public class MainMenuController
 
         if(userArr == null)
         {
+            checkOnFallingRelogin();
             var pair = ClientServer.checkConnection();
 
             if(!pair.getFirst())
@@ -226,6 +242,7 @@ public class MainMenuController
             userArr = ClientServer.getUserFromChat(stage, chatName.getText());
             if(userArr == null)
             {
+                checkOnFallingRelogin();
                 showDefaultAlert(stage, "Oops", "Can't get user list, sorry...", Alert.AlertType.ERROR);
                 return;
             }
@@ -255,6 +272,8 @@ public class MainMenuController
 
         if(userArr == null)
         {
+            checkOnFallingRelogin();
+
             var pair = ClientServer.checkConnection();
 
             if(!pair.getFirst())
@@ -263,6 +282,7 @@ public class MainMenuController
             userArr = ClientServer.getUserFromChat(stage, chatName.getText());
             if(userArr == null)
             {
+                checkOnFallingRelogin();
                 showDefaultAlert(stage, "Oops", "Can't get user list, sorry...", Alert.AlertType.ERROR);
                 return;
             }
@@ -323,7 +343,10 @@ public class MainMenuController
                 }
 
                 if(!ClientServer.sendMessage(stage, nameChat, field.getText().trim()))
+                {
+                    checkOnFallingRelogin();
                     showDefaultAlert(stage, "Oops", "Can't send message to server... Try again!", Alert.AlertType.ERROR);
+                }
                 else
                 {
                     String date = Date.getDate();
@@ -371,6 +394,8 @@ public class MainMenuController
             ArrayList<Message> messages = ClientServer.getMessagesFromChat(stage, name);
             if(messages == null)
             {
+                checkOnFallingRelogin();
+
                 var pair = ClientServer.checkConnection();
 
                 if(!pair.getFirst())
@@ -379,6 +404,7 @@ public class MainMenuController
                 boolean connected = ClientServer.connectToChat(stage, name);
                 if(!connected)
                 {
+                    checkOnFallingRelogin();
                     showDefaultAlert(stage, "Oops", "Can't connect to chat!", Alert.AlertType.ERROR);
                     return;
                 }
@@ -420,7 +446,7 @@ public class MainMenuController
 
         while(name == null)
         {
-            name = showInputDialog(stage, "Dialog", "lol", "Please input chat name:");
+            name = showInputDialog(stage, "Dialog", "chat", "Please input chat name:");
             if(name == null)
                 return;
 
@@ -461,6 +487,21 @@ public class MainMenuController
         stage.close();
         Timer.stop();
         PaneLoader.showEnterDialog();
+    }
+
+    private void checkOnFallingRelogin()
+    {
+        if(ClientServer.getLastError() == ErrorType.USER_ALREADY_CONNECTED)
+        {
+            Timer.stop();
+            Platform.runLater(() -> {
+                showDefaultAlert(stage, "Oops", "Unfortunately, somebody authorized to your account, " +
+                        "when server falling down... Sorry... Chat will close.", Alert.AlertType.ERROR);
+                Connection.closeConnection();
+                Platform.exit();
+                System.exit(0);
+            });
+        }
     }
 
     @FXML

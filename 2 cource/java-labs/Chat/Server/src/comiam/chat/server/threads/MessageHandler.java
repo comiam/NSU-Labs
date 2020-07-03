@@ -11,6 +11,7 @@ import comiam.chat.server.data.units.User;
 import comiam.chat.server.json.JSONMessageFactory;
 import comiam.chat.server.logger.Log;
 import comiam.chat.server.messages.MessageSender;
+import comiam.chat.server.messages.types.ErrorType;
 import comiam.chat.server.messages.types.Request;
 import comiam.chat.server.messages.types.MessageType;
 import comiam.chat.server.time.Date;
@@ -53,7 +54,7 @@ public class MessageHandler implements Runnable
             if(pair.getSecond().isEmpty())
             {
                 Log.error("Backend thread: Message by " + pair.getFirst().getInetAddress() + " is too small!");
-                MessageSender.sendError(pair.getFirst(), "Message too small!");
+                MessageSender.sendError(pair.getFirst(), ErrorType.SMALL_MESSAGE_ERROR);
                 continue;
             }
 
@@ -62,7 +63,7 @@ public class MessageHandler implements Runnable
             if(message == null)
             {
                 Log.error("Backend thread: Invalid message by " + pair.getFirst().getInetAddress());
-                MessageSender.sendError(pair.getFirst(), "Invalid message!");
+                MessageSender.sendError(pair.getFirst(), ErrorType.BAD_MESSAGE_DATA);
                 continue;
             }
 

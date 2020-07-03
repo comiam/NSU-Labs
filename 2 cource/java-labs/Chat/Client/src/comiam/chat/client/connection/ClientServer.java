@@ -1,14 +1,12 @@
 package comiam.chat.client.connection;
 
 import com.google.gson.reflect.TypeToken;
-import comiam.chat.client.connection.message.MessagePackage;
-import comiam.chat.client.connection.message.MessageType;
-import comiam.chat.client.connection.message.Request;
-import comiam.chat.client.connection.message.RequestType;
+import comiam.chat.client.connection.message.*;
 import comiam.chat.client.data.LocalData;
 import comiam.chat.client.data.units.Message;
 import comiam.chat.client.gui.PaneLoader;
 import comiam.chat.client.gui.fxml.MainMenuController;
+import comiam.chat.client.json.JSONCore;
 import comiam.chat.client.time.Timer;
 import comiam.chat.client.utils.Pair;
 import javafx.scene.control.Alert;
@@ -31,6 +29,12 @@ public class ClientServer
     private static String currentIP;
     private static int currentPort;
     private static boolean isConnected = true;
+    private static ErrorType lastError = null;
+
+    public static ErrorType getLastError()
+    {
+        return lastError;
+    }
 
     public static boolean connectToServer(Stage stage, boolean showError)
     {
@@ -75,13 +79,13 @@ public class ClientServer
         return true;
     }
 
-    public static String doRequest(Stage stage, RequestType type, boolean showWarning, String... args)
+    public static String doRequest(Stage stage, RequestType type, boolean showError, String... args)
     {
         if(!connectToServer(stage, type != RequestType.DISCONNECT_MESSAGE))
             return null;
 
         if(!checkConnection().getSecond() && type != RequestType.SIGN_IN_MESSAGE && type != RequestType.SIGN_UP_MESSAGE &&
-                !authorize(stage, true, true, LocalData.getUsername(), LocalData.getPassword()))
+                !authorize(stage, true, true, showError, LocalData.getUsername(), LocalData.getPassword()))
                     return null;
 
         Request request = null;
@@ -127,8 +131,17 @@ public class ClientServer
             return msgPkg.getData();
         else
         {
-            if(showWarning)
-                showDefaultAlert(stage, "Oops", msgPkg.getData(), Alert.AlertType.ERROR);
+            ErrorType errType = JSONCore.parseFromJSON(msgPkg.getData(), ErrorType.class);
+            String errString = "null";
+
+            if(errType != null)
+            {
+                errString = errType.getMessageByType();
+                lastError = errType;
+            }
+
+            if(showError)
+                showDefaultAlert(stage, "Oops", errString, Alert.AlertType.ERROR);
 
             if(type == RequestType.SIGN_IN_MESSAGE || type == RequestType.SIGN_UP_MESSAGE)
                 clearData(false);
@@ -146,10 +159,10 @@ public class ClientServer
         return doRequest(stage, RequestType.SEND_MESSAGE_MESSAGE, true, chatName, message) != null;
     }
 
-    public static boolean authorize(Stage stage, boolean signIn, boolean secondTime, String username, String password)
+    public static boolean authorize(Stage stage, boolean signIn, boolean secondTime, boolean showError, String username, String password)
     {
         String data;
-        if((data = doRequest(stage, signIn ? RequestType.SIGN_IN_MESSAGE : RequestType.SIGN_UP_MESSAGE, true, username, password)) == null)
+        if((data = doRequest(stage, signIn ? RequestType.SIGN_IN_MESSAGE : RequestType.SIGN_UP_MESSAGE, showError, username, password)) == null)
             return false;
 
         LocalData.setCurrentSessionID(data);

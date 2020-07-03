@@ -48,7 +48,7 @@ public class EnterController
 
         if(!connectToServer(stage, true))
             return;
-        authorize(stage, true, false, usernameTF.getText().trim(), passwordTF.getText().trim());
+        authorize(stage, true, false, true, usernameTF.getText().trim(), passwordTF.getText().trim());
     }
 
     @FXML
@@ -74,6 +74,6 @@ public class EnterController
 
         if(!connectToServer(stage, true))
             return;
-        authorize(stage, false, false, usernameTF.getText().trim(), passwordTF.getText().trim());
+        authorize(stage, false, false, true, usernameTF.getText().trim(), passwordTF.getText().trim());
     }
 }
