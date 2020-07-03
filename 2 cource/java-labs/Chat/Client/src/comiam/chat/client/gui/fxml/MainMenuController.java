@@ -8,23 +8,21 @@ import comiam.chat.client.time.Date;
 import comiam.chat.client.time.Timer;
 import comiam.chat.client.utils.Pair;
 import javafx.application.Platform;
-import javafx.collections.ListChangeListener;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.*;
-import javafx.stage.Popup;
 import javafx.stage.Stage;
 
 import java.util.ArrayList;
 
 import static comiam.chat.client.gui.Dialogs.showDefaultAlert;
 import static comiam.chat.client.gui.Dialogs.showInputDialog;
+import static comiam.chat.client.utils.GUIUtils.*;
 
 public class MainMenuController
 {
@@ -43,13 +41,15 @@ public class MainMenuController
     @FXML
     private VBox chatBox;
 
+    @FXML
+    private Label chatName;
+
     private VBox msgBox;
 
     private VBox userList;
 
     private Stage stage;
     private TextFlow messageArea;
-    private String openedChatName = null;
     private ArrayList<Message> currentMessages;
 
     private boolean loadedSuccessfully = false;
@@ -62,7 +62,7 @@ public class MainMenuController
 
     public void appendNewMessages(ArrayList<Message> newPack)
     {
-        if(openedChatName == null)
+        if(chatName.getText().isEmpty())
             return;
 
         if(currentMessages.size() >= newPack.size())
@@ -79,7 +79,7 @@ public class MainMenuController
 
     public String getOpenedChatName()
     {
-        return openedChatName;
+        return chatName.getText();
     }
 
     public boolean isLoadedSuccessfully()
@@ -152,7 +152,7 @@ public class MainMenuController
 
     public void reloadUserList()
     {
-        var userArr = ClientServer.getUserFromChat(stage, openedChatName);
+        var userArr = ClientServer.getUserFromChat(stage, chatName.getText());
         if(userArr == null)
         {
             var pair = ClientServer.checkConnection();
@@ -160,7 +160,7 @@ public class MainMenuController
             if(!pair.getFirst())
                 return;
 
-            userArr = ClientServer.getUserFromChat(stage, openedChatName);
+            userArr = ClientServer.getUserFromChat(stage, chatName.getText());
             if(userArr == null)
                 return;
         }
@@ -188,7 +188,7 @@ public class MainMenuController
 
     public void reloadMessageList()
     {
-        var list = ClientServer.getMessagesFromChat(stage, openedChatName);
+        var list = ClientServer.getMessagesFromChat(stage, chatName.getText());
         if(list == null)
         {
             var pair = ClientServer.checkConnection();
@@ -196,7 +196,7 @@ public class MainMenuController
             if(!pair.getFirst())
                 return;
 
-            list = ClientServer.getMessagesFromChat(stage, openedChatName);
+            list = ClientServer.getMessagesFromChat(stage, chatName.getText());
             if(list == null)
                 return;
         }
@@ -206,18 +206,15 @@ public class MainMenuController
         Platform.runLater(() -> {
             var textFlow = (TextFlow) ((ScrollPane) msgBox.getChildren().get(0)).getContent();
             textFlow.getChildren().clear();
-            ((ScrollPane) msgBox.getChildren().get(0)).layout();
 
             for(var msg : finalList)
                 addMessage(textFlow, msg.getUsername(), msg.getDate(), msg.getText());
-
-            ((ScrollPane) msgBox.getChildren().get(0)).setVvalue(1.0f);
         });
     }
 
     private void showUserList()
     {
-        var userArr = ClientServer.getUserFromChat(stage, openedChatName);
+        var userArr = ClientServer.getUserFromChat(stage, chatName.getText());
 
         if(userArr == null)
         {
@@ -226,7 +223,7 @@ public class MainMenuController
             if(!pair.getFirst())
                 return;
 
-            userArr = ClientServer.getUserFromChat(stage, openedChatName);
+            userArr = ClientServer.getUserFromChat(stage, chatName.getText());
             if(userArr == null)
             {
                 showDefaultAlert(stage, "Oops", "Can't get user list, sorry...", Alert.AlertType.ERROR);
@@ -246,13 +243,15 @@ public class MainMenuController
 
         fillUserList(userArr);
 
+        setSmartScrollProperty((ScrollPane) userList.getChildren().get(1), userFlow);
+
         mainPanel.getChildren().remove(msgBox);
         mainPanel.getChildren().add(userList);
     }
 
     public void updateUsers()
     {
-        var userArr = ClientServer.getUserFromChat(stage, openedChatName);
+        var userArr = ClientServer.getUserFromChat(stage, chatName.getText());
 
         if(userArr == null)
         {
@@ -261,7 +260,7 @@ public class MainMenuController
             if(!pair.getFirst())
                 return;
 
-            userArr = ClientServer.getUserFromChat(stage, openedChatName);
+            userArr = ClientServer.getUserFromChat(stage, chatName.getText());
             if(userArr == null)
             {
                 showDefaultAlert(stage, "Oops", "Can't get user list, sorry...", Alert.AlertType.ERROR);
@@ -304,11 +303,12 @@ public class MainMenuController
         TextFlow msgArea = getTextFlow((ScrollPane) msgBox.getChildren().get(0));
 
         ((ScrollPane) msgBox.getChildren().get(0)).setContent(msgArea);
-
         TextField field = (TextField) msgBox.getChildren().get(1);
 
         for(var msg : messages)
             addMessage(msgArea, msg.getUsername(), msg.getDate(), msg.getText());
+
+        setSmartScrollProperty((ScrollPane) msgBox.getChildren().get(0), msgArea);
 
         field.setPromptText("input message...");
         field.setMaxWidth(Double.MAX_VALUE);
@@ -316,6 +316,12 @@ public class MainMenuController
         field.setOnKeyReleased((e) -> {
             if(e.getCode() == KeyCode.ENTER && !field.getText().trim().isEmpty())
             {
+                if(field.getText().trim().length() > 1500)
+                {
+                    showDefaultAlert(stage, "Oops", "Message size must be less than 1500!\n Your size is " + field.getText().trim().length() + ".", Alert.AlertType.ERROR);
+                    return;
+                }
+
                 if(!ClientServer.sendMessage(stage, nameChat, field.getText().trim()))
                     showDefaultAlert(stage, "Oops", "Can't send message to server... Try again!", Alert.AlertType.ERROR);
                 else
@@ -331,84 +337,16 @@ public class MainMenuController
         mainPanel.getChildren().add(msgBox);
 
         messageArea = msgArea;
-        openedChatName = nameChat;
+        chatName.setText(nameChat);
+        chatName.setVisible(true);
         currentMessages = messages;
-    }
-
-    private void addUserToList(TextFlow userFlow, Pair<String, String> usr)
-    {
-        Text username0 = new Text("User: ");
-        username0.setFont(Font.font(username0.getFont().getFamily(), FontWeight.NORMAL, FontPosture.REGULAR, 13));
-
-        Text username1 = new Text(usr.getFirst() + "\n");
-        username1.setFont(Font.font(username1.getFont().getFamily(), FontWeight.BOLD, FontPosture.REGULAR, 13));
-
-        Text lastActive = new Text("Last active: " + usr.getSecond() + "\n");
-        lastActive.setFont(Font.font(lastActive.getFont().getFamily(), FontWeight.NORMAL, FontPosture.REGULAR, 12));
-        lastActive.setUnderline(true);
-
-        userFlow.getChildren().addAll(username0, username1, lastActive);
-    }
-
-    private void addMessage(TextFlow msgArea, String username, String date, String message)
-    {
-        if(username.equals("server"))
-        {
-            Label messageT = new Label(message);
-            messageT.setFont(Font.font(messageT.getFont().getFamily(), FontWeight.NORMAL, FontPosture.ITALIC, 14));
-            messageT.setTextFill(Color.RED);
-            messageT.setMinWidth(msgArea.getPrefWidth());
-            messageT.setAlignment(Pos.TOP_CENTER);
-            setPopup(messageT, date);
-
-            msgArea.getChildren().add(messageT);
-        }else
-        {
-            Text usernameT = new Text((msgArea.getChildren().isEmpty() ? "" : "\n") + username + "\n");
-            usernameT.setFont(Font.font(usernameT.getFont().getFamily(), FontWeight.BOLD, FontPosture.REGULAR, 13));
-            msgArea.getChildren().add(usernameT);
-
-            Text messageT = new Text(message);
-            messageT.setFont(Font.font(messageT.getFont().getFamily(), FontWeight.NORMAL, FontPosture.ITALIC, 15));
-            setPopup(messageT, date);
-
-            msgArea.getChildren().add(messageT);
-        }
-    }
-
-    private TextFlow getTextFlow(ScrollPane parent)
-    {
-        TextFlow msgArea = new TextFlow();
-        msgArea.setPrefHeight(306);
-        msgArea.setPrefWidth(279);
-        msgArea.setMaxWidth(Double.MAX_VALUE);
-        msgArea.setMaxHeight(Region.USE_COMPUTED_SIZE);
-        msgArea.setMinHeight(Region.USE_COMPUTED_SIZE);
-        msgArea.setMinWidth(Region.USE_COMPUTED_SIZE);
-
-        parent.vvalueProperty().bind(msgArea.heightProperty());
-
-        return msgArea;
-    }
-
-    private void setPopup(Node text, String popupMsg)
-    {
-        Label label = new Label(popupMsg);
-        label.setBackground(new Background(new BackgroundFill(Color.LIGHTGRAY, CornerRadii.EMPTY, Insets.EMPTY)));
-        Popup popup = new Popup();
-        popup.getContent().add(label);
-
-        double offset = 5;
-        text.setOnMouseMoved((e) -> {
-            popup.setAnchorX(e.getScreenX() + offset * 2);
-            popup.setAnchorY(e.getScreenY() + offset);
-        });
-        text.setOnMouseEntered(e -> popup.show(text, e.getScreenX(), e.getScreenY() + offset));
-        text.setOnMouseExited(e -> popup.hide());
     }
 
     private void exitFromChat()
     {
+        chatName.setText("");
+        chatName.setVisible(false);
+
         updateButton.setText("upd");
         updateButton.setOnAction((e) -> loadChatList(false));
 
@@ -419,7 +357,6 @@ public class MainMenuController
         mainPanel.getChildren().add(chatPanel);
 
         messageArea = null;
-        openedChatName = null;
         currentMessages = null;
     }
 
@@ -465,7 +402,7 @@ public class MainMenuController
         nameL.setMaxWidth(140);
         nameL.setWrapText(false);
         nameL.setFont(Font.font(nameL.getFont().getFamily(), FontWeight.BOLD, FontPosture.REGULAR, 14));
-        setPopup(nameL, name);
+        setPopup(nameL, name, false);
 
         Label userCount = new Label(count + " users");
         chatHB.getChildren().addAll(nameL, userCount);
@@ -486,6 +423,12 @@ public class MainMenuController
             name = showInputDialog(stage, "Dialog", "lol", "Please input chat name:");
             if(name == null)
                 return;
+
+            if(name.length() > 20)
+            {
+                showDefaultAlert(stage, "Oops", "Chat name size must be less than 20!", Alert.AlertType.ERROR);
+                return;
+            }
 
             boolean created = ClientServer.createChat(stage, name);
 
