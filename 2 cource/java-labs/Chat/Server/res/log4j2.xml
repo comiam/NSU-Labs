@@ -3,7 +3,7 @@
   <!-- Секция аппендеров -->
   <Appenders>
     <File name="STDERR" fileName="log-${date:yyyy-MM-dd_hh-mm-ss}.log">
-      <PatternLayout pattern="%m%n" />
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} - %m%n" />
     </File>
   </Appenders>
   <Loggers>
