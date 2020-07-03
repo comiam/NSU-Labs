@@ -30,6 +30,7 @@ public class ClientServer
 {
     private static String currentIP;
     private static int currentPort;
+    private static boolean isConnected = true;
 
     public static boolean connectToServer(Stage stage, boolean showError)
     {
@@ -193,6 +194,28 @@ public class ClientServer
 
                 return true;
             }, Timer.SECOND / 10);
+
+            Timer.subscribeEvent(() -> {
+                var res = checkConnection();
+
+                if(isConnected && !res.getFirst())
+                    isConnected = false;
+                else if(!isConnected && res.getFirst())
+                {
+                    if(controller.isUserListIsOpened())
+                        controller.reloadUserList();
+                    else if(controller.getOpenedChatName() != null)
+                        controller.reloadMessageList();
+                    else
+                        controller.reloadChatList();
+
+                    isConnected = true;
+                }else if(!isConnected && !res.getFirst())
+                    connectToServer(stage, false);
+
+                return true;
+            }, Timer.SECOND / 2);
+
             Timer.start();
         }
 
@@ -264,6 +287,7 @@ public class ClientServer
     {
         if(clearConnectionData)
         {
+            isConnected = true;
             currentIP = null;
             currentPort = -1;
         }
@@ -276,7 +300,6 @@ public class ClientServer
     public static Pair<Boolean, Boolean> checkConnection()
     {
         Request request = new Request(RequestType.CHECK_CONNECTED_MESSAGE, null);
-
 
         if(!sendToServer(createPackage(saveToJSON(request))))
             return new Pair<>(false, false);

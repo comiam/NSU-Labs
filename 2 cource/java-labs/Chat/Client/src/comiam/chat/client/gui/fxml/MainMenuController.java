@@ -5,6 +5,7 @@ import comiam.chat.client.data.LocalData;
 import comiam.chat.client.data.units.Message;
 import comiam.chat.client.gui.PaneLoader;
 import comiam.chat.client.time.Date;
+import comiam.chat.client.time.Timer;
 import comiam.chat.client.utils.Pair;
 import javafx.application.Platform;
 import javafx.collections.ListChangeListener;
@@ -112,7 +113,7 @@ public class MainMenuController
 
     private void loadChatList(boolean onStart)
     {
-        ArrayList<Pair<String, Integer>> list = ClientServer.getChatLists(stage);
+        var list = ClientServer.getChatLists(stage);
         if(list == null)
         {
             if(onStart)
@@ -149,6 +150,71 @@ public class MainMenuController
         userListIsOpened = false;
     }
 
+    public void reloadUserList()
+    {
+        var userArr = ClientServer.getUserFromChat(stage, openedChatName);
+        if(userArr == null)
+        {
+            var pair = ClientServer.checkConnection();
+
+            if(!pair.getFirst())
+                return;
+
+            userArr = ClientServer.getUserFromChat(stage, openedChatName);
+            if(userArr == null)
+                return;
+        }
+
+        fillUserList(userArr);
+    }
+
+    public void reloadChatList()
+    {
+        var list = ClientServer.getChatLists(stage);
+        if(list == null)
+        {
+            var pair = ClientServer.checkConnection();
+
+            if(!pair.getFirst())
+                return;
+
+            list = ClientServer.getChatLists(stage);
+            if(list == null)
+                return;
+        }
+
+        loadChatList(list);
+    }
+
+    public void reloadMessageList()
+    {
+        var list = ClientServer.getMessagesFromChat(stage, openedChatName);
+        if(list == null)
+        {
+            var pair = ClientServer.checkConnection();
+
+            if(!pair.getFirst())
+                return;
+
+            list = ClientServer.getMessagesFromChat(stage, openedChatName);
+            if(list == null)
+                return;
+        }
+
+        ArrayList<Message> finalList = list;
+        currentMessages = finalList;
+        Platform.runLater(() -> {
+            var textFlow = (TextFlow) ((ScrollPane) msgBox.getChildren().get(0)).getContent();
+            textFlow.getChildren().clear();
+            ((ScrollPane) msgBox.getChildren().get(0)).layout();
+
+            for(var msg : finalList)
+                addMessage(textFlow, msg.getUsername(), msg.getDate(), msg.getText());
+
+            ((ScrollPane) msgBox.getChildren().get(0)).setVvalue(1.0f);
+        });
+    }
+
     private void showUserList()
     {
         var userArr = ClientServer.getUserFromChat(stage, openedChatName);
@@ -175,14 +241,7 @@ public class MainMenuController
         userList = PaneLoader.getUserListPane();
 
         assert userList != null;
-        TextFlow userFlow = getTextFlow();
-        userFlow.getChildren().addListener(
-                (ListChangeListener<Node>) ((change) -> {
-                    userFlow.layout();
-                    ((ScrollPane) userList.getChildren().get(1)).layout();
-                    ((ScrollPane) userList.getChildren().get(1)).setVvalue(1.0f);
-                }));
-
+        TextFlow userFlow = getTextFlow((ScrollPane) userList.getChildren().get(1));
         ((ScrollPane) userList.getChildren().get(1)).setContent(userFlow);
 
         fillUserList(userArr);
@@ -218,6 +277,7 @@ public class MainMenuController
         Platform.runLater(() -> {
             TextFlow users = (TextFlow) ((ScrollPane) userList.getChildren().get(1)).getContent();
             users.getChildren().clear();
+            users.layout();
 
             for(var usr : userArr)
                 addUserToList(users, usr);
@@ -241,14 +301,7 @@ public class MainMenuController
         msgBox.setMaxHeight(chatPanel.getMaxHeight());
         msgBox.setMinWidth(chatPanel.getMinWidth());
 
-        TextFlow msgArea = getTextFlow();
-
-        msgArea.getChildren().addListener(
-                (ListChangeListener<Node>) ((change) -> {
-                    msgArea.layout();
-                    ((ScrollPane) msgBox.getChildren().get(0)).layout();
-                    ((ScrollPane) msgBox.getChildren().get(0)).setVvalue(1.0f);
-                }));
+        TextFlow msgArea = getTextFlow((ScrollPane) msgBox.getChildren().get(0));
 
         ((ScrollPane) msgBox.getChildren().get(0)).setContent(msgArea);
 
@@ -323,7 +376,7 @@ public class MainMenuController
         }
     }
 
-    private TextFlow getTextFlow()
+    private TextFlow getTextFlow(ScrollPane parent)
     {
         TextFlow msgArea = new TextFlow();
         msgArea.setPrefHeight(306);
@@ -332,6 +385,8 @@ public class MainMenuController
         msgArea.setMaxHeight(Region.USE_COMPUTED_SIZE);
         msgArea.setMinHeight(Region.USE_COMPUTED_SIZE);
         msgArea.setMinWidth(Region.USE_COMPUTED_SIZE);
+
+        parent.vvalueProperty().bind(msgArea.heightProperty());
 
         return msgArea;
     }
@@ -461,6 +516,7 @@ public class MainMenuController
         ClientServer.disconnect();
         ClientServer.clearData(true);
         stage.close();
+        Timer.stop();
         PaneLoader.showEnterDialog();
     }
 
