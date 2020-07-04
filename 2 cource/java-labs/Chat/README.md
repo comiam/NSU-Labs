@@ -1,4 +1,4 @@
-# NSU-Labs-parallel
+# Java Chat
 Small chat, where u can send messages to your best friends)
 
 ## Technologies
