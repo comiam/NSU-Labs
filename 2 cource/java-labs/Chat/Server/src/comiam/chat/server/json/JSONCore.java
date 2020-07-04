@@ -28,7 +28,7 @@ public class JSONCore
     {
         try (Writer writer = new FileWriter(file))
         {
-            Gson gson = new GsonBuilder().create();
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
             gson.toJson(obj, writer);
         } catch(IOException e)
         {
