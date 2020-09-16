@@ -4,7 +4,6 @@
 void* helloWorld(void *args) {
     for (int i = 0; i < 10; ++i)
         printf("+ kuk\n");
-
 }
 
 int main()
