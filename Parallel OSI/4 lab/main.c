@@ -5,7 +5,10 @@
 void* routine(void *args)
 {
     while(1)
+    {
+        pthread_testcancel();
         printf("I'M ALIVE!!!\n");
+    }
 
     return NULL;
 }
@@ -13,11 +16,21 @@ void* routine(void *args)
 int main(int argc, char* argv[])
 {
     pthread_t last;
-    pthread_create(&last, NULL, routine, NULL);
+    int code = pthread_create(&last, NULL, routine, NULL);
 
+    if(code)
+    {
+        printf("lel error");
+        return 0;
+    }
     sleep(2);
 
-    pthread_cancel(last);
+    code = pthread_cancel(last);
+    if(code)
+    {
+        printf("lel error cancel");
+        return 0;
+    }
     printf("lol");
     return 0;
 }

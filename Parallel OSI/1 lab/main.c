@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <pthread.h>
+#include <unistd.h>
 
 void* helloWorld(void *args) {
     for (int i = 0; i < 10; ++i)
         printf("+ kuk\n");
+
+    return 5;
 }
 
 int main()
