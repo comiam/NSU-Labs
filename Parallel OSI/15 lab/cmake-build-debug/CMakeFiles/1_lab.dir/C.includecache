@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/maxim/git/NSU-Labs/Parallel OSI/15 lab/main.c
+stdio.h
+-
+pthread.h
+-
+stdlib.h
+-
+unistd.h
+-
+fcntl.h
+-
+semaphore.h
+-
+wait.h
+-
+
