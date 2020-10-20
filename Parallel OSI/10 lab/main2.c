@@ -4,30 +4,33 @@
 #include <unistd.h>
 
 pthread_mutexattr_t attr;
-pthread_mutex_t m[3];
+pthread_mutex_t m1;
+pthread_mutex_t m2;
+pthread_mutex_t m3;
 
-void destroyMutex(int index)
+void destroyMutex()
 {
-    for (int i = 0; i < index; ++i)
-        pthread_mutex_destroy(&m[i]);
+    pthread_mutex_destroy(&m1);
+    pthread_mutex_destroy(&m2);
+    pthread_mutex_destroy(&m3);
 }
 
 void stop(char *errorMsg)
 {
-    destroyMutex(3);
+    destroyMutex();
     perror(errorMsg);
     exit(EXIT_FAILURE);
 }
 
-void lockMutex(int index)
+void lockMutex(pthread_mutex_t *m)
 {
-    if (pthread_mutex_lock(&m[index]))
+    if (pthread_mutex_lock(m))
         stop("Error lock mutex");
 }
 
-void unlockMutex(int index)
+void unlockMutex(pthread_mutex_t *m)
 {
-    if (pthread_mutex_unlock(&m[index]))
+    if (pthread_mutex_unlock(m))
         stop("Error unlock mutex");
 }
 
@@ -40,45 +43,49 @@ void initMutexes()
         exit(EXIT_FAILURE);
     }
 
-    for (int i = 0; i < 3; ++i)
+    if (pthread_mutex_init(&m1, &attr) ||
+        pthread_mutex_init(&m2, &attr) ||
+        pthread_mutex_init(&m3, &attr))
     {
-        if(pthread_mutex_init(&m[i], &attr))
-        {
-            destroyMutex(i);
-            perror("Error creating mutex");
-            exit(EXIT_FAILURE);
-        }
+        destroyMutex();
+        perror("Error creating mutex");
+        exit(EXIT_FAILURE);
     }
 }
 
 void *second()
 {
-    int n = 0;
-    lockMutex(1);
+    lockMutex(&m2);
     for (int i = 0; i < 10; ++i)
     {
-        lockMutex(n);
+        lockMutex(&m1);
+
         printf("kek %i\n", i);
-        unlockMutex((n+1)%3);
-        n = (n+2)%3;
+
+        unlockMutex(&m2);
+        lockMutex(&m3);
+        unlockMutex(&m1);
+        lockMutex(&m2);
+        unlockMutex(&m3);
     }
-    unlockMutex(0);
+    unlockMutex(&m2);
     return NULL;
 }
 
 void first()
 {
-    int n = 0;
     for (int i = 0; i < 10; ++i)
     {
         printf("kuk %i\n", i);
 
-        unlockMutex(n);
-        lockMutex((n+1)%3);
-        n = (n+2)%3;
+        lockMutex(&m3);
+        unlockMutex(&m1);
+        lockMutex(&m2);
+        unlockMutex(&m3);
+        lockMutex(&m1);
+        unlockMutex(&m2);
     }
-    unlockMutex(1);
-    unlockMutex(2);
+    unlockMutex(&m1);
 }
 
 int main()
@@ -86,8 +93,7 @@ int main()
     pthread_t threadId;
 
     initMutexes();
-    lockMutex(0);
-    lockMutex(2);
+    lockMutex(&m1);
 
     if (pthread_create(&threadId, NULL, second, NULL))
         stop("Error creating thread");
@@ -100,6 +106,6 @@ int main()
     if (pthread_join(threadId, NULL))
         stop("Error waiting thread");
     
-    destroyMutex(3);
+    destroyMutex();
     return EXIT_SUCCESS;
 }
