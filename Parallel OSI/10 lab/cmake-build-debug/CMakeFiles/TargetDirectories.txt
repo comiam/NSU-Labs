@@ -1,3 +1,0 @@
-/home/maxim/git/NSU-Labs/Parallel OSI/10 lab/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/maxim/git/NSU-Labs/Parallel OSI/10 lab/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/maxim/git/NSU-Labs/Parallel OSI/10 lab/cmake-build-debug/CMakeFiles/1_lab.dir

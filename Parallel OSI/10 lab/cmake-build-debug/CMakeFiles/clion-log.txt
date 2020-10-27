@@ -1,4 +1,1 @@
-/home/maxim/Programs/clion-2020.2.1/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" "/home/maxim/git/NSU-Labs/Parallel OSI/10 lab"
--- Configuring done
--- Generating done
--- Build files have been written to: /home/maxim/git/NSU-Labs/Parallel OSI/10 lab/cmake-build-debug
+CMakeLists.txt not found in /home/maxim/git/NSU-Labs/Parallel OSI/10 lab Select CMakeLists.txt file...
