@@ -1,0 +1,3 @@
+/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/cmake-build-debug/CMakeFiles/singlethread.dir

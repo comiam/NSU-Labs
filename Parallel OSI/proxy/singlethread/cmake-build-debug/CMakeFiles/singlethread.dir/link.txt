@@ -1,0 +1,1 @@
+/usr/bin/c++  -g   CMakeFiles/singlethread.dir/main.cpp.o CMakeFiles/singlethread.dir/Cache.cpp.o CMakeFiles/singlethread.dir/http_parser.c.o CMakeFiles/singlethread.dir/ProxyCore.cpp.o CMakeFiles/singlethread.dir/Client.cpp.o CMakeFiles/singlethread.dir/Server.cpp.o  -o singlethread 
