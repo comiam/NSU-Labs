@@ -20,29 +20,17 @@ Server::~Server()
 
 bool Server::execute(int event)
 {
-    if (closed)
-    {
-        printf("Socket %i closed by interrupting by client...\n", sock);
+    if (closed && !(buffer->getSubscribers() > 0 && !buffer->isFinished()))//TODO add function replacement of server sides for situation one-server-cache-user and cache-user
         return false;
-    }
 
     if (event & POLLHUP || event & POLLERR)
-    {
-        printf("Socket %i closed by error...\n", sock);
         return false;
-    }
 
     if ((event & (POLLIN | POLLPRI)) && !receiveData())
-    {
-        printf("Socket %i can't read data and closing now...\n", sock);
         return false;
-    }
 
     if ((event & POLLOUT) && !sendData())
-    {
-        printf("Socket %i can't send data and closing now...\n", sock);
         return false;
-    }
 
     return true;
 }
@@ -61,13 +49,13 @@ bool Server::connectToServer(std::string &host)
 
     if (port == "443")
     {
-        printf("Ignore https on %s!\n", host.c_str());
+        fprintf(stderr, "[--WARNING--] Ignore https on %s!\n", host.c_str());
         return false;
     }
 
     if (port != "80")
     {
-        printf("Not support this port on host %s: %s\nUse port 80!", host.c_str(), port.c_str());
+        fprintf(stderr, "[---ERROR---] Not support this port on host %s: %s\nUse port 80!", host.c_str(), port.c_str());
         return false;
     }
 
@@ -75,21 +63,21 @@ bool Server::connectToServer(std::string &host)
     int res = tryResolveAddress(host_name, &res_info);
     if (res)
     {
-        fprintf(stderr, "Can't resolve %s:80 %s\n", host.c_str(), gai_strerror(res));
+        fprintf(stderr, "[---ERROR---] Can't resolve %s:80 %s\n", host.c_str(), gai_strerror(res));
         return false;
     }
 
     sock = socket(res_info->ai_family, res_info->ai_socktype, res_info->ai_protocol);
     if (sock < 0)
     {
-        perror("Can't create server side socket");
+        perror("[---ERROR---] Can't create server side socket");
         freeaddrinfo(res_info);
         return false;
     }
 
     if (connect(sock, res_info->ai_addr, res_info->ai_addrlen) < 0)
     {
-        perror("Can't connect to server");
+        perror("[---ERROR---] Can't connect to server");
         shutdown(sock, 2);
         close(sock);
         sock = -1;
@@ -99,14 +87,14 @@ bool Server::connectToServer(std::string &host)
 
     if (fcntl(sock, F_SETFL, O_NONBLOCK) == -1)
     {
-        perror("Can't set nonblock socket for server");
+        perror("[---ERROR---] Can't set nonblock socket for server");
         freeaddrinfo(res_info);
         return false;
     }
 
     if (!core->addSocketToPoll(sock, POLLIN | POLLPRI | POLLOUT, this))
     {
-        perror("Can't save server socket\n");
+        perror("[---ERROR---] Can't save server socket\n");
         shutdown(sock, 2);
         close(sock);
         sock = -1;
@@ -114,7 +102,7 @@ bool Server::connectToServer(std::string &host)
         return false;
     }
 
-    printf("Connected to %s:80 on socket: %d\n", host.c_str(), sock);
+    printf("[SERVER-INFO] Connected to %s:80 on socket: %d\n", host.c_str(), sock);
     freeaddrinfo(res_info);
     return true;
 }
@@ -125,10 +113,15 @@ bool Server::sendData()
 
     if (len == -1)
     {
-        perror("Can't send data to server");
+        perror("[---ERROR---] Can't send data to server");
         return false;
     }else
-        printf("Write %zi bytes to server by socket %i.\n", len, sock);
+    {
+        if(start_point)
+            printf("[SERVER-SEND] Send %zi bytes to server socket %i by client socket %i.\n", len, sock, start_point->getSock());
+        else
+            printf("[SERVER-SEND] Send %zi bytes to server socket %i by already closed client socket.\n", len, sock);
+    }
 
     send_buffer.erase(0, len);
     if (send_buffer.empty())
@@ -145,12 +138,17 @@ bool Server::receiveData()
 
     if (len < 0)
     {
-        perror("Can't recv data from server");
+        perror("[---ERROR---] Can't recv data from server");
         buffer->setFinished(true);
         buffer->setInvalid(true);
         return false;
     }else
-        printf("Read %zi bytes from server by socket %i.\n", len, sock);
+    {
+        if(start_point)
+            printf("[SERVER-RECV] Recv %zi bytes from server socket %i for client socket %i.\n", len, sock, start_point->getSock());
+        else
+            printf("[SERVER-RECV] Recv %zi bytes from server socket %i to cache.\n", len, sock);
+    }
 
     if (!len)
     {
@@ -161,7 +159,7 @@ bool Server::receiveData()
     size_t parsed = http_parser_execute(&parser, &Server::settings, buff, len);
     if ((ssize_t) parsed != len)
     {
-        perror("Can't parse http from client");
+        perror("[---ERROR---] Can't parse http from client");
         return false;
     }
 
@@ -170,7 +168,7 @@ bool Server::receiveData()
         buffer->getData()->append(buff, len);
     } catch (std::bad_alloc &e)
     {
-        perror("Can't cache server data");
+        perror("[---ERROR---] Can't cache server data");
         return false;
     }
 

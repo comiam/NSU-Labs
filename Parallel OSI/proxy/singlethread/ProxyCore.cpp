@@ -9,7 +9,7 @@ ProxyCore::ProxyCore(int socket_fd)
     Client::initHTTPParser();
     Server::initHTTPParser();
 
-    printf("\nProxy created!\n");
+    printf("\n[PROXY--CORE] Proxy created!\n");
 
     created = true;
     can_work = true;
@@ -17,7 +17,7 @@ ProxyCore::ProxyCore(int socket_fd)
 
 ProxyCore::~ProxyCore() {
     clearData();
-    printf("\nProxy closed!\n");
+    printf("\n[PROXY--CORE] Proxy closed!\n");
 
     created = false;
     can_work = false;
@@ -52,7 +52,7 @@ bool ProxyCore::listenConnections()
             if (errno == EINTR)
                 continue;
 
-            fprintf(stderr, "Poll error: %s\n", strerror(errno));
+            fprintf(stderr, "[PROXY-ERROR] Poll error: %s\n", strerror(errno));
             break;
         }else if (count == 0)
             continue;
@@ -74,13 +74,14 @@ bool ProxyCore::listenConnections()
                         new_client = accept(sock, NULL, NULL);
                         if (new_client == -1)
                         {
-                            perror("Can't accept new client");
+                            perror("[PROXY-ERROR] Can't accept new client");
                             clearData();
                             return false;
                         }
+                        
                         if (fcntl(new_client, F_SETFL, O_NONBLOCK) == -1)
                         {
-                            perror("Couldn't set nonblock to client socket");
+                            perror("[PROXY-ERROR] Can't set nonblock to client socket");
                             clearData();
                             return false;
                         }
@@ -91,17 +92,17 @@ bool ProxyCore::listenConnections()
                             client = new Client(new_client, this);
                         } catch (std::bad_alloc &e)
                         {
-                            perror("Can't allocate new client");
+                            perror("[PROXY-ERROR] Can't allocate new client");
                             clearData();
                             return false;
                         }
 
                         addSocketToPoll(new_client, POLLIN | POLLPRI, client);
 
-                        printf("Connected new user with socket %d\n", new_client);
+                        printf("[PROXY--INFO] Connected new user with socket %d\n", new_client);
                     } else
                     {
-                        fprintf(stderr, "Can't accept new client! Closing proxy...\n");
+                        fprintf(stderr, "[PROXY-ERROR] Can't accept new client! Closing proxy...\n");
                         clearData();
                         return false;
                     }
@@ -137,7 +138,7 @@ void ProxyCore::removeClosedSockets(std::set<int> *trashbox)
 
 void ProxyCore::removeSocketByIndex(size_t pos)
 {
-    printf("Socket %d closed\n", poll_set[pos].fd);
+    printf("[PROXY--CORE] Socket %d closed\n", poll_set[pos].fd);
 
     --poll_cur_size;
     shutdown(poll_set[pos].fd, 2);
@@ -164,7 +165,7 @@ bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *exe
 
         if (!poll_tmp)
         {
-            perror("Can't allocate new pollfd");
+            perror("[PROXY-ERROR] Can't allocate new pollfd");
             return false;
         }
         poll_set = poll_tmp;
@@ -172,7 +173,7 @@ bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *exe
         auto **handlers_tmp = (ConnectionHandler **) realloc(c_handlers, poll_size * sizeof(ConnectionHandler *));
         if (!handlers_tmp)
         {
-            perror("Can't allocate new handlers");
+            perror("[PROXY-ERROR] Can't allocate new handlers");
             return false;
         }
         c_handlers = handlers_tmp;
@@ -192,12 +193,13 @@ bool ProxyCore::initSocket(int sock_fd)
 
     if (fcntl(sock, F_SETFL, O_NONBLOCK) == -1)
     {
-        perror("Can't make socket nonblocking!");
+        perror("[PROXY-ERROR] Can't make socket nonblocking!");
         clearData();
         return false;
     }
-    if (listen(sock, POLL_SIZE_SEGMENT) == -1) {
-        perror("Couldn't set listen to server socket");
+    if (listen(sock, POLL_SIZE_SEGMENT) == -1)
+    {
+        perror("[PROXY-ERROR] Can't set listen to server socket");
         clearData();
         return false;
     }
@@ -241,7 +243,7 @@ bool ProxyCore::initPollSet()
     poll_set = (pollfd *) malloc(poll_size * sizeof(pollfd));
     if(!poll_set)
     {
-        perror("Cannot allocate memory for poll set!");
+        perror("[PROXY-ERROR] Cannot allocate memory for poll set!");
         return false;
     }
 
@@ -261,7 +263,7 @@ bool ProxyCore::initConnectionHandlers()
     c_handlers = (ConnectionHandler **) calloc(poll_size, sizeof(ConnectionHandler*));
     if(!c_handlers)
     {
-        perror("Cannot allocate memory for handler set!");
+        perror("[PROXY-ERROR] Cannot allocate memory for handler set!");
         return false;
     }
     return true;

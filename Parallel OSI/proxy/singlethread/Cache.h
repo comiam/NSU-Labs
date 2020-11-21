@@ -26,6 +26,7 @@ public:
 
     std::set<int> *getSubSet();
     std::string *getData();
+
 private:
     bool finished = false;
     bool invalid = false;
@@ -34,7 +35,8 @@ private:
     std::string *data;
 };
 
-class Cache {
+class Cache
+{
 public:
     static Cache &getCache();
     bool contains(std::string &url);

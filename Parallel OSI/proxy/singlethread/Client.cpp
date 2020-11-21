@@ -36,17 +36,22 @@ bool Client::receiveData()
 
     if (len < 0)
     {
-        perror("Can't receive data from client");
+        perror("[---ERROR---] Can't receive data from client");
         return false;
     } else
-        printf("Receive %zi bytes from client by socket %i..\n", len, sock);
+    {
+        if(end_point)
+            printf("[CLIENT-RECV] Recv %zi bytes from client by socket %i for server socket %i..\n", len, sock, end_point->getSocket());
+        else
+            printf("[CLIENT-RECV] Recv %zi bytes from client by socket %i for unreleased yet server..\n", len, sock);
+    }
 
     if(!len)
         return false;
 
     if (http_parser_execute(&parser, &Client::settings, buff, len) != len || http_parse_error)
     {
-        perror("HTTP parsing ended with error");
+        perror("[---ERROR---] HTTP parsing ended with error");
         return false;
     }
 
@@ -72,9 +77,14 @@ bool Client::sendData()
     ssize_t len = send(sock, str.c_str(), str.length(), 0);
 
     if (len < 0)
-        perror("Can't send data to client");
+        perror("[---ERROR---] Can't send data to client");
     else
-        printf("Send %zi bytes to client by socket %i.\n", len, sock);
+    {
+        if(end_point)
+            printf("[CLIENT-SEND] Send %zi bytes to client socket %i by server socket %i..\n", len, sock, end_point->getSocket());
+        else
+            printf("[CLIENT-SEND] Send %zi bytes to client socket %i by cache..\n", len, sock);
+    }
 
     return true;
 }
@@ -103,10 +113,10 @@ int Client::handleUrl(http_parser *parser, const char *at, size_t len)
 {
     auto *handler = (Client *) parser->data;
 
-    /* ignore anyone another except GET method */
-    if (parser->method != 1u)
+    /* ignore anyone another except GET, DELETE, GET, HEAD, POST, PUT method */
+    if (parser->method > 5)
     {
-        printf("ignore non GET method: %u\n", parser->method);
+        fprintf(stderr, "[--WARNING--] Ignore non GET, DELETE, HEAD, POST, PUT method on socket %i: %u\n", parser->method, handler->sock);
         handler->http_parse_error = true;
         return 1;
     }
@@ -116,7 +126,7 @@ int Client::handleUrl(http_parser *parser, const char *at, size_t len)
         handler->url.append(at, len);
     } catch (std::bad_alloc &e)
     {
-        perror("Can't save client url");
+        perror("[---ERROR---] Can't save client url");
         handler->http_parse_error = true;
         return 1;
     }
@@ -136,7 +146,7 @@ int Client::handleHeaderField(http_parser *parser, const char *at, size_t len)
         handler->prev_key.append(at, len);
     } catch (std::bad_alloc &e)
     {
-        perror("Couldn't save client header key");
+        perror("[---ERROR---] Can't save client header key");
         handler->http_parse_error = true;
         return 1;
     }
@@ -152,7 +162,7 @@ int Client::handleHeaderValue(http_parser *parser, const char *at, size_t len)
         handler->prev_value.append(at, len);
     } catch (std::bad_alloc &e)
     {
-        perror("Can't save client header value");
+        perror("[---ERROR---] Can't save client header value");
         handler->http_parse_error = true;
         return 1;
     }
@@ -188,7 +198,7 @@ int Client::handleData(http_parser *parser, const char *at, size_t len)
             handler->server_send_buffer.append(at, len);
     } catch (std::bad_alloc &e)
     {
-        perror("Can't save data to server send buffer");
+        perror("[---ERROR---] Can't save data to server send buffer");
         handler->http_parse_error = true;
         return 1;
     }
@@ -198,7 +208,7 @@ int Client::handleData(http_parser *parser, const char *at, size_t len)
 bool Client::sendFirstLine(Client *handler)
 {
     /* rebuild message to HTTP 1.0 protocol for best compatibility */
-    printf("Try get %s by socket %i\n", handler->url.c_str(), handler->sock);
+    printf("[CLIENT-INFO] Try get %s by socket %i\n", handler->url.c_str(), handler->sock);
     std::string line = "GET " + handler->url + " HTTP/1.0\r\n";
     return sendToServer(handler, line);
 }
@@ -220,7 +230,7 @@ bool Client::sendToServer(Client *handler, std::string &str)
         }
     } catch (std::bad_alloc &e)
     {
-        perror("Can't save data to server send buffer");
+        perror("[---ERROR---] Can't save data to server send buffer");
         handler->http_parse_error = true;
         return false;
     }
@@ -263,15 +273,15 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
     Cache &cached = Cache::getCache();
     if (cached.contains(entry_key))
     {
-        printf("Found cache of this data!\n");
+        printf("[PROXY--INFO] Found cache of %s!\n", handler->url.c_str());
 
         handler->entry = cached.getEntry(entry_key);
         handler->core->setSocketAvailableToSend(handler->sock);
 
         if (handler->entry->isFinished())
-            printf("Use cache from %s.\n", entry_key.substr(3).c_str());
+            printf("[PROXY--INFO] This cache is full.\n");
         else
-            printf("Use part of cache and download remaining part from %s.\n", entry_key.substr(3).c_str());
+            printf("[PROXY--INFO] Use part of cache and download remaining part from %s.\n", entry_key.substr(3).c_str());
 
         handler->can_use_cache = true;
     } else
@@ -280,10 +290,10 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         auto *server = new Server(handler->entry, handler->core);
         server->setStartPoint(handler);
 
-        printf("Cache of %s not found: connecting to %s...\n", handler->url.c_str(), host.c_str());
+        printf("[PROXY--INFO] Cache of %s not found: connecting to %s...\n", handler->url.c_str(), host.c_str());
         if (!server->connectToServer(host))
         {
-            printf("Can't connect to server %s!\n", handler->url.c_str());
+            printf("[PROXY-ERROR] Can't connect to server %s!\n", handler->url.c_str());
             handler->http_parse_error = true;
             cached.removeEntry(entry_key);
             return false;
@@ -294,7 +304,7 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
             server->send_buffer.append(handler->server_send_buffer);
         } catch (std::bad_alloc &e)
         {
-            perror("Can't transfer send buffer from client to server");
+            fprintf(stderr,"[PROXY-ERROR] Can't transfer send buffer from client socket %i to server socket %i\n", handler->sock, server->getSocket());
             return false;
         }
         handler->server_send_buffer.clear();
@@ -309,4 +319,9 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
 void Client::removeEndPoint()
 {
     this->end_point = nullptr;
+}
+
+int Client::getSock()
+{
+    return sock;
 }
