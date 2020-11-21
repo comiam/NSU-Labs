@@ -41,6 +41,9 @@ bool Client::receiveData()
     } else
         printf("Receive %zi bytes from client by socket %i..\n", len, sock);
 
+    if(!len)
+        return false;
+
     if (http_parser_execute(&parser, &Client::settings, buff, len) != len || http_parse_error)
     {
         perror("HTTP parsing ended with error");
@@ -78,10 +81,12 @@ bool Client::sendData()
 
 Client::~Client()
 {
-    Cache &cached = Cache::getCache();
-    cached.unsubscribeToEntry(entry_key, sock);
-    if(end_point)
+    Cache::getCache().unsubscribeToEntry(entry_key, sock);
+    if(!can_use_cache && end_point)
+    {
+        end_point->removeStartPoint();
         end_point->closeServer();
+    }
 }
 
 void Client::initHTTPParser()
@@ -99,9 +104,9 @@ int Client::handleUrl(http_parser *parser, const char *at, size_t len)
     auto *handler = (Client *) parser->data;
 
     /* ignore anyone another except GET, DELETE, GET, HEAD, POST, PUT method */
-    if (parser->method >= 5)
+    if (parser->method > 5)
     {
-        printf("ignore non GET, DELETE, GET, HEAD, POST, PUT method!\n");
+        printf("ignore non GET, DELETE, HEAD, POST, PUT method: %i\n", parser->method);
         handler->http_parse_error = true;
         return 1;
     }
@@ -193,6 +198,7 @@ int Client::handleData(http_parser *parser, const char *at, size_t len)
 bool Client::sendFirstLine(Client *handler)
 {
     /* rebuild message to HTTP 1.0 protocol for best compatibility */
+    printf("Try get %s by socket %i\n", handler->url.c_str(), handler->sock);
     std::string line = "GET " + handler->url + " HTTP/1.0\r\n";
     return sendToServer(handler, line);
 }
@@ -224,9 +230,7 @@ bool Client::sendToServer(Client *handler, std::string &str)
 bool Client::sendHeader(http_parser *parser, Client *handler)
 {
     if (handler->prev_key.empty())
-    {
         return true;
-    }
 
     /* disable Keep Alive connection */
     if (handler->prev_key == "Connection")
@@ -274,10 +278,12 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
     {
         handler->entry = cached.createEntry(entry_key);
         auto *server = new Server(handler->entry, handler->core);
-        printf("Cache not found: connecting to %s...\n", host.c_str());
+        server->setStartPoint(handler);
+
+        printf("Cache of %s not found: connecting to %s...\n", handler->url.c_str(), host.c_str());
         if (!server->connectToServer(host))
         {
-            printf("Can't connect to serverCan");
+            printf("Can't connect to server %s!\n", handler->url.c_str());
             handler->http_parse_error = true;
             cached.removeEntry(entry_key);
             return false;
@@ -298,4 +304,9 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
     handler->entry_key = entry_key;
 
     return true;
+}
+
+void Client::removeEndPoint()
+{
+    this->end_point = nullptr;
 }

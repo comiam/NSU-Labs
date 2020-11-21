@@ -24,6 +24,7 @@ CMakeFiles/singlethread.dir/ProxyCore.cpp.o: ../Server.h
 CMakeFiles/singlethread.dir/ProxyCore.cpp.o: ../http_parser.h
 
 CMakeFiles/singlethread.dir/Server.cpp.o: ../Cache.h
+CMakeFiles/singlethread.dir/Server.cpp.o: ../Client.h
 CMakeFiles/singlethread.dir/Server.cpp.o: ../ConnectionHandler.h
 CMakeFiles/singlethread.dir/Server.cpp.o: ../ProxyCore.h
 CMakeFiles/singlethread.dir/Server.cpp.o: ../Server.cpp

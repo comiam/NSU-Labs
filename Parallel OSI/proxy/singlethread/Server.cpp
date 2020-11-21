@@ -1,4 +1,5 @@
 #include "Server.h"
+#include "Client.h"
 
 http_parser_settings Server::settings;
 
@@ -11,19 +12,37 @@ Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler)
     parser.data = this;
 }
 
+Server::~Server()
+{
+    if(start_point)
+        start_point->removeEndPoint();
+}
+
 bool Server::execute(int event)
 {
-    if (closed || !buffer || buffer->finished)
+    if (closed)
+    {
+        printf("Socket %i closed by interrupting by client...\n", sock);
         return false;
+    }
 
     if (event & POLLHUP || event & POLLERR)
+    {
+        printf("Socket %i closed by error...\n", sock);
         return false;
+    }
 
     if ((event & (POLLIN | POLLPRI)) && !receiveData())
+    {
+        printf("Socket %i can't read data and closing now...\n", sock);
         return false;
+    }
 
     if ((event & POLLOUT) && !sendData())
+    {
+        printf("Socket %i can't send data and closing now...\n", sock);
         return false;
+    }
 
     return true;
 }
@@ -33,19 +52,21 @@ bool Server::connectToServer(std::string &host)
     std::string host_name = host;
     size_t split_pos = host.find_first_of(':');
     std::string port = "80";
-    if (split_pos != std::string::npos) {
+
+    if (split_pos != std::string::npos)
+    {
         port = host.substr(split_pos + 1);
         host_name.erase(split_pos);
     }
     if (port == "443")
     {
-        printf("Ignore https!\n");
+        printf("Ignore https on %s!\n", host.c_str());
         return false;
     }
 
     if (port != "80")
     {
-        printf("Not support this port: %s\nUse port 80!", port.c_str());
+        printf("Not support this port on host %s: %s\nUse port 80!", host.c_str(), port.c_str());
         return false;
     }
 
@@ -68,6 +89,7 @@ bool Server::connectToServer(std::string &host)
     if (connect(sock, res_info->ai_addr, res_info->ai_addrlen) < 0)
     {
         perror("Can't connect to server");
+        shutdown(sock, 2);
         close(sock);
         sock = -1;
         freeaddrinfo(res_info);
@@ -84,6 +106,7 @@ bool Server::connectToServer(std::string &host)
     if (!core->addSocketToPoll(sock, POLLIN | POLLPRI | POLLOUT, this))
     {
         perror("Can't save server socket\n");
+        shutdown(sock, 2);
         close(sock);
         sock = -1;
         freeaddrinfo(res_info);
@@ -137,7 +160,7 @@ bool Server::receiveData()
     size_t parsed = http_parser_execute(&parser, &Server::settings, buff, len);
     if ((ssize_t) parsed != len)
     {
-        perror("Can't parse http from client\n");
+        perror("Can't parse http from client");
         return false;
     }
 
@@ -190,4 +213,14 @@ int Server::handleMessageComplete(http_parser *parser)
 void Server::closeServer()
 {
     closed = true;
+}
+
+void Server::setStartPoint(Client *client)
+{
+    this->start_point = client;
+}
+
+void Server::removeStartPoint()
+{
+    this->start_point = nullptr;
 }

@@ -8,16 +8,21 @@
 
 #define BUFFER_SIZE 4096
 
+class Client;
+
 class Server : public ConnectionHandler
 {
 public:
     Server(CacheEntry *cache_buff, ProxyCore *proxy_handler);
-    ~Server() override = default;
+    ~Server() override;
     bool execute(int event) override;
     bool connectToServer(std::string &host);
 
     int getSocket();
     std::string send_buffer;
+
+    void setStartPoint(Client *client);
+    void removeStartPoint();
 
     static void initHTTPParser();
     void closeServer();
@@ -26,6 +31,7 @@ private:
     bool closed = false;
 
     CacheEntry *buffer = nullptr;
+    Client *start_point;
 
     http_parser parser;
     static http_parser_settings settings;

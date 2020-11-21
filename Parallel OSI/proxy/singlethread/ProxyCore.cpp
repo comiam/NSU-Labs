@@ -125,13 +125,12 @@ bool ProxyCore::listenConnections()
 void ProxyCore::removeClosedSockets(std::set<int> *trashbox)
 {
     for (int it : *trashbox)
-    {
-        ssize_t pos = getSocketIndex(it);
-        if (pos == -1)
-            return;
-
-        removeSocketByIndex(pos);
-    }
+        for (int i = 0; i < poll_cur_size; ++i)
+            if(poll_set[i].fd == it)
+            {
+                removeSocketByIndex(i);
+                break;
+            }
 
     trashbox->clear();
 }
@@ -141,6 +140,7 @@ void ProxyCore::removeSocketByIndex(size_t pos)
     printf("Socket %d closed\n", poll_set[pos].fd);
 
     --poll_cur_size;
+    shutdown(poll_set[pos].fd, 2);
     close(poll_set[pos].fd);
     delete c_handlers[pos];
     memcpy(&poll_set[pos], &poll_set[poll_cur_size], sizeof(pollfd));
@@ -258,7 +258,7 @@ bool ProxyCore::isCreated()
 
 bool ProxyCore::initConnectionHandlers()
 {
-    c_handlers = (ConnectionHandler **) malloc(poll_size * sizeof(ConnectionHandler*));
+    c_handlers = (ConnectionHandler **) calloc(poll_size, sizeof(ConnectionHandler*));
     if(!c_handlers)
     {
         perror("Cannot allocate memory for handler set!");

@@ -9,7 +9,11 @@
 #include <map>
 #include <set>
 
-struct CacheEntry {
+class CacheEntry
+{
+public:
+    CacheEntry(std::string &url);
+    ~CacheEntry();
     bool finished;
     bool invalid;
     size_t subscribers;

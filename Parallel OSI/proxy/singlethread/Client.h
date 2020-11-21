@@ -14,6 +14,8 @@ class Client : public ConnectionHandler
 public:
     Client(int sock, ProxyCore *proxy_handler);
     ~Client() override;
+
+    void removeEndPoint();
     bool execute(int event) override;
 
     bool http_parse_error = false;

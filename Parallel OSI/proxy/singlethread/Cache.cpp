@@ -26,22 +26,16 @@ CacheEntry *Cache::getEntry(std::string &url)
 
 CacheEntry *Cache::createEntry(std::string &url)
 {
-    auto *entry = (CacheEntry *) malloc(sizeof(CacheEntry));
-    if (!entry)
+    CacheEntry *entry;
+    try
+    {
+        entry = new CacheEntry(url);
+    } catch (std::bad_alloc &e)
     {
         perror("Couldn't allocate new cache entry");
         return nullptr;
     }
 
-    if (url.substr(0, 2) != "01")
-        entry->invalid = true;
-    else
-        entry->invalid = false;
-
-    entry->finished = false;
-    entry->subscribers = 0;
-    entry->sub_set = new std::set<int>();
-    entry->data = new std::string();
     cachedData[url] = entry;
 
     return entry;
@@ -53,10 +47,7 @@ bool Cache::removeEntry(std::string &url)
     if (it == cachedData.end())
         return false;
 
-    delete it->second->sub_set;
-    delete it->second->data;
-
-    free(it->second);
+    delete(it->second);
     cachedData.erase(it);
     return true;
 }
@@ -105,4 +96,19 @@ void Cache::clearCache()
 Cache::~Cache()
 {
     clearCache();
+}
+
+CacheEntry::CacheEntry(std::string &url)
+{
+    invalid = url.substr(0, 2) != "01";
+    finished = false;
+    subscribers = 0;
+    sub_set = new std::set<int>();
+    data = new std::string();
+}
+
+CacheEntry::~CacheEntry()
+{
+    delete sub_set;
+    delete data;
 }

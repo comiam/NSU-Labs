@@ -40,6 +40,12 @@ Cache.h
 
 /home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/ConnectionHandler.h
 
+/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/ProxyCore.cpp
+ProxyCore.h
+/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/ProxyCore.h
+Client.h
+/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Client.h
+
 /home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/ProxyCore.h
 cstdlib
 -
@@ -61,6 +67,12 @@ set
 -
 ConnectionHandler.h
 /home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/ConnectionHandler.h
+
+/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Server.cpp
+Server.h
+/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Server.h
+Client.h
+/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Client.h
 
 /home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Server.h
 netdb.h
