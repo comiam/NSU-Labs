@@ -41,7 +41,7 @@ private:
     bool sendData() override;
     bool receiveData() override;
 
-    static int tryResolveAddress(std::string host, addrinfo** res);
+    static int tryResolveAddress(const std::string& host, addrinfo** res);
 
     static int handleMessageComplete(http_parser *parser);
 };

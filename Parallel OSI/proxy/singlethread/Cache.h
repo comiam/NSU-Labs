@@ -14,9 +14,22 @@ class CacheEntry
 public:
     CacheEntry(std::string &url);
     ~CacheEntry();
-    bool finished;
-    bool invalid;
-    size_t subscribers;
+
+    void setFinished(bool _finished);
+    void setInvalid(bool _invalid);
+    void incSubs();
+    void decSubs();
+
+    bool isFinished();
+    bool isInvalid();
+    size_t getSubscribers();
+
+    std::set<int> *getSubSet();
+    std::string *getData();
+private:
+    bool finished = false;
+    bool invalid = false;
+    size_t subscribers = 0;
     std::set<int> *sub_set;
     std::string *data;
 };

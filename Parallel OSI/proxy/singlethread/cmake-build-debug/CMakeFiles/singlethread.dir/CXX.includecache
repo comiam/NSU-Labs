@@ -6,6 +6,10 @@
 
 #IncludeRegexTransform: 
 
+/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Cache.cpp
+Cache.h
+/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Cache.h
+
 /home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Cache.h
 cstdio
 -

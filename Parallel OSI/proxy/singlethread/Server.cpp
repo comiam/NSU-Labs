@@ -58,6 +58,7 @@ bool Server::connectToServer(std::string &host)
         port = host.substr(split_pos + 1);
         host_name.erase(split_pos);
     }
+
     if (port == "443")
     {
         printf("Ignore https on %s!\n", host.c_str());
@@ -145,15 +146,15 @@ bool Server::receiveData()
     if (len < 0)
     {
         perror("Can't recv data from server");
-        buffer->finished = true;
-        buffer->invalid = true;
+        buffer->setFinished(true);
+        buffer->setInvalid(true);
         return false;
     }else
         printf("Read %zi bytes from server by socket %i.\n", len, sock);
 
     if (!len)
     {
-        buffer->finished = true;
+        buffer->setFinished(true);
         return false;
     }
 
@@ -166,14 +167,14 @@ bool Server::receiveData()
 
     try
     {
-        buffer->data->append(buff, len);
+        buffer->getData()->append(buff, len);
     } catch (std::bad_alloc &e)
     {
         perror("Can't cache server data");
         return false;
     }
 
-    for (int it : *buffer->sub_set)
+    for (int it : *buffer->getSubSet())
         core->setSocketAvailableToSend(it);
 
     return true;
@@ -184,7 +185,7 @@ int Server::getSocket()
     return sock;
 }
 
-int Server::tryResolveAddress(std::string host, addrinfo** res)
+int Server::tryResolveAddress(const std::string& host, addrinfo** res)
 {
     addrinfo hints;
     memset(&hints, 0, sizeof(struct addrinfo));
@@ -203,9 +204,9 @@ void Server::initHTTPParser()
 int Server::handleMessageComplete(http_parser *parser)
 {
     auto *handler = (Server *)parser->data;
-    handler->buffer->finished = true;
+    handler->buffer->setFinished(true);
     if (parser->status_code != 200u)
-        handler->buffer->invalid = true;
+        handler->buffer->setInvalid(true);
 
     return 0;
 }

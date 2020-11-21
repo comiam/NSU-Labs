@@ -55,10 +55,10 @@ bool Client::receiveData()
 
 bool Client::sendData()
 {
-    std::string str = entry->data->substr(entry_offset, BUFFER_SIZE);
+    std::string str = entry->getData()->substr(entry_offset, BUFFER_SIZE);
     if (!str.length())
     {
-        if (entry->finished)
+        if (entry->isFinished())
             return false;
 
         core->setSocketUnavailableToSend(sock);
@@ -66,7 +66,7 @@ bool Client::sendData()
     }
 
     entry_offset += str.length();
-    if (entry_offset == entry->data->length() && entry->finished)
+    if (entry_offset == entry->getData()->length() && entry->isFinished())
         closed = true;
 
     ssize_t len = send(sock, str.c_str(), str.length(), 0);
@@ -103,10 +103,10 @@ int Client::handleUrl(http_parser *parser, const char *at, size_t len)
 {
     auto *handler = (Client *) parser->data;
 
-    /* ignore anyone another except GET, DELETE, GET, HEAD, POST, PUT method */
-    if (parser->method > 5)
+    /* ignore anyone another except GET method */
+    if (parser->method != 1u)
     {
-        printf("ignore non GET, DELETE, HEAD, POST, PUT method: %i\n", parser->method);
+        printf("ignore non GET method: %u\n", parser->method);
         handler->http_parse_error = true;
         return 1;
     }
@@ -268,7 +268,7 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         handler->entry = cached.getEntry(entry_key);
         handler->core->setSocketAvailableToSend(handler->sock);
 
-        if (handler->entry->finished)
+        if (handler->entry->isFinished())
             printf("Use cache from %s.\n", entry_key.substr(3).c_str());
         else
             printf("Use part of cache and download remaining part from %s.\n", entry_key.substr(3).c_str());

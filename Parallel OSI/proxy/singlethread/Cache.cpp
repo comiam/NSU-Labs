@@ -58,8 +58,8 @@ bool Cache::subscribeToEntry(std::string &url, int socket)
     if (it == cachedData.end())
         return false;
 
-    it->second->subscribers++;
-    it->second->sub_set->insert(socket);
+    it->second->incSubs();
+    it->second->getSubSet()->insert(socket);
 
     return true;
 }
@@ -70,13 +70,13 @@ bool Cache::unsubscribeToEntry(std::string &url, int socket)
     if (it == cachedData.end())
         return false;
 
-    if (it->second->sub_set->find(socket) == it->second->sub_set->end())
+    if (it->second->getSubSet()->find(socket) == it->second->getSubSet()->end())
         return false;
 
-    it->second->subscribers--;
-    it->second->sub_set->erase(socket);
+    it->second->decSubs();
+    it->second->getSubSet()->erase(socket);
 
-    if (it->second->invalid || it->second->subscribers == 0)
+    if (it->second->isInvalid() || it->second->getSubscribers() == 0)
         removeEntry(url);
 
     return true;
@@ -85,11 +85,7 @@ bool Cache::unsubscribeToEntry(std::string &url, int socket)
 void Cache::clearCache()
 {
     for (auto &it : cachedData)
-    {
-        delete it.second->sub_set;
-        delete it.second->data;
-        free(it.second);
-    }
+        delete(it.second);
     cachedData.clear();
 }
 
@@ -101,8 +97,6 @@ Cache::~Cache()
 CacheEntry::CacheEntry(std::string &url)
 {
     invalid = url.substr(0, 2) != "01";
-    finished = false;
-    subscribers = 0;
     sub_set = new std::set<int>();
     data = new std::string();
 }
@@ -111,4 +105,49 @@ CacheEntry::~CacheEntry()
 {
     delete sub_set;
     delete data;
+}
+
+void CacheEntry::setFinished(bool _finished)
+{
+    this->finished = _finished;
+}
+
+void CacheEntry::setInvalid(bool _invalid)
+{
+    this->invalid = _invalid;
+}
+
+void CacheEntry::incSubs()
+{
+    ++subscribers;
+}
+
+void CacheEntry::decSubs()
+{
+    --subscribers;
+}
+
+bool CacheEntry::isFinished()
+{
+    return finished;
+}
+
+bool CacheEntry::isInvalid()
+{
+    return invalid;
+}
+
+size_t CacheEntry::getSubscribers()
+{
+    return subscribers;
+}
+
+std::set<int> *CacheEntry::getSubSet()
+{
+    return sub_set;
+}
+
+std::string *CacheEntry::getData()
+{
+    return data;
 }
