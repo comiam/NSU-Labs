@@ -29,7 +29,7 @@ void ProxyCore::clearData()
 {
     for (size_t i = 0; i < poll_cur_size; ++i)
     {
-        shutdown(poll_set[i].fd, 2);
+        shutdown(poll_set[i].fd, SHUT_RDWR);
         close(poll_set[i].fd);
 
         if (connection_handlers[i])
@@ -148,7 +148,7 @@ void ProxyCore::removeSocketByIndex(size_t pos)
     printf("[PROXY--CORE] %s socket %d closed\n", instanceOf<Client>(connection_handlers[pos]) ? "Client" : "Server", poll_set[pos].fd);
 
     --poll_cur_size;
-    shutdown(poll_set[pos].fd, 2);
+    shutdown(poll_set[pos].fd, SHUT_RDWR);
     close(poll_set[pos].fd);
 
     delete(connection_handlers[pos]);
@@ -169,7 +169,8 @@ void ProxyCore::removeSocket(std::set<int> *trashbox, int socket)
         trashbox->insert(pos);
 }
 
-bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *executor) {
+bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *executor)
+{
     if (poll_cur_size + 1 >= poll_size)
     {
         poll_size += POLL_SIZE_SEGMENT;

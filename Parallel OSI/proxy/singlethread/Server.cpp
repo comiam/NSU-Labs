@@ -118,7 +118,7 @@ bool Server::connectToServer(std::string &host)
     if (connect(sock, res_info->ai_addr, res_info->ai_addrlen) < 0)
     {
         perror("[---ERROR---] Can't connect to server");
-        shutdown(sock, 2);
+        shutdown(sock, SHUT_RDWR);
         close(sock);
         sock = -1;
         freeaddrinfo(res_info);
@@ -135,7 +135,7 @@ bool Server::connectToServer(std::string &host)
     if (!core->addSocketToPoll(sock, POLLIN | POLLPRI | POLLOUT, this))
     {
         perror("[---ERROR---] Can't save server socket\n");
-        shutdown(sock, 2);
+        shutdown(sock, SHUT_RDWR);
         close(sock);
         sock = -1;
         freeaddrinfo(res_info);

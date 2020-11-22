@@ -6,12 +6,6 @@
 
 #IncludeRegexTransform: 
 
-/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Cache.cpp
-Cache.h
-/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Cache.h
-Server.h
-/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Server.h
-
 /home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Cache.h
 cstdio
 -
@@ -27,10 +21,6 @@ map
 -
 set
 -
-
-/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Client.cpp
-Client.h
-/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Client.h
 
 /home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/Client.h
 ProxyCore.h
@@ -99,16 +89,4 @@ BaseTsd.h
 -
 stdint.h
 -
-
-/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/main.cpp
-netinet/in.h
--
-sys/socket.h
--
-unistd.h
--
-csignal
--
-ProxyCore.h
-/home/maxim/git/NSU-Labs/Parallel OSI/proxy/singlethread/ProxyCore.h
 
