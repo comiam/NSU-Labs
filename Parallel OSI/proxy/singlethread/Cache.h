@@ -62,7 +62,6 @@ public:
     ~Cache();
 private:
     Cache() = default;
-    Cache(Cache const &);
 
     std::map<std::string, CacheEntry *> cached_data;
 };
