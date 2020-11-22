@@ -18,6 +18,8 @@ public:
     int getSock();
 
     void removeEndPoint();
+    bool setEndPoint(Server *_end_point);
+
     bool execute(int event) override;
 
     bool http_parse_error = false;

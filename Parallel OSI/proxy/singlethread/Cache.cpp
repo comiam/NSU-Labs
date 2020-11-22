@@ -1,4 +1,5 @@
 #include "Cache.h"
+#include "Server.h"
 
 Cache &Cache::getCache()
 {
@@ -8,20 +9,12 @@ Cache &Cache::getCache()
 
 bool Cache::contains(std::string &url)
 {
-    auto it = cachedData.find(url);
-    if (it == cachedData.end())
-        return false;
-
-    return true;
+    return cached_data.find(url) != cached_data.end();
 }
 
 CacheEntry *Cache::getEntry(std::string &url)
 {
-    auto it = cachedData.find(url);
-    if (it == cachedData.end())
-        return nullptr;
-
-    return it->second;
+    return contains(url) ? cached_data.find(url)->second : nullptr;
 }
 
 CacheEntry *Cache::createEntry(std::string &url)
@@ -36,26 +29,26 @@ CacheEntry *Cache::createEntry(std::string &url)
         return nullptr;
     }
 
-    cachedData[url] = entry;
+    cached_data[url] = entry;
 
     return entry;
 }
 
 bool Cache::removeEntry(std::string &url)
 {
-    auto it = cachedData.find(url);
-    if (it == cachedData.end())
+    auto it = cached_data.find(url);
+    if (it == cached_data.end())
         return false;
 
     delete(it->second);
-    cachedData.erase(it);
+    cached_data.erase(it);
     return true;
 }
 
 bool Cache::subscribeToEntry(std::string &url, int socket)
 {
-    auto it = cachedData.find(url);
-    if (it == cachedData.end())
+    auto it = cached_data.find(url);
+    if (it == cached_data.end())
         return false;
 
     it->second->incSubs();
@@ -66,8 +59,8 @@ bool Cache::subscribeToEntry(std::string &url, int socket)
 
 bool Cache::unsubscribeToEntry(std::string &url, int socket)
 {
-    auto it = cachedData.find(url);
-    if (it == cachedData.end())
+    auto it = cached_data.find(url);
+    if (it == cached_data.end())
         return false;
 
     if (it->second->getSubSet()->find(socket) == it->second->getSubSet()->end())
@@ -84,9 +77,9 @@ bool Cache::unsubscribeToEntry(std::string &url, int socket)
 
 void Cache::clearCache()
 {
-    for (auto &it : cachedData)
+    for (auto &it : cached_data)
         delete(it.second);
-    cachedData.clear();
+    cached_data.clear();
 }
 
 Cache::~Cache()
@@ -103,6 +96,8 @@ CacheEntry::CacheEntry(std::string &url)
 
 CacheEntry::~CacheEntry()
 {
+    if(source)
+        source->removeCacheEntry();
     delete sub_set;
     delete data;
 }
@@ -150,4 +145,19 @@ std::set<int> *CacheEntry::getSubSet()
 std::string *CacheEntry::getData()
 {
     return data;
+}
+
+void CacheEntry::unsetHavingSourceSocket()
+{
+    source = nullptr;
+}
+
+bool CacheEntry::isHavingSocketSource()
+{
+    return source != nullptr;
+}
+
+void CacheEntry::setHavingSourceSocket(Server *server)
+{
+    source = server;
 }

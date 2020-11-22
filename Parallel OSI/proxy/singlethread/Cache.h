@@ -9,17 +9,22 @@
 #include <map>
 #include <set>
 
+class Server;
+
 class CacheEntry
 {
 public:
     CacheEntry(std::string &url);
     ~CacheEntry();
 
+    void setHavingSourceSocket(Server *server);
+    void unsetHavingSourceSocket();
     void setFinished(bool _finished);
     void setInvalid(bool _invalid);
     void incSubs();
     void decSubs();
 
+    bool isHavingSocketSource();
     bool isFinished();
     bool isInvalid();
     size_t getSubscribers();
@@ -28,6 +33,7 @@ public:
     std::string *getData();
 
 private:
+    Server *source;
     bool finished = false;
     bool invalid = false;
     size_t subscribers = 0;
@@ -55,7 +61,7 @@ private:
     Cache(Cache const &);
     void operator=(Cache const &);
 
-    std::map<std::string, CacheEntry *> cachedData;
+    std::map<std::string, CacheEntry *> cached_data;
 };
 
 #endif

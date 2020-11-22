@@ -10,6 +10,7 @@
 #include <cerrno>
 #include <cstring>
 #include <set>
+#include <map>
 #include "ConnectionHandler.h"
 
 #define POLL_SIZE_SEGMENT 50
@@ -25,6 +26,8 @@ public:
     bool setSocketUnavailableToSend(int socket);
     bool setSocketAvailableToSend  (int socket);
     bool addSocketToPoll(int socket, short events, ConnectionHandler *executor);
+
+    ConnectionHandler *getHandlerBySocket(int socket);
 private:
     void clearData();
     bool initSocket(int sock_fd);
@@ -35,7 +38,8 @@ private:
     size_t poll_size;
     size_t poll_cur_size;
     pollfd *poll_set;
-    ConnectionHandler **c_handlers{};
+    ConnectionHandler **connection_handlers{};
+    std::map<int, size_t> *socket_pos = nullptr;
 
     bool can_work = false;
     bool created = false;

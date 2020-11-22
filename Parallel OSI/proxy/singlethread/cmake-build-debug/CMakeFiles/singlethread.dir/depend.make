@@ -6,6 +6,10 @@ CMakeFiles/singlethread.dir/http_parser.c.o: ../http_parser.h
 
 CMakeFiles/singlethread.dir/Cache.cpp.o: ../Cache.cpp
 CMakeFiles/singlethread.dir/Cache.cpp.o: ../Cache.h
+CMakeFiles/singlethread.dir/Cache.cpp.o: ../ConnectionHandler.h
+CMakeFiles/singlethread.dir/Cache.cpp.o: ../ProxyCore.h
+CMakeFiles/singlethread.dir/Cache.cpp.o: ../Server.h
+CMakeFiles/singlethread.dir/Cache.cpp.o: ../http_parser.h
 
 CMakeFiles/singlethread.dir/Client.cpp.o: ../Cache.h
 CMakeFiles/singlethread.dir/Client.cpp.o: ../Client.cpp

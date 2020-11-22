@@ -13,7 +13,7 @@ class Client;
 class Server : public ConnectionHandler
 {
 public:
-    Server(CacheEntry *cache_buff, ProxyCore *proxy_handler);
+    Server(CacheEntry *cache_buff, std::string _entry_key, ProxyCore *proxy_handler);
     ~Server() override;
     bool execute(int event) override;
     bool connectToServer(std::string &host);
@@ -23,12 +23,15 @@ public:
 
     void setStartPoint(Client *client);
     void removeStartPoint();
+    void removeCacheEntry();
 
     static void initHTTPParser();
     void closeServer();
 private:
     int sock = -1;
     bool closed = false;
+
+    std::string entry_key;
 
     CacheEntry *buffer = nullptr;
     Client *start_point;

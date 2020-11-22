@@ -38,16 +38,15 @@ bool Client::receiveData()
     {
         perror("[---ERROR---] Can't receive data from client");
         return false;
-    } else
+    } else if(!len)
+        return false;
+    else
     {
         if(end_point)
-            printf("[CLIENT-RECV] Recv %zi bytes from client by socket %i for server socket %i..\n", len, sock, end_point->getSocket());
+            printf("[CLIENT-RECV] Recv %zi bytes from client socket %i for server socket %i..\n", len, sock, end_point->getSocket());
         else
-            printf("[CLIENT-RECV] Recv %zi bytes from client by socket %i for unreleased yet server..\n", len, sock);
+            printf("[CLIENT-RECV] Recv %zi bytes from client socket %i for unreleased yet server..\n", len, sock);
     }
-
-    if(!len)
-        return false;
 
     if (http_parser_execute(&parser, &Client::settings, buff, len) != len || http_parse_error)
     {
@@ -65,6 +64,11 @@ bool Client::sendData()
     {
         if (entry->isFinished())
             return false;
+        else if(!entry->isHavingSocketSource())
+        {
+            fprintf(stderr, "Can't download last part of cache %s. Downloading server socket is died!\n", url.c_str());
+            return false;
+        }
 
         core->setSocketUnavailableToSend(sock);
         return true;
@@ -92,7 +96,8 @@ bool Client::sendData()
 Client::~Client()
 {
     Cache::getCache().unsubscribeToEntry(entry_key, sock);
-    if(!can_use_cache && end_point)
+
+    if(end_point)
     {
         end_point->removeStartPoint();
         end_point->closeServer();
@@ -287,7 +292,16 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
     } else
     {
         handler->entry = cached.createEntry(entry_key);
-        auto *server = new Server(handler->entry, handler->core);
+
+        Server *server;
+        try
+        {
+            server = new Server(handler->entry, entry_key, handler->core);
+        } catch (std::bad_alloc &e)
+        {
+            printf("[PROXY-ERROR] Can't allocate new memory for server side!\n");
+            return false;
+        }
         server->setStartPoint(handler);
 
         printf("[PROXY--INFO] Cache of %s not found: connecting to %s...\n", handler->url.c_str(), host.c_str());
@@ -296,17 +310,21 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
             printf("[PROXY-ERROR] Can't connect to server %s!\n", handler->url.c_str());
             handler->http_parse_error = true;
             cached.removeEntry(entry_key);
+
+            delete(server);
             return false;
         }
 
+        int serv = server->getSocket();
         try
         {
             server->send_buffer.append(handler->server_send_buffer);
         } catch (std::bad_alloc &e)
         {
-            fprintf(stderr,"[PROXY-ERROR] Can't transfer send buffer from client socket %i to server socket %i\n", handler->sock, server->getSocket());
+            fprintf(stderr,"[PROXY-ERROR] Can't transfer send buffer from client socket %i to server socket %i\n", handler->sock, serv);
             return false;
         }
+
         handler->server_send_buffer.clear();
         handler->end_point = server;
     }
@@ -324,4 +342,20 @@ void Client::removeEndPoint()
 int Client::getSock()
 {
     return sock;
+}
+
+bool Client::setEndPoint(Server *_end_point)
+{
+    try
+    {
+        _end_point->send_buffer.append(this->server_send_buffer);
+    } catch (std::bad_alloc &e)
+    {
+        fprintf(stderr,"[PROXY-ERROR] Can't transfer send buffer from NEW client socket %i to server socket %i\n", this->sock, _end_point->getSocket());
+        return false;
+    }
+    this->server_send_buffer.clear();
+    this->end_point = _end_point;
+
+    return true;
 }

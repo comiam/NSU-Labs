@@ -3,10 +3,13 @@
 
 http_parser_settings Server::settings;
 
-Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler)
+Server::Server(CacheEntry *cache_buff, std::string _entry_key, ProxyCore *proxy_handler)
 {
     this->buffer = cache_buff;
     this->core = proxy_handler;
+    this->entry_key = _entry_key;
+
+    cache_buff->setHavingSourceSocket(this);
 
     http_parser_init(&parser, HTTP_RESPONSE);
     parser.data = this;
@@ -14,22 +17,59 @@ Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler)
 
 Server::~Server()
 {
+    if(buffer)
+        buffer->unsetHavingSourceSocket();
+
     if(start_point)
         start_point->removeEndPoint();
 }
 
 bool Server::execute(int event)
 {
-    if (closed && !(buffer->getSubscribers() > 0 && !buffer->isFinished()))//TODO add function replacement of server sides for situation one-server-cache-user and cache-user
+    if(!buffer)
+    {
+        printf("[SERVER-INFO] Server socket %i lost its own cache entry and closing...\n", sock);
         return false;
+    }
+
+    if (closed)
+    {
+        if(buffer && buffer->getSubscribers() > 0 && !buffer->isFinished())
+        {
+            printf("[SERVER-INFO] Server socket %i lost client side socket and begin finding new client...\n", sock);
+            Client *client = nullptr;
+            for(auto sub_sock : *buffer->getSubSet())
+            {
+                client = dynamic_cast<Client*>(core->getHandlerBySocket(sub_sock));
+                if(client && !client->setEndPoint(this))
+                {
+                    client = nullptr;
+                    continue;
+                }
+            }
+            if(!client)
+            {
+                fprintf(stderr, "[---ERROR---] Can't find new client... Server socket %i became work as daemon until full downloading a cache...\n", sock);
+                return true;
+            }
+
+            printf("[SERVER-INFO] Server socket %i became the new end point of client socket %i.\n", sock, client->getSock());
+            setStartPoint(client);
+            closed = false;
+        }else
+        {
+            printf("[SERVER-INFO] Server socket %i lost start point and closing now...\n", sock);
+            return false;
+        }
+    }
 
     if (event & POLLHUP || event & POLLERR)
         return false;
 
-    if ((event & (POLLIN | POLLPRI)) && !receiveData())
+    if ((event & POLLOUT) && !sendData())
         return false;
 
-    if ((event & POLLOUT) && !sendData())
+    if ((event & (POLLIN | POLLPRI)) && !receiveData())
         return false;
 
     return true;
@@ -49,13 +89,13 @@ bool Server::connectToServer(std::string &host)
 
     if (port == "443")
     {
-        fprintf(stderr, "[--WARNING--] Ignore https on %s!\n", host.c_str());
+        fprintf(stderr, "[--WARNING--] Ignore https protocol on %s!\n", host.c_str());
         return false;
     }
 
     if (port != "80")
     {
-        fprintf(stderr, "[---ERROR---] Not support this port on host %s: %s\nUse port 80!", host.c_str(), port.c_str());
+        fprintf(stderr, "[---ERROR---] This port of host %s does not supported: %s!\nUse port 80!", host.c_str(), port.c_str());
         return false;
     }
 
@@ -142,18 +182,16 @@ bool Server::receiveData()
         buffer->setFinished(true);
         buffer->setInvalid(true);
         return false;
+    }else if (!len)
+    {
+        buffer->setFinished(true);
+        return false;
     }else
     {
         if(start_point)
             printf("[SERVER-RECV] Recv %zi bytes from server socket %i for client socket %i.\n", len, sock, start_point->getSock());
         else
             printf("[SERVER-RECV] Recv %zi bytes from server socket %i to cache.\n", len, sock);
-    }
-
-    if (!len)
-    {
-        buffer->setFinished(true);
-        return false;
     }
 
     size_t parsed = http_parser_execute(&parser, &Server::settings, buff, len);
@@ -222,4 +260,9 @@ void Server::setStartPoint(Client *client)
 void Server::removeStartPoint()
 {
     this->start_point = nullptr;
+}
+
+void Server::removeCacheEntry()
+{
+    buffer = nullptr;
 }
