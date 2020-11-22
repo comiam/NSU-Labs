@@ -17,28 +17,32 @@ public:
     CacheEntry(std::string &url);
     ~CacheEntry();
 
+    bool isHavingSocketSource();
+    bool isFinished();
+
+    std::string *getData();
+private:
     void setHavingSourceSocket(Server *server);
     void unsetHavingSourceSocket();
     void setFinished(bool _finished);
     void setInvalid(bool _invalid);
+
     void incSubs();
     void decSubs();
-
-    bool isHavingSocketSource();
-    bool isFinished();
-    bool isInvalid();
+    std::set<int> *getSubSet();
     size_t getSubscribers();
 
-    std::set<int> *getSubSet();
-    std::string *getData();
+    bool isInvalid();
 
-private:
     Server *source;
     bool finished = false;
     bool invalid = false;
     size_t subscribers = 0;
     std::set<int> *sub_set;
     std::string *data;
+
+    friend class Cache;
+    friend class Server;
 };
 
 class Cache
@@ -59,7 +63,6 @@ public:
 private:
     Cache() = default;
     Cache(Cache const &);
-    void operator=(Cache const &);
 
     std::map<std::string, CacheEntry *> cached_data;
 };

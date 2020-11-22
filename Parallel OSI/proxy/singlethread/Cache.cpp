@@ -25,7 +25,7 @@ CacheEntry *Cache::createEntry(std::string &url)
         entry = new CacheEntry(url);
     } catch (std::bad_alloc &e)
     {
-        perror("Couldn't allocate new cache entry");
+        perror("Can't allocate new cache entry");
         return nullptr;
     }
 
@@ -87,6 +87,16 @@ Cache::~Cache()
     clearCache();
 }
 
+void CacheEntry::incSubs()
+{
+    ++subscribers;
+}
+
+void CacheEntry::decSubs()
+{
+    --subscribers;
+}
+
 CacheEntry::CacheEntry(std::string &url)
 {
     invalid = url.substr(0, 2) != "01";
@@ -110,16 +120,6 @@ void CacheEntry::setFinished(bool _finished)
 void CacheEntry::setInvalid(bool _invalid)
 {
     this->invalid = _invalid;
-}
-
-void CacheEntry::incSubs()
-{
-    ++subscribers;
-}
-
-void CacheEntry::decSubs()
-{
-    --subscribers;
 }
 
 bool CacheEntry::isFinished()
