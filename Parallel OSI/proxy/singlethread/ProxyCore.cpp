@@ -9,8 +9,6 @@ ProxyCore::ProxyCore(int socket_fd)
     Client::initHTTPParser();
     Server::initHTTPParser();
 
-    socket_pos = new std::map<int, size_t>();
-
     printf("\n[PROXY--CORE] Proxy created!\n");
 
     created = true;
@@ -27,7 +25,7 @@ ProxyCore::~ProxyCore() {
 
 void ProxyCore::clearData()
 {
-    for (size_t i = 0; i < poll_cur_size; ++i)
+    for (size_t i = 0; i < poll_set.size(); ++i)
     {
         shutdown(poll_set[i].fd, SHUT_WR);
         close(poll_set[i].fd);
@@ -36,9 +34,10 @@ void ProxyCore::clearData()
             delete connection_handlers[i];
     }
 
-    free(poll_set);
-    free(connection_handlers);
-    delete(socket_pos);
+    poll_set.clear();
+    socket_pos.clear();
+    connection_handlers.clear();
+
     Cache::getCache().clearCache();
 }
 
@@ -52,7 +51,7 @@ bool ProxyCore::listenConnections()
     bool can_remove = false;
     while (can_work)
     {
-        count = poll(poll_set, (nfds_t) poll_cur_size, -1);
+        count = poll(poll_set.data(), (nfds_t) poll_set.size(), -1);
         if (count == -1)
         {
             if (errno == EINTR)
@@ -64,7 +63,7 @@ bool ProxyCore::listenConnections()
             continue;
         else
         {
-            for (size_t i = 0; i < poll_cur_size; ++i)
+            for (size_t i = 0; i < poll_set.size(); ++i)
             {
                 revent = poll_set[i].revents;
                 if (!revent)
@@ -147,17 +146,19 @@ void ProxyCore::removeSocketByIndex(size_t pos)
 {
     printf("[PROXY--CORE] %s socket %d closed\n", instanceOf<Client>(connection_handlers[pos]) ? "Client" : "Server", poll_set[pos].fd);
 
-    --poll_cur_size;
     shutdown(poll_set[pos].fd, SHUT_WR);
     close(poll_set[pos].fd);
 
+    socket_pos.erase(pos);
+    socket_pos[poll_set[poll_set.size() - 1].fd] = pos;
+
     delete(connection_handlers[pos]);
 
-    socket_pos->erase(pos);
-    (*socket_pos)[poll_set[poll_cur_size].fd] = pos;
+    poll_set[pos] = poll_set[poll_set.size() - 1];
+    connection_handlers[pos] = connection_handlers[connection_handlers.size() - 1];
 
-    memcpy(&poll_set[pos], &poll_set[poll_cur_size], sizeof(pollfd));
-    memcpy(&connection_handlers[pos], &connection_handlers[poll_cur_size], sizeof(ConnectionHandler *));
+    connection_handlers.pop_back();
+    poll_set.pop_back();
 }
 
 void ProxyCore::removeSocket(std::set<int> *trashbox, int socket)
@@ -171,35 +172,23 @@ void ProxyCore::removeSocket(std::set<int> *trashbox, int socket)
 
 bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *executor)
 {
-    if (poll_cur_size + 1 >= poll_size)
+    pollfd fd{};
+    fd.fd = socket;
+    fd.events = events;
+    fd.revents = 0;
+
+    try
     {
-        poll_size += POLL_SIZE_SEGMENT;
-        auto *poll_tmp = (pollfd *) realloc(poll_set, poll_size * sizeof(pollfd));
-
-        if (!poll_tmp)
-        {
-            perror("[PROXY-ERROR] Can't allocate new pollfd");
-            return false;
-        }
-        poll_set = poll_tmp;
-
-        auto **handlers_tmp = (ConnectionHandler **) realloc(connection_handlers, poll_size * sizeof(ConnectionHandler *));
-        if (!handlers_tmp)
-        {
-            perror("[PROXY-ERROR] Can't allocate new handlers");
-            return false;
-        }
-        connection_handlers = handlers_tmp;
+        poll_set.emplace_back(fd);
+        connection_handlers.emplace_back(executor);
+    } catch (std::bad_alloc &e)
+    {
+        perror("[PROXY-ERROR] Can't allocate new pollfd or handler");
+        return false;
     }
 
-    poll_set[poll_cur_size].fd = socket;
-    poll_set[poll_cur_size].events = events;
-    poll_set[poll_cur_size].revents = 0;
-    connection_handlers[poll_cur_size] = executor;
+    socket_pos[socket] = connection_handlers.size() - 1;
 
-    (*socket_pos)[socket] = poll_cur_size;
-
-    ++poll_cur_size;
     return true;
 }
 
@@ -225,10 +214,10 @@ bool ProxyCore::initSocket(int sock_fd)
 
 ssize_t ProxyCore::getSocketIndex(int socket)
 {
-    if(!socket_pos->count(socket))
+    if(!socket_pos.count(socket))
         return -1;
     else
-        return (*socket_pos)[socket];
+        return socket_pos[socket];
 }
 
 bool ProxyCore::setSocketAvailableToSend(int socket)
@@ -251,20 +240,35 @@ bool ProxyCore::setSocketUnavailableToSend(int socket)
     return true;
 }
 
+bool ProxyCore::initConnectionHandlers()
+{
+    try
+    {
+        connection_handlers.emplace_back(nullptr);
+    } catch (std::bad_alloc &e)
+    {
+        perror("[PROXY-ERROR] Can't allocate memory for handler!");
+        return false;
+    }
+
+    return true;
+}
+
 bool ProxyCore::initPollSet()
 {
-    poll_size = POLL_SIZE_SEGMENT;
+    pollfd fd{};
+    fd.fd = sock;
+    fd.events = POLLIN | POLLPRI;
+    fd.revents = 0;
 
-    poll_set = (pollfd *) malloc(poll_size * sizeof(pollfd));
-    if(!poll_set)
+    try
+    {
+        poll_set.emplace_back(fd);
+    } catch (std::bad_alloc &e)
     {
         perror("[PROXY-ERROR] Can't allocate memory for poll set!");
         return false;
     }
-
-    poll_cur_size = 1;
-    poll_set[0].fd = sock;
-    poll_set[0].events = POLLIN | POLLPRI;
     return true;
 }
 
@@ -273,18 +277,7 @@ bool ProxyCore::isCreated()
     return created;
 }
 
-bool ProxyCore::initConnectionHandlers()
-{
-    connection_handlers = (ConnectionHandler **) calloc(poll_size, sizeof(ConnectionHandler*));
-    if(!connection_handlers)
-    {
-        perror("[PROXY-ERROR] Can't allocate memory for handler set!");
-        return false;
-    }
-    return true;
-}
-
 ConnectionHandler *ProxyCore::getHandlerBySocket(int socket)
 {
-    return !socket_pos->count(socket) ? nullptr : connection_handlers[(*socket_pos)[socket]];
+    return !socket_pos.count(socket) ? nullptr : connection_handlers[socket_pos[socket]];
 }

@@ -59,7 +59,7 @@ bool Client::receiveData()
 
 bool Client::sendData()
 {
-    std::string str = entry->getData()->substr(entry_offset, BUFFER_SIZE);
+    std::string str = entry->getPartOfData(entry_offset, BUFFER_SIZE);
     if (!str.length())
     {
         if (entry->isFinished())
@@ -75,7 +75,7 @@ bool Client::sendData()
     }
 
     entry_offset += str.length();
-    if (entry_offset == entry->getData()->length() && entry->isFinished())
+    if (entry_offset == entry->getDataSize() && entry->isFinished())
         closed = true;
 
     ssize_t len = send(sock, str.c_str(), str.length(), 0);
@@ -296,7 +296,7 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         Server *server;
         try
         {
-            server = new Server(handler->entry, entry_key, handler->core);
+            server = new Server(handler->entry, handler->core);
         } catch (std::bad_alloc &e)
         {
             printf("[PROXY-ERROR] Can't allocate new memory for server side!\n");

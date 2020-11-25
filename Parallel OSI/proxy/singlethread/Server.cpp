@@ -3,11 +3,10 @@
 
 http_parser_settings Server::settings;
 
-Server::Server(CacheEntry *cache_buff, std::string _entry_key, ProxyCore *proxy_handler)
+Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler)
 {
     this->buffer = cache_buff;
     this->core = proxy_handler;
-    this->entry_key = _entry_key;
 
     cache_buff->setHavingSourceSocket(this);
 
@@ -38,7 +37,7 @@ bool Server::execute(int event)
         {
             printf("[SERVER-INFO] Server socket %i lost client side socket and begin finding new client...\n", sock);
             Client *client = nullptr;
-            for(auto sub_sock : *buffer->getSubSet())
+            for(auto sub_sock : buffer->getSubSet())
             {
                 client = dynamic_cast<Client*>(core->getHandlerBySocket(sub_sock));
                 if(client && !client->setEndPoint(this))
@@ -203,14 +202,14 @@ bool Server::receiveData()
 
     try
     {
-        buffer->getData()->append(buff, len);
+        buffer->appendData(buff, len);
     } catch (std::bad_alloc &e)
     {
         perror("[---ERROR---] Can't cache server data");
         return false;
     }
 
-    for (int it : *buffer->getSubSet())
+    for (int it : buffer->getSubSet())
         core->setSocketAvailableToSend(it);
 
     return true;

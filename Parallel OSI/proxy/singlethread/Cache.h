@@ -20,7 +20,9 @@ public:
     bool isHavingSocketSource();
     bool isFinished();
 
-    std::string *getData();
+    std::string getPartOfData(size_t beg, size_t length);
+    void        appendData(char *buff, size_t length);
+    size_t      getDataSize();
 private:
     void setHavingSourceSocket(Server *server);
     void unsetHavingSourceSocket();
@@ -29,7 +31,7 @@ private:
 
     void incSubs();
     void decSubs();
-    std::set<int> *getSubSet();
+    std::set<int> &getSubSet();
     size_t getSubscribers();
 
     bool isInvalid();
@@ -38,7 +40,7 @@ private:
     bool finished = false;
     bool invalid = false;
     size_t subscribers = 0;
-    std::set<int> *sub_set;
+    std::set<int> sub_set;
     std::string *data;
 
     friend class Cache;

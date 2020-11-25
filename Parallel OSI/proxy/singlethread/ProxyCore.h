@@ -11,6 +11,7 @@
 #include <cstring>
 #include <set>
 #include <map>
+#include <vector>
 #include "ConnectionHandler.h"
 
 #define POLL_SIZE_SEGMENT 50
@@ -35,11 +36,9 @@ private:
     bool initConnectionHandlers();
 
     int sock = -1;
-    size_t poll_size;
-    size_t poll_cur_size;
-    pollfd *poll_set;
-    ConnectionHandler **connection_handlers{};
-    std::map<int, size_t> *socket_pos = nullptr;
+    std::vector<pollfd> poll_set;
+    std::vector<ConnectionHandler*>  connection_handlers;
+    std::map<int, size_t> socket_pos;
 
     bool can_work = false;
     bool created = false;

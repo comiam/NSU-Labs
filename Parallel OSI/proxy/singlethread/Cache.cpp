@@ -52,7 +52,7 @@ bool Cache::subscribeToEntry(std::string &url, int socket)
         return false;
 
     it->second->incSubs();
-    it->second->getSubSet()->insert(socket);
+    it->second->getSubSet().insert(socket);
 
     return true;
 }
@@ -63,11 +63,11 @@ bool Cache::unsubscribeToEntry(std::string &url, int socket)
     if (it == cached_data.end())
         return false;
 
-    if (it->second->getSubSet()->find(socket) == it->second->getSubSet()->end())
+    if (it->second->getSubSet().find(socket) == it->second->getSubSet().end())
         return false;
 
     it->second->decSubs();
-    it->second->getSubSet()->erase(socket);
+    it->second->getSubSet().erase(socket);
 
     if (it->second->isInvalid() || it->second->getSubscribers() == 0)
         removeEntry(url);
@@ -100,7 +100,6 @@ void CacheEntry::decSubs()
 CacheEntry::CacheEntry(std::string &url)
 {
     invalid = url.substr(0, 2) != "01";
-    sub_set = new std::set<int>();
     data = new std::string();
 }
 
@@ -108,7 +107,7 @@ CacheEntry::~CacheEntry()
 {
     if(source)
         source->removeCacheEntry();
-    delete sub_set;
+    sub_set.clear();
     delete data;
 }
 
@@ -137,14 +136,9 @@ size_t CacheEntry::getSubscribers()
     return subscribers;
 }
 
-std::set<int> *CacheEntry::getSubSet()
+std::set<int> &CacheEntry::getSubSet()
 {
     return sub_set;
-}
-
-std::string *CacheEntry::getData()
-{
-    return data;
 }
 
 void CacheEntry::unsetHavingSourceSocket()
@@ -160,4 +154,19 @@ bool CacheEntry::isHavingSocketSource()
 void CacheEntry::setHavingSourceSocket(Server *server)
 {
     source = server;
+}
+
+std::string CacheEntry::getPartOfData(size_t beg, size_t length)
+{
+    return data->substr(beg, length);
+}
+
+void CacheEntry::appendData(char *buff, size_t length)
+{
+    data->append(buff, length);
+}
+
+size_t CacheEntry::getDataSize()
+{
+    return data->length();
 }
