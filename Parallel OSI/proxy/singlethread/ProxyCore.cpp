@@ -113,14 +113,14 @@ bool ProxyCore::listenConnections()
                     }
                 }else if (!connection_handlers[i]->execute(revent)) /* listen client side */
                 {
-                    removeSocket(trashbox, poll_set[i].fd);
+                    removeSocket(&trashbox, poll_set[i].fd);
                     can_remove = true;
                 }
 
                 if(can_remove)
                 {
                     can_remove = false;
-                    removeClosedSockets(trashbox);
+                    removeClosedSockets(&trashbox);
                 }
             }
         }
@@ -128,12 +128,12 @@ bool ProxyCore::listenConnections()
     return false;
 }
 
-void ProxyCore::removeClosedSockets(std::set<int> &trashbox)
+void ProxyCore::removeClosedSockets(std::set<int> *trashbox)
 {
-    for (int it : trashbox)
+    for (int it : *trashbox)
         removeSocketByIndex(it);
 
-    trashbox.clear();
+    trashbox->clear();
 }
 
 template<typename Base, typename T>
@@ -161,13 +161,13 @@ void ProxyCore::removeSocketByIndex(size_t pos)
     poll_set.pop_back();
 }
 
-void ProxyCore::removeSocket(std::set<int> &trashbox, int socket)
+void ProxyCore::removeSocket(std::set<int> *trashbox, int socket)
 {
     ssize_t pos = getSocketIndex(socket);
     if (pos == -1)
         return;
     else
-        trashbox.insert(pos);
+        trashbox->insert(pos);
 }
 
 bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *executor)

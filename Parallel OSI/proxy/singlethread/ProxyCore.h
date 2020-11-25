@@ -45,9 +45,9 @@ private:
 
     ssize_t getSocketIndex(int socket);
 
-    void removeClosedSockets(std::set<int> &trashbox);
+    void removeClosedSockets(std::set<int> *trashbox);
     void removeSocketByIndex(size_t pos);
-    void removeSocket(std::set<int> &trashbox, int socket);
+    void removeSocket(std::set<int> *trashbox, int socket);
 };
 
 #endif
