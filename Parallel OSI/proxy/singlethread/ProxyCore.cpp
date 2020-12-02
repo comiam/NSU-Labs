@@ -3,7 +3,7 @@
 
 ProxyCore::ProxyCore(int socket_fd)
 {
-    if(!initSocket(socket_fd) || !initPollSet() || !initConnectionHandlers())
+    if(!initSocket(socket_fd) || !initPollSet())
         return;
 
     Client::initHTTPParser();
@@ -15,7 +15,8 @@ ProxyCore::ProxyCore(int socket_fd)
     can_work = true;
 }
 
-ProxyCore::~ProxyCore() {
+ProxyCore::~ProxyCore()
+{
     clearData();
     printf("\n[PROXY--CORE] Proxy closed!\n");
 
@@ -25,18 +26,16 @@ ProxyCore::~ProxyCore() {
 
 void ProxyCore::clearData()
 {
-    for (size_t i = 0; i < poll_set.size(); ++i)
+    for (auto & i : poll_set)
     {
-        shutdown(poll_set[i].fd, SHUT_WR);
-        close(poll_set[i].fd);
+        closeSocket(i.fd);
 
-        if (connection_handlers[i])
-            delete connection_handlers[i];
+        if (socketHandlers[i.fd])
+            delete(socketHandlers[i.fd]);
     }
 
     poll_set.clear();
-    socket_pos.clear();
-    connection_handlers.clear();
+    socketHandlers.clear();
 
     Cache::getCache().clearCache();
 }
@@ -49,6 +48,7 @@ bool ProxyCore::listenConnections()
 
     std::set<int> trashbox;
     bool can_remove = false;
+
     while (can_work)
     {
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), -1);
@@ -76,7 +76,7 @@ bool ProxyCore::listenConnections()
                 {
                     if (revent & (POLLIN | POLLPRI))
                     {
-                        new_client = accept(sock, NULL, NULL);
+                        new_client = accept(sock, nullptr, nullptr);
                         if (new_client == -1)
                         {
                             perror("[PROXY-ERROR] Can't accept new client");
@@ -87,6 +87,8 @@ bool ProxyCore::listenConnections()
                         if (fcntl(new_client, F_SETFL, O_NONBLOCK) == -1)
                         {
                             perror("[PROXY-ERROR] Can't set nonblock to client socket");
+
+                            closeSocket(new_client);
                             clearData();
                             return false;
                         }
@@ -98,6 +100,8 @@ bool ProxyCore::listenConnections()
                         } catch (std::bad_alloc &e)
                         {
                             perror("[PROXY-ERROR] Can't allocate new client");
+
+                            closeSocket(new_client);
                             clearData();
                             return false;
                         }
@@ -111,27 +115,27 @@ bool ProxyCore::listenConnections()
                         clearData();
                         return false;
                     }
-                }else if (!connection_handlers[i]->execute(revent)) /* listen client side */
+                }else if (!socketHandlers[poll_set[i].fd]->execute(revent)) /* listen client side */
                 {
-                    removeSocket(&trashbox, poll_set[i].fd);
+                    trashbox.insert(poll_set[i].fd);
                     can_remove = true;
                 }
-
-                if(can_remove)
-                {
-                    can_remove = false;
-                    removeClosedSockets(&trashbox);
-                }
+            }
+            if(can_remove)
+            {
+                can_remove = false;
+                removeClosedSockets(&trashbox);
             }
         }
     }
+
     return false;
 }
 
 void ProxyCore::removeClosedSockets(std::set<int> *trashbox)
 {
-    for (int it : *trashbox)
-        removeSocketByIndex(it);
+    for(int it : *trashbox)
+        removeSocket(it);
 
     trashbox->clear();
 }
@@ -142,32 +146,21 @@ inline bool instanceOf(const T *ptr)
     return dynamic_cast<const Base*>(ptr) != nullptr;
 }
 
-void ProxyCore::removeSocketByIndex(size_t pos)
+void ProxyCore::removeSocket(size_t _sock)
 {
-    printf("[PROXY--CORE] %s socket %d closed\n", instanceOf<Client>(connection_handlers[pos]) ? "Client" : "Server", poll_set[pos].fd);
+    printf("[PROXY--CORE] %s socket %zd closed\n", instanceOf<Client>(socketHandlers[_sock]) ? "Client" : "Server", _sock);
 
-    shutdown(poll_set[pos].fd, SHUT_WR);
-    close(poll_set[pos].fd);
+    delete(socketHandlers[_sock]);
 
-    socket_pos.erase(pos);
-    socket_pos[poll_set[poll_set.size() - 1].fd] = pos;
+    socketHandlers.erase(_sock);
+    for(auto iter = poll_set.begin(); iter != poll_set.end(); ++iter)
+        if((*iter).fd == _sock)
+        {
+            poll_set.erase(iter);
+            break;
+        }
 
-    delete(connection_handlers[pos]);
-
-    poll_set[pos] = poll_set[poll_set.size() - 1];
-    connection_handlers[pos] = connection_handlers[connection_handlers.size() - 1];
-
-    connection_handlers.pop_back();
-    poll_set.pop_back();
-}
-
-void ProxyCore::removeSocket(std::set<int> *trashbox, int socket)
-{
-    ssize_t pos = getSocketIndex(socket);
-    if (pos == -1)
-        return;
-    else
-        trashbox->insert(pos);
+    closeSocket(_sock);
 }
 
 bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *executor)
@@ -179,15 +172,13 @@ bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *exe
 
     try
     {
-        poll_set.emplace_back(fd);
-        connection_handlers.emplace_back(executor);
+        poll_set.push_back(fd);
+        socketHandlers[socket] = executor;
     } catch (std::bad_alloc &e)
     {
         perror("[PROXY-ERROR] Can't allocate new pollfd or handler");
         return false;
     }
-
-    socket_pos[socket] = connection_handlers.size() - 1;
 
     return true;
 }
@@ -212,12 +203,13 @@ bool ProxyCore::initSocket(int sock_fd)
     return true;
 }
 
-ssize_t ProxyCore::getSocketIndex(int socket)
+ssize_t ProxyCore::getSocketIndex(int _sock)
 {
-    if(!socket_pos.count(socket))
-        return -1;
-    else
-        return socket_pos[socket];
+    for(auto iter = poll_set.begin(); iter != poll_set.end(); ++iter)
+        if((*iter).fd == _sock)
+            return std::distance(poll_set.begin(), iter);
+
+    return -1;
 }
 
 bool ProxyCore::setSocketAvailableToSend(int socket)
@@ -237,20 +229,6 @@ bool ProxyCore::setSocketUnavailableToSend(int socket)
         return false;
 
     poll_set[pos].events &= ~POLLOUT;
-    return true;
-}
-
-bool ProxyCore::initConnectionHandlers()
-{
-    try
-    {
-        connection_handlers.emplace_back(nullptr);
-    } catch (std::bad_alloc &e)
-    {
-        perror("[PROXY-ERROR] Can't allocate memory for handler!");
-        return false;
-    }
-
     return true;
 }
 
@@ -279,5 +257,16 @@ bool ProxyCore::isCreated()
 
 ConnectionHandler *ProxyCore::getHandlerBySocket(int socket)
 {
-    return !socket_pos.count(socket) ? nullptr : connection_handlers[socket_pos[socket]];
+    return !socketHandlers.count(socket) ? nullptr : socketHandlers[socket];
+}
+
+void ProxyCore::closeSocket(int _sock) const
+{
+    shutdown(_sock, _sock == sock ? SHUT_RDWR : SHUT_WR);
+    close(_sock);
+}
+
+void ProxyCore::closeProxy()
+{
+    can_work = false;
 }

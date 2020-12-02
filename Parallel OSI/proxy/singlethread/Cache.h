@@ -19,6 +19,7 @@ public:
 
     bool isHavingSocketSource();
     bool isFinished();
+    bool isCreatedNow();
 
     std::string getPartOfData(size_t beg, size_t length);
     void        appendData(char *buff, size_t length);
@@ -37,6 +38,7 @@ private:
     bool isInvalid();
 
     Server *source;
+    bool is_new_entry = true;
     bool finished = false;
     bool invalid = false;
     size_t subscribers = 0;
@@ -53,17 +55,16 @@ public:
     static Cache &getCache();
     bool contains(std::string &url);
 
-    CacheEntry *getEntry(std::string &url);
-    CacheEntry *createEntry(std::string &url);
-
-    bool removeEntry(std::string &url);
-    bool subscribeToEntry(std::string &url, int socket);
+    CacheEntry *subscribeToEntry(std::string &url, int client_socket);
     bool unsubscribeToEntry(std::string &url, int socket);
 
     void clearCache();
     ~Cache();
 private:
     Cache() = default;
+
+    CacheEntry *createEntry(std::string &url);
+    bool removeEntry(std::string &url);
 
     std::map<std::string, CacheEntry *> cached_data;
 };

@@ -16,7 +16,7 @@ bool Client::execute(int event)
     if (closed)
         return false;
 
-    if (event & POLLHUP || event & POLLERR)
+    if (event & (POLLHUP | POLLERR))
         return false;
 
     if ((event & (POLLIN | POLLPRI)) && !receiveData())
@@ -43,9 +43,9 @@ bool Client::receiveData()
     else
     {
         if(end_point)
-            printf("[CLIENT-RECV] Recv %zi bytes from client socket %i for server socket %i..\n", len, sock, end_point->getSocket());
+            printf("[CLIENT-RECV] Recv %zi bytes from client socket %i for server socket %i.\n", len, sock, end_point->getSocket());
         else
-            printf("[CLIENT-RECV] Recv %zi bytes from client socket %i for unreleased yet server..\n", len, sock);
+            printf("[CLIENT-RECV] Recv %zi bytes from client socket %i for unreleased yet server.\n", len, sock);
     }
 
     if (http_parser_execute(&parser, &Client::settings, buff, len) != len || http_parse_error)
@@ -85,9 +85,9 @@ bool Client::sendData()
     else
     {
         if(end_point)
-            printf("[CLIENT-SEND] Send %zi bytes to client socket %i by server socket %i..\n", len, sock, end_point->getSocket());
+            printf("[CLIENT-SEND] Send %zi bytes to client socket %i by server socket %i.\n", len, sock, end_point->getSocket());
         else
-            printf("[CLIENT-SEND] Send %zi bytes to client socket %i by cache..\n", len, sock);
+            printf("[CLIENT-SEND] Send %zi bytes to client socket %i by cache.\n", len, sock);
     }
 
     return true;
@@ -107,11 +107,11 @@ Client::~Client()
 void Client::initHTTPParser()
 {
     http_parser_settings_init(&settings);
-    settings.on_url = handleUrl;
-    settings.on_header_field = handleHeaderField;
-    settings.on_header_value = handleHeaderValue;
-    settings.on_headers_complete = handleHeadersComplete;
-    settings.on_body = handleData;
+    settings.on_url                 = handleUrl;
+    settings.on_header_field        = handleHeaderField;
+    settings.on_header_value        = handleHeaderValue;
+    settings.on_headers_complete    = handleHeadersComplete;
+    settings.on_body                = handleData;
 }
 
 int Client::handleUrl(http_parser *parser, const char *at, size_t len)
@@ -276,11 +276,12 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         entry_key = std::string(method) + ":" + handler->url;
 
     Cache &cached = Cache::getCache();
-    if (cached.contains(entry_key))
+    handler->entry = cached.subscribeToEntry(entry_key, handler->sock);
+
+    if (!handler->entry->isCreatedNow())
     {
         printf("[PROXY--INFO] Found cache of %s!\n", handler->url.c_str());
 
-        handler->entry = cached.getEntry(entry_key);
         handler->core->setSocketAvailableToSend(handler->sock);
 
         if (handler->entry->isFinished())
@@ -291,8 +292,6 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         handler->can_use_cache = true;
     } else
     {
-        handler->entry = cached.createEntry(entry_key);
-
         Server *server;
         try
         {
@@ -309,7 +308,7 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         {
             printf("[PROXY-ERROR] Can't connect to server %s!\n", handler->url.c_str());
             handler->http_parse_error = true;
-            cached.removeEntry(entry_key);
+            cached.unsubscribeToEntry(entry_key, handler->sock);
 
             delete(server);
             return false;
@@ -328,7 +327,6 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         handler->server_send_buffer.clear();
         handler->end_point = server;
     }
-    cached.subscribeToEntry(entry_key, handler->sock);
     handler->entry_key = entry_key;
 
     return true;

@@ -71,7 +71,6 @@ int main(int argc, char *argv[])
 
 void sig_handler(int signum)
 {
-    delete(proxy);
-    exit(EXIT_SUCCESS);
+    proxy->closeProxy();
 }
 

@@ -12,9 +12,22 @@ bool Cache::contains(std::string &url)
     return cached_data.find(url) != cached_data.end();
 }
 
-CacheEntry *Cache::getEntry(std::string &url)
+CacheEntry *Cache::subscribeToEntry(std::string &url, int client_socket)
 {
-    return contains(url) ? cached_data.find(url)->second : nullptr;
+    CacheEntry *cache;
+    if(contains(url))
+    {
+        cache = cached_data.find(url)->second;
+        cache->is_new_entry = false;
+
+        return cache;
+    }else
+        cache = createEntry(url);
+
+    cache->incSubs();
+    cache->getSubSet().insert(client_socket);
+
+    return cache;
 }
 
 CacheEntry *Cache::createEntry(std::string &url)
@@ -42,18 +55,6 @@ bool Cache::removeEntry(std::string &url)
 
     delete(it->second);
     cached_data.erase(it);
-    return true;
-}
-
-bool Cache::subscribeToEntry(std::string &url, int socket)
-{
-    auto it = cached_data.find(url);
-    if (it == cached_data.end())
-        return false;
-
-    it->second->incSubs();
-    it->second->getSubSet().insert(socket);
-
     return true;
 }
 
@@ -169,4 +170,9 @@ void CacheEntry::appendData(char *buff, size_t length)
 size_t CacheEntry::getDataSize()
 {
     return data->length();
+}
+
+bool CacheEntry::isCreatedNow()
+{
+    return is_new_entry;
 }
