@@ -1,13 +1,35 @@
 #include "ProxyCore.h"
 #include "Client.h"
 
-ProxyCore::ProxyCore(int socket_fd)
+ProxyCore::ProxyCore(int port)
 {
-    if(!initSocket(socket_fd) || !initPollSet())
+    sockaddr_in addr;
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(port);
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
+    int sock = socket(AF_INET, SOCK_STREAM, 0);
+
+    if(sock == -1)
+    {
+        perror("[PROXY-ERROR] Can't create server socket");
+        return;
+    }
+
+    if (bind(sock, (sockaddr *) &addr, sizeof(addr)) == -1)
+    {
+        perror("[PROXY-ERROR] Can't bind socket on port");
+        close(sock);
+        return;
+    }
+
+    if(!initSocket(sock) || !initPollSet())
         return;
 
     Client::initHTTPParser();
     Server::initHTTPParser();
+
+    this->port = port;
 
     printf("\n[PROXY--CORE] Proxy created!\n");
 
@@ -48,6 +70,8 @@ bool ProxyCore::listenConnections()
 
     std::set<int> trashbox;
     bool can_remove = false;
+
+    printf("[PROXY--CORE] Proxy started on port: %d\n", port);
 
     while (can_work)
     {

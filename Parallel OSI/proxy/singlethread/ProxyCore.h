@@ -20,7 +20,7 @@
 class ProxyCore
 {
 public:
-    ProxyCore(int socket_fd);
+    ProxyCore(int port);
     ~ProxyCore();
 
     void closeProxy();
@@ -39,6 +39,7 @@ private:
     bool initPollSet();
 
     int sock = -1;
+    int port = 0;
     std::vector<pollfd> poll_set;
     std::map<int, ConnectionHandler*> socketHandlers;
 
