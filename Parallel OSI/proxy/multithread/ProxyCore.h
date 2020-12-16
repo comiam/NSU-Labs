@@ -16,19 +16,20 @@
 
 #define POLL_SIZE_SEGMENT 50
 
+pthread_t initProxyCore(int &port);
+
 class ProxyCore
 {
 public:
     ProxyCore(int port);
     ~ProxyCore();
 
-    void closeProxy();
     void closeSocket(int sock) const;
-    bool isCreated();
+    bool isCreated() const;
     bool listenConnections();
 
-    bool setSocketUnavailableToSend(int socket);
-    bool setSocketAvailableToSend  (int socket);
+    void setSocketUnavailableToSend(int socket);
+    void setSocketAvailableToSend  (int socket);
     bool addSocketToPoll(int socket, short events, ConnectionHandler *executor);
 
     ConnectionHandler *getHandlerBySocket(int socket);
@@ -42,7 +43,8 @@ private:
     std::vector<pollfd> poll_set;
     std::map<int, ConnectionHandler*> socketHandlers;
 
-    bool can_work = false;
+    pthread_mutex_t core_mutex = PTHREAD_MUTEX_INITIALIZER;
+
     bool created = false;
 
     ssize_t getSocketIndex(int _sock);
