@@ -197,7 +197,7 @@ int Client::handleData(http_parser *parser, const char *at, size_t len)
     {
         if (handler->end_point)
         {
-            handler->end_point->send_buffer.append(at, len);
+            handler->end_point->putDataToSendBuffer(at, len);
             handler->core->setSocketAvailableToSend(handler->end_point->getSocket());
         } else
             handler->server_send_buffer.append(at, len);
@@ -227,7 +227,7 @@ bool Client::sendToServer(Client *handler, std::string &str)
     {
         if (handler->end_point)
         {
-            handler->end_point->send_buffer.append(str);
+            handler->end_point->putDataToSendBuffer(str.c_str(), str.size());
             handler->core->setSocketAvailableToSend(handler->end_point->getSocket());
         } else
         {
@@ -317,7 +317,7 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         int serv = server->getSocket();
         try
         {
-            server->send_buffer.append(handler->server_send_buffer);
+            server->putDataToSendBuffer(handler->server_send_buffer.c_str(), handler->server_send_buffer.size());
         } catch (std::bad_alloc &e)
         {
             fprintf(stderr,"[PROXY-ERROR] Can't transfer send buffer from client socket %i to server socket %i\n", handler->sock, serv);
@@ -337,7 +337,7 @@ void Client::removeEndPoint()
     this->end_point = nullptr;
 }
 
-int Client::getSock()
+int Client::getSock() const
 {
     return sock;
 }
@@ -346,7 +346,7 @@ bool Client::setEndPoint(Server *_end_point)
 {
     try
     {
-        _end_point->send_buffer.append(this->server_send_buffer);
+        _end_point->putDataToSendBuffer(this->server_send_buffer.c_str(), this->server_send_buffer.size());
     } catch (std::bad_alloc &e)
     {
         fprintf(stderr,"[PROXY-ERROR] Can't transfer send buffer from NEW client socket %i to server socket %i\n", this->sock, _end_point->getSocket());

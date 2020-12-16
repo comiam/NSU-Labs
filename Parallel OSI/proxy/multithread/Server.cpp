@@ -8,6 +8,12 @@ Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler)
     this->buffer = cache_buff;
     this->core = proxy_handler;
 
+    pthread_mutexattr_t attr;
+    pthread_mutexattr_init(&attr);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
+
+    pthread_mutex_init(&server_mutex, &attr);
+
     cache_buff->setHavingSourceSocket(this);
 
     http_parser_init(&parser, HTTP_RESPONSE);
@@ -123,7 +129,7 @@ bool Server::connectToServer(std::string &host)
         return false;
     }
 
-    if (!core->addSocketToPoll(sock, POLLIN | POLLPRI | POLLOUT, this))
+    if (!core->addSocketToPoll(false, sock, POLLIN | POLLPRI | POLLOUT, this))
     {
         perror("[---ERROR---] Can't save server socket\n");
 
@@ -140,6 +146,7 @@ bool Server::connectToServer(std::string &host)
 
 bool Server::sendData()
 {
+    lock_guard lock(&server_mutex);
     ssize_t len = send(sock, send_buffer.c_str(), send_buffer.length(), 0);
 
     if (len == -1)
@@ -206,7 +213,7 @@ bool Server::receiveData()
     return true;
 }
 
-int Server::getSocket()
+int Server::getSocket() const
 {
     return sock;
 }
@@ -260,4 +267,10 @@ void Server::removeCacheEntry()
 ProxyCore *Server::getCore()
 {
     return core;
+}
+
+void Server::putDataToSendBuffer(const char *data, size_t size)
+{
+    lock_guard lock(&server_mutex);
+    send_buffer.append(data, size);
 }

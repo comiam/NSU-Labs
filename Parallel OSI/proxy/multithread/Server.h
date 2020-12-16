@@ -18,9 +18,9 @@ public:
     bool execute(int event) override;
     bool connectToServer(std::string &host);
 
-    int getSocket();
-    std::string send_buffer;
+    int getSocket() const;
 
+    void putDataToSendBuffer(const char* data, size_t size);
     void setStartPoint(Client *client);
     void removeStartPoint();
     void removeCacheEntry();
@@ -31,7 +31,7 @@ public:
 private:
     int sock = -1;
     bool closed = false;
-
+    std::string send_buffer;
 
     CacheEntry *buffer = nullptr;
     Client *start_point;
@@ -40,6 +40,8 @@ private:
     static http_parser_settings settings;
 
     ProxyCore *core;
+
+    pthread_mutex_t server_mutex = PTHREAD_MUTEX_INITIALIZER;
 
     bool sendData() override;
     bool receiveData() override;

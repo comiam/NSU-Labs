@@ -15,7 +15,7 @@ public:
     Client(int sock, ProxyCore *proxy_handler);
     ~Client() override;
 
-    int getSock();
+    int getSock() const;
 
     void removeEndPoint();
     bool setEndPoint(Server *_end_point);

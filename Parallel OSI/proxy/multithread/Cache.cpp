@@ -22,8 +22,6 @@ CacheEntry *Cache::subscribeToEntry(std::string &url, int client_socket)
     {
         cache = cached_data.find(url)->second;
         cache->is_new_entry = false;
-
-        return cache;
     }else
         cache = createEntry(url);
 
@@ -116,14 +114,14 @@ CacheEntry::CacheEntry(std::string &url)
 CacheEntry::~CacheEntry()
 {
     pthread_mutex_lock(&entry_mutex);
+    pthread_mutex_lock(&sub_mutex);
     if(source)
         source->removeCacheEntry();
     delete data;
-    pthread_mutex_unlock(&entry_mutex);
 
-    pthread_mutex_lock(&sub_mutex);
     sub_set.clear();
     pthread_mutex_unlock(&sub_mutex);
+    pthread_mutex_unlock(&entry_mutex);
 
     pthread_mutex_destroy(&sub_mutex);
     pthread_mutex_destroy(&entry_mutex);

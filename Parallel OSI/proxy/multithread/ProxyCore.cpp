@@ -3,10 +3,13 @@
 
 void *routine(void* args);
 
-pthread_t initProxyCore(int &port)
+[[noreturn]]
+void *worker_routine(void *args);
+
+pthread_t initProxyCore(std::pair<int, int> &args)
 {
     pthread_t proxy_thread;
-    if (!pthread_create(&proxy_thread, nullptr, routine, &port))
+    if (!pthread_create(&proxy_thread, nullptr, routine, &args))
     {
         printf("Proxy thread created!\n");
         return proxy_thread;
@@ -18,7 +21,7 @@ pthread_t initProxyCore(int &port)
     }
 }
 
-ProxyCore::ProxyCore(int port)
+ProxyCore::ProxyCore(int port, int thread_count)
 {
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
@@ -52,6 +55,22 @@ ProxyCore::ProxyCore(int port)
     pthread_mutexattr_init(&attr);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
     pthread_mutex_init(&core_mutex, &attr);
+    pthread_mutex_init(&task_mutex, &attr);
+    pthread_cond_init(&task_cond, nullptr);
+
+    pthread_t thread;
+    for (int i = 0; i < thread_count; ++i)
+    {
+        if(pthread_create(&thread, nullptr, worker_routine, (void*)this))
+        {
+            printf("Can't create needed count of worker threads for proxy! Shutting down...\n");
+
+            for (auto j : thread_pool)
+                pthread_cancel(j);
+            return;
+        }
+        thread_pool.push_back(thread);
+    }
 
     printf("\n[PROXY--CORE] Proxy created!\n");
 
@@ -62,6 +81,8 @@ ProxyCore::~ProxyCore()
 {
     clearData();
     pthread_mutex_destroy(&core_mutex);
+    pthread_mutex_destroy(&task_mutex);
+    pthread_cond_destroy(&task_cond);
     printf("\n[PROXY--CORE] Proxy closed!\n");
 
     created = false;
@@ -79,8 +100,18 @@ void ProxyCore::clearData()
             delete(socketHandlers[i.fd]);
     }
 
+    for (auto thread : thread_pool)
+    {
+        pthread_cancel(thread);
+        //pthread_join(thread, nullptr);
+    }
+
+    thread_pool.clear();
     poll_set.clear();
     socketHandlers.clear();
+    task_list.clear();
+    std::queue<std::pair<int, int>> empty;
+    std::swap(task_queue, empty);
 }
 
 bool ProxyCore::listenConnections()
@@ -89,14 +120,16 @@ bool ProxyCore::listenConnections()
     int revent;
     int new_client;
 
-    std::set<int> trashbox;
-    bool can_remove = false;
-
     printf("[PROXY--CORE] Proxy started on port: %d\n", port);
 
     while (true)
     {
+        if(!task_queue.empty())
+            continue;
+
+        pthread_mutex_lock(&core_mutex);
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), -1);
+
         if (count == -1)
         {
             if (errno == EINTR)
@@ -113,78 +146,70 @@ bool ProxyCore::listenConnections()
                 revent = poll_set[i].revents;
                 if (!revent)
                     continue;
-
-                poll_set[i].revents = 0;
-
-                /* listen new connections */
-                if(!i)
+                else
                 {
-                    if (revent & (POLLIN | POLLPRI))
+                    poll_set[i].revents = 0;
+
+                    if(!i)
                     {
-                        new_client = accept(sock, nullptr, nullptr);
-                        if (new_client == -1)
+                        if (revent & (POLLIN | POLLPRI))
                         {
-                            perror("[PROXY-ERROR] Can't accept new client");
+                            new_client = accept(sock, nullptr, nullptr);
+                            if (new_client == -1)
+                            {
+                                perror("[PROXY-ERROR] Can't accept new client");
+                                clearData();
+                                return false;
+                            }
+
+                            if (fcntl(new_client, F_SETFL, O_NONBLOCK) == -1)
+                            {
+                                perror("[PROXY-ERROR] Can't set nonblock to client socket");
+
+                                closeSocket(new_client);
+                                clearData();
+                                return false;
+                            }
+
+                            Client *client;
+                            try
+                            {
+                                client = new Client(new_client, this);
+                            } catch (std::bad_alloc &e)
+                            {
+                                perror("[PROXY-ERROR] Can't allocate new client");
+
+                                closeSocket(new_client);
+                                clearData();
+                                return false;
+                            }
+
+                            addSocketToPoll(true, new_client, POLLIN | POLLPRI, client);
+
+                            printf("[PROXY--INFO] Connected new user with socket %d\n", new_client);
+                        } else
+                        {
+                            fprintf(stderr, "[PROXY-ERROR] Can't accept new client! Closing proxy...\n");
                             clearData();
                             return false;
                         }
-                        
-                        if (fcntl(new_client, F_SETFL, O_NONBLOCK) == -1)
-                        {
-                            perror("[PROXY-ERROR] Can't set nonblock to client socket");
-
-                            closeSocket(new_client);
-                            clearData();
-                            return false;
-                        }
-
-                        Client *client;
-                        try
-                        {
-                            client = new Client(new_client, this);
-                        } catch (std::bad_alloc &e)
-                        {
-                            perror("[PROXY-ERROR] Can't allocate new client");
-
-                            closeSocket(new_client);
-                            clearData();
-                            return false;
-                        }
-
-                        addSocketToPoll(new_client, POLLIN | POLLPRI, client);
-
-                        printf("[PROXY--INFO] Connected new user with socket %d\n", new_client);
-                    } else
+                    }else
                     {
-                        fprintf(stderr, "[PROXY-ERROR] Can't accept new client! Closing proxy...\n");
-                        clearData();
-                        return false;
+                        lock_guard lock(&task_mutex);
+                        if(!task_list.count(poll_set[i].fd))
+                        {
+                            task_list.insert(poll_set[i].fd);
+                            task_queue.push(std::make_pair(poll_set[i].fd, revent));
+                            pthread_cond_signal(&task_cond);
+                        }
                     }
-                }else if (!socketHandlers[poll_set[i].fd]->execute(revent)) /* listen client side */
-                {
-                    trashbox.insert(poll_set[i].fd);
-                    can_remove = true;
                 }
             }
-            if(can_remove)
-            {
-                can_remove = false;
-                removeClosedSockets(&trashbox);
-            }
         }
+        pthread_mutex_unlock(&core_mutex);
     }
 
     return false;
-}
-
-void ProxyCore::removeClosedSockets(std::set<int> *trashbox)
-{
-    lock_guard lock(&core_mutex);
-
-    for(int it : *trashbox)
-        removeSocket(it);
-
-    trashbox->clear();
 }
 
 template<typename Base, typename T>
@@ -210,7 +235,7 @@ void ProxyCore::removeSocket(size_t _sock)
     closeSocket(_sock);
 }
 
-bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *executor)
+bool ProxyCore::addSocketToPoll(bool from_proxy_thread, int socket, short events, ConnectionHandler *executor)
 {
     pollfd fd{};
     fd.fd = socket;
@@ -218,7 +243,8 @@ bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *exe
     fd.revents = 0;
 
     bool success = true;
-    lock_guard lock(&core_mutex);
+    if(!from_proxy_thread)
+        lock_guard lock(&core_mutex);
     try
     {
         poll_set.push_back(fd);
@@ -305,7 +331,6 @@ bool ProxyCore::isCreated() const
 ConnectionHandler *ProxyCore::getHandlerBySocket(int socket)
 {
     lock_guard lock(&core_mutex);
-
     return !socketHandlers.count(socket) ? nullptr : socketHandlers[socket];
 }
 
@@ -313,6 +338,27 @@ void ProxyCore::closeSocket(int _sock) const
 {
     shutdown(_sock, _sock == sock ? SHUT_RDWR : SHUT_WR);
     close(_sock);
+}
+
+void ProxyCore::clearHandler(int socket)
+{
+    lock_guard lock(&core_mutex);
+    removeSocket(socket);
+}
+
+std::pair<int, int> ProxyCore::getTask()
+{
+    pthread_mutex_lock(&task_mutex);
+
+    while(task_queue.empty())
+        pthread_cond_wait(&task_cond, &task_mutex);
+
+    auto elem = task_queue.front();
+    task_queue.pop();
+    task_list.erase(elem.first);
+
+    pthread_mutex_unlock(&task_mutex);
+    return elem;
 }
 
 void cleanProxy(void* arg)
@@ -326,9 +372,11 @@ void *routine(void *args)
     pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, nullptr);
     ProxyCore *proxy;
 
+    auto *pair = (std::pair<int, int>*)args;
+
     try
     {
-        proxy = new ProxyCore(*((int*)args));
+        proxy = new ProxyCore(pair->first, pair->second);
     } catch (std::bad_alloc &e)
     {
         perror("Can't init proxy");
@@ -351,4 +399,24 @@ void *routine(void *args)
 
     pthread_cleanup_pop(1);
     return nullptr;
+}
+
+[[noreturn]]
+void *worker_routine(void *args)
+{
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
+    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, nullptr);
+
+    auto *parent = (ProxyCore*)args;
+    std::pair<int, int> current_task;
+    ConnectionHandler *handler;
+
+    while(true)
+    {
+        current_task = parent->getTask();
+        handler = parent->getHandlerBySocket(current_task.first);
+
+        if(!handler->execute(current_task.second))
+            parent->clearHandler(current_task.first);
+    }
 }

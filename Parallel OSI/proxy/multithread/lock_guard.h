@@ -1,5 +1,5 @@
-#ifndef MULTITHREAD_LOCK_GUARD_H
-#define MULTITHREAD_LOCK_GUARD_H
+#ifndef GUARD_H
+#define GUARD_H
 
 #include <mutex>
 
