@@ -1,4 +1,3 @@
-#include <cerrno>
 #include "monitor.h"
 
 Monitor::Monitor()
@@ -116,7 +115,7 @@ void Monitor::lock()
     if (NO_ERROR != errcode)
     {
 #ifdef DEBUG_ENABLED
-        errorfln("Failed to lock monitor: %s", strerror(errcode));
+        errorfln("Failed to poll_lock monitor: %s", strerror(errcode));
 #endif
         exit(EXIT_FAILURE);
     }

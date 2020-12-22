@@ -75,6 +75,7 @@ bool Client::sendData()
             return false;
         }
 
+        entry->unlock();
         core->setSocketUnavailableToSend(sock);
         return true;
     }
@@ -380,6 +381,7 @@ bool Client::setEndPoint(Server *_end_point)
         _end_point->unlock();
         return false;
     }
+    _end_point->unlock();
     this->server_send_buffer.clear();
     this->end_point = _end_point;
 

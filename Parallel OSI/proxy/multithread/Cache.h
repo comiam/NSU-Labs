@@ -21,7 +21,7 @@ public:
     Client* getNewClientSide();
     bool isHavingSocketSource();
     bool isFinished();
-    bool isCreatedNow();
+    bool isCreatedNow() const;
 
     std::string getPartOfData(size_t beg, size_t length);
     void        appendData(char *buff, size_t length);
@@ -65,7 +65,6 @@ private:
     Cache() = default;
 
     CacheEntry *createEntry(std::string &url);
-    bool contains(std::string &url);
 
     class CacheEntryMap: public std::map<std::string, CacheEntry *>, public Monitor
     {

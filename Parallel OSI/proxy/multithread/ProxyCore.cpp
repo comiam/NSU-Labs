@@ -47,7 +47,6 @@ ProxyCore::ProxyCore(int port, int thread_count)
 
     Client::initHTTPParser();
     Server::initHTTPParser();
-    sem_init(&lock, 0, 1);
 
     this->port = port;
 
@@ -90,13 +89,6 @@ void ProxyCore::clearData()
     for (auto thread : thread_pool)
         pthread_cancel(thread);
 
-    thread_pool.clear();
-    poll_set.clear();
-    socketHandlers.clear();
-    task_list.clear();
-
-    sem_destroy(&lock);
-
     for (auto & i : poll_set)
     {
         closeSocket(i.fd);
@@ -111,6 +103,16 @@ void ProxyCore::clearData()
         if (socketHandlers[i.first])
             delete(socketHandlers[i.first]);
     }
+
+    thread_pool.clear();
+    socketHandlers.clear();
+    new_server_set.clear();
+    sock_rdwr.clear();
+    task_list.clear();
+    trash_set.clear();
+    free_set.clear();
+    poll_set.clear();
+    busy_set.clear();
 }
 
 bool ProxyCore::listenConnections()
@@ -123,8 +125,50 @@ bool ProxyCore::listenConnections()
 
     while (true)
     {
-        lockHandlers();
-        //lock.lock();
+        for (auto &i : busy_set)
+            poll_set.erase(std::remove(poll_set.begin(), poll_set.end(), i.second), poll_set.end());
+
+        free_lock.lock();
+        for (auto &i : free_set)
+        {
+            poll_set.push_back(busy_set[i]);
+            busy_set.erase(i);
+        }
+        free_set.clear();
+        free_lock.unlock();
+
+        remove_lock.lock();
+        for (auto &i : trash_set)
+            removeHandlerImpl(i);
+        trash_set.clear();
+        remove_lock.unlock();
+
+        add_lock.lock();
+        for (auto &i : new_server_set)
+            if (!addSocketToPollWithoutBlocking(i.first, POLLIN | POLLPRI | POLLOUT, i.second))
+            {
+                fprintf(stderr, "Can't add new server socket to poll from add set! Closing...");
+                closeSocket(new_client);
+                clearData();
+                return false;
+            }
+        new_server_set.clear();
+        add_lock.unlock();
+
+        rdwr_lock.lock();
+        for (auto &i : sock_rdwr)
+        {
+            ssize_t pos = getSocketIndex(i.first);
+            if (pos != -1)
+            {
+                if(i.second)
+                    poll_set[pos].events |= POLLOUT;
+                else
+                    poll_set[pos].events &= ~POLLOUT;
+            }
+        }
+        rdwr_lock.unlock();
+
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), poll_set.size() == 1 && busy_set.empty() ? -1 : 1);
 
         if (count == -1)
@@ -133,15 +177,9 @@ bool ProxyCore::listenConnections()
                 continue;
 
             fprintf(stderr, "[PROXY-ERROR] Poll error: %s\n", strerror(errno));
-            //lock.unlock();
-            unlockHandlers();
             break;
         }else if (count == 0)
-        {
-            //lock.unlock();
-            unlockHandlers();
             continue;
-        }
         else
         {
             for (size_t i = 0; i < poll_set.size(); ++i)
@@ -153,7 +191,7 @@ bool ProxyCore::listenConnections()
                 {
                     poll_set[i].revents = 0;
 
-                    if(!i)
+                    if (!i)
                     {
                         if (revent & (POLLIN | POLLPRI))
                         {
@@ -162,8 +200,6 @@ bool ProxyCore::listenConnections()
                             {
                                 perror("[PROXY-ERROR] Can't accept new client");
                                 clearData();
-                                //lock.unlock();
-                                unlockHandlers();
                                 return false;
                             }
 
@@ -173,8 +209,6 @@ bool ProxyCore::listenConnections()
 
                                 closeSocket(new_client);
                                 clearData();
-                                //lock.unlock();
-                                unlockHandlers();
                                 return false;
                             }
 
@@ -188,18 +222,14 @@ bool ProxyCore::listenConnections()
 
                                 closeSocket(new_client);
                                 clearData();
-                                //lock.unlock();
-                                unlockHandlers();
                                 return false;
                             }
 
-                            if(!addSocketToPollWithoutBlocking(new_client, POLLIN | POLLPRI, client))
+                            if (!addSocketToPollWithoutBlocking(new_client, POLLIN | POLLPRI, client))
                             {
                                 fprintf(stderr, "Can't add new socket to poll! Closing...");
                                 closeSocket(new_client);
                                 clearData();
-                                //lock.unlock();
-                                unlockHandlers();
                                 return false;
                             }
 
@@ -208,25 +238,16 @@ bool ProxyCore::listenConnections()
                         {
                             fprintf(stderr, "[PROXY-ERROR] Can't accept new client! Closing proxy...\n");
                             clearData();
-                            //lock.unlock();
-                            unlockHandlers();
                             return false;
                         }
-                    }else
+                    } else
                     {
-                        /*
-                          FIXME надо делать проверку, какие таски уже выполняются,
-                          FIXME чтоб два потока случайно не занялись одной работой(один тупо сожрёт данные другого и другой получить по лицу EAGAINом)
-                        */
-                        /*
-                         FIXME сделай систему коммитов в список дескрипторов для poll и блокировку ставь только на время внесения изменений
-                         FIXME Это существенно снизит время блокировки основного монитора потока... надеюсь....
-                         */
                         task_list.lock();
                         auto p = std::make_pair(poll_set[i].fd, revent);
-                        if(!task_list.count(p))
+                        if (!task_list.count(p))
                         {
                             task_list.insert(p);
+
                             busy_set[poll_set[i].fd] = poll_set[i];
                         }
 
@@ -236,11 +257,6 @@ bool ProxyCore::listenConnections()
                 }
             }
         }
-        for (auto &i : busy_set)
-            poll_set.erase(std::remove(poll_set.begin(), poll_set.end(), i.second), poll_set.end());
-
-        //lock.unlock();
-        unlockHandlers();
     }
 
     return false;
@@ -278,15 +294,13 @@ bool ProxyCore::addSocketToPollWithoutBlocking(int socket, short events, Connect
     return success;
 }
 
-bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *executor)
+bool ProxyCore::addSocketToPoll(int socket, ConnectionHandler *executor)
 {
-    //lock.lock();
-    lockHandlers();
-    bool success = addSocketToPollWithoutBlocking(socket, events, executor);
-    //lock.unlock();
-    unlockHandlers();
+    add_lock.lock();
+    new_server_set.emplace_back(socket, executor);
+    add_lock.unlock();
 
-    return success;
+    return true;
 }
 
 bool ProxyCore::initSocket(int sock_fd)
@@ -320,24 +334,16 @@ ssize_t ProxyCore::getSocketIndex(int _sock)
 
 void ProxyCore::setSocketAvailableToSend(int socket)
 {
-    //lock.lock();
-    lockHandlers();
-    ssize_t pos = getSocketIndex(socket);
-    if (pos != -1)
-        poll_set[pos].events |= POLLOUT;
-    //lock.unlock();
-    unlockHandlers();
+    rdwr_lock.lock();
+    sock_rdwr.emplace_back(socket, 1);
+    rdwr_lock.unlock();
 }
 
 void ProxyCore::setSocketUnavailableToSend(int socket)
 {
-    //lock.lock();
-    lockHandlers();
-    ssize_t pos = getSocketIndex(socket);
-    if (pos != -1)
-        poll_set[pos].events &= ~POLLOUT;
-    //lock.unlock();
-    unlockHandlers();
+    rdwr_lock.lock();
+    sock_rdwr.emplace_back(socket, 0);
+    rdwr_lock.unlock();
 }
 
 bool ProxyCore::initPollSet()
@@ -376,26 +382,8 @@ void ProxyCore::closeSocket(int _sock) const
 
 void ProxyCore::removeHandler(int socket)
 {
-    //lock.lock();
     lockHandlers();
-
-    if(!socketHandlers[socket])
-        return;
-
-    printf("[PROXY--CORE] %s socket %i closed\n", instanceOf<Client>(socketHandlers[socket]) ? "Client" : "Server", socket);
-
-    delete(socketHandlers[socket]);
-
-    socketHandlers.erase(socket);
-    for(auto iter = poll_set.begin(); iter != poll_set.end(); ++iter)
-        if((*iter).fd == socket)
-        {
-            poll_set.erase(iter);
-            break;
-        }
-
-    closeSocket(socket);
-    //lock.unlock();
+    trash_set.push_back(socket);
     unlockHandlers();
 }
 
@@ -421,26 +409,39 @@ std::pair<int, int> ProxyCore::getTask()
 
 void ProxyCore::lockHandlers()
 {
-    //lock.lock();
-    if(sem_wait(&lock))
-        printf("error sem wait!\n");
+    remove_lock.lock();
 }
 
 void ProxyCore::unlockHandlers()
 {
-    //lock.unlock();
-    if(sem_post(&lock))
-        printf("error sem post!\n");
+    remove_lock.unlock();
 }
 
 void ProxyCore::madeSocketFreeForPoll(int _sock)
 {
-    //lock.lock();
-    lockHandlers();
-    poll_set.push_back(busy_set[_sock]);
-    busy_set.erase(_sock);
-    //lock.unlock();
-    unlockHandlers();
+    free_lock.lock();
+    free_set.push_back(_sock);
+    free_lock.unlock();
+}
+
+void ProxyCore::removeHandlerImpl(int _sock)
+{
+    if(!socketHandlers[_sock])
+        return;
+
+    printf("[PROXY--CORE] %s socket %i closed\n", instanceOf<Client>(socketHandlers[_sock]) ? "Client" : "Server", _sock);
+
+    delete(socketHandlers[_sock]);
+
+    socketHandlers.erase(_sock);
+    for(auto iter = poll_set.begin(); iter != poll_set.end(); ++iter)
+        if((*iter).fd == _sock)
+        {
+            poll_set.erase(iter);
+            break;
+        }
+
+    closeSocket(_sock);
 }
 
 void cleanProxy(void* arg)
@@ -483,6 +484,27 @@ void *routine(void *args)
     return nullptr;
 }
 
+#ifdef DEBUG_ENABLED
+int total = 0;
+Monitor t;
+int getTotalCount()
+{
+    return total;
+}
+
+void inc()
+{
+    total ++;
+}
+
+void dec()
+{
+    t.lock();
+    total--;
+    t.unlock();
+}
+#endif
+
 void *worker_routine(void *args)
 {
     pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, nullptr);
@@ -502,11 +524,20 @@ void *worker_routine(void *args)
             return nullptr;
         }
 
-        parent->lockHandlers();
         handler = parent->getHandlerBySocket(current_task.first);
-        parent->unlockHandlers();
+
+#ifdef DEBUG_ENABLED
+        t.lock();
+        inc();
+        printf("Thread got work, now active %i/10\n", getTotalCount());
+        t.unlock();
+#endif
 
         bool res = !handler->execute(current_task.second);
+
+#ifdef DEBUG_ENABLED
+        dec();
+#endif
 
         if(res)
             parent->removeHandler(current_task.first);

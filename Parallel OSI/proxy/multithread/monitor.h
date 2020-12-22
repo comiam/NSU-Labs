@@ -7,7 +7,7 @@
 #include <semaphore.h>
 #include "errhandle.h"
 
-#define DEBUG_ENABLED
+//#define DEBUG_ENABLED
 
 class Monitor
 {

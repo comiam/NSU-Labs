@@ -49,10 +49,14 @@ bool Server::execute(int event)
             printf("[SERVER-INFO] Server socket %i lost client side socket and begin finding new client...\n", sock);
             core->lockHandlers();
             Client *client = entry->getNewClientSide();
+            entry->unlock();
 
-            if(!client)
+            if (!client)
             {
-                fprintf(stderr, "[---ERROR---] Can't find new client... Server socket %i became work as daemon until full downloading a cache...\n", sock);
+                fprintf(stderr,
+                        "[---ERROR---] Can't find new client... Server socket %i became work as daemon until full downloading a cache...\n",
+                        sock);
+                core->unlockHandlers();
                 return true;
             }
 
@@ -63,8 +67,8 @@ bool Server::execute(int event)
             client->unlock();
             core->unlockHandlers();
             closed = false;
-        }
-        entry->unlock();
+        }else
+            entry->unlock();
     }else if(closed)
     {
         printf("[SERVER-INFO] Server socket %i lost start point and closing now...\n", sock);
@@ -140,7 +144,7 @@ bool Server::connectToServer(std::string host)
         return false;
     }
 
-    if (!core->addSocketToPoll(sock, POLLIN | POLLPRI | POLLOUT, this))
+    if (!core->addSocketToPoll(sock, this))
     {
         perror("[---ERROR---] Can't save server socket\n");
 
@@ -225,7 +229,6 @@ bool Server::receiveData()
         entry->unlock();
         return false;
     }
-
     entry->noticeClientsToReadCache();
     entry->unlock();
 

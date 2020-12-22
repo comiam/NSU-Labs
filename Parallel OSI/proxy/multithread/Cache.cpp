@@ -8,27 +8,24 @@ Cache &Cache::getCache()
     return cache;
 }
 
-bool Cache::contains(std::string &url)
-{
-    return cached_data.find(url) != cached_data.end();
-}
-
 CacheEntry *Cache::subscribeToEntry(std::string &url, int client_socket)
 {
-    CacheEntry *cache;
     cached_data.lock();
-    if(contains(url))
-    {
-        cache = cached_data.find(url)->second;
-        cache->is_new_entry = false;
-    }else
+
+    CacheEntry *cache;
+    bool flag = cached_data.count(url) > 0;
+    if(flag)
+        cache = cached_data[url];
+    else
         cache = createEntry(url);
-    cached_data.unlock();
 
     cache->lock();
+    if(flag)
+        cache->is_new_entry = false;
     cache->addSubToList(client_socket);
     cache->unlock();
 
+    cached_data.unlock();
     return cache;
 }
 
@@ -55,11 +52,18 @@ void Cache::unsubscribeToEntry(std::string &url, int socket)
 
     auto it = cached_data.find(url);
     if (it == cached_data.end())
+    {
+        cached_data.unlock();
         return;
+    }
 
     it->second->lock();
     if (it->second->containsSub(socket))
+    {
+        it->second->unlock();
+        cached_data.unlock();
         return;
+    }
 
     it->second->removeSubFromList(socket);
 
@@ -157,7 +161,7 @@ size_t CacheEntry::getDataSize()
     return data->length();
 }
 
-bool CacheEntry::isCreatedNow()
+bool CacheEntry::isCreatedNow() const
 {
     return is_new_entry;
 }

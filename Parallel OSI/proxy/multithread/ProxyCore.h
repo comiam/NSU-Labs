@@ -37,8 +37,7 @@ public:
 
     void setSocketUnavailableToSend(int socket);
     void setSocketAvailableToSend  (int socket);
-    bool addSocketToPoll(int socket, short events, ConnectionHandler *executor);
-    bool addSocketToPollWithoutBlocking(int socket, short events, ConnectionHandler *executor);
+    bool addSocketToPoll(int socket, ConnectionHandler *executor);
 
     void                removeHandler(int sock);
     std::pair<int, int> getTask();
@@ -49,10 +48,18 @@ private:
     bool initSocket(int sock_fd);
     bool initPollSet();
 
+    bool addSocketToPollWithoutBlocking(int socket, short events, ConnectionHandler *executor);
+
+    void removeHandlerImpl(int sock);
+
     int sock = -1;
     int port = 0;
     std::vector<pthread_t> thread_pool;
     std::vector<pollfd> poll_set;
+    std::vector<int> trash_set;
+    std::vector<std::pair<int, bool>> sock_rdwr;
+    std::vector<int> free_set;
+    std::vector<std::pair<int, ConnectionHandler*>> new_server_set;
     std::map<int, pollfd> busy_set;
     std::map<int, ConnectionHandler*> socketHandlers;
 
@@ -69,8 +76,10 @@ private:
         TaskSet(): std::unordered_set<std::pair<int, int>, pair_hash>(), Monitor() {}
     } task_list;
 
-    //Monitor lock;
-    sem_t lock;
+    Monitor add_lock;
+    Monitor free_lock;
+    Monitor remove_lock;
+    Monitor rdwr_lock;
 
     bool created = false;
     bool closing = false;
