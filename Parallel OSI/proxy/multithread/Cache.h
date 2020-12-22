@@ -7,13 +7,12 @@
 #include <string>
 #include <map>
 #include <set>
-
-#include "lock_guard.h"
+#include "monitor.h"
 
 class Server;
 class Client;
 
-class CacheEntry
+class CacheEntry: public Monitor
 {
 public:
     CacheEntry(std::string &url);
@@ -41,8 +40,6 @@ private:
     bool containsSub(int sock);
     bool isInvalid();
 
-    void initAccessMutex();
-
     Server *source = nullptr;
     bool is_new_entry = true;
     bool finished = false;
@@ -50,9 +47,6 @@ private:
     size_t subscribers = 0;
     std::set<int> sub_set;
     std::string *data;
-
-    pthread_mutex_t entry_mutex = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_t sub_mutex = PTHREAD_MUTEX_INITIALIZER;
 
     friend class Cache;
     friend class Server;
@@ -68,17 +62,18 @@ public:
 
     ~Cache();
 private:
-    Cache();
-    void clearCache();
-    void initAccessMutex();
+    Cache() = default;
 
     CacheEntry *createEntry(std::string &url);
-    bool removeEntry(std::string &url);
     bool contains(std::string &url);
 
-    std::map<std::string, CacheEntry *> cached_data;
-
-    pthread_mutex_t access_mutex = PTHREAD_MUTEX_INITIALIZER;
+    class CacheEntryMap: public std::map<std::string, CacheEntry *>, public Monitor
+    {
+    public:
+        CacheEntryMap(): std::map<std::string, CacheEntry *>(), Monitor() {}
+    } cached_data;
 };
+
+
 
 #endif

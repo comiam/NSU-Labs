@@ -11,4 +11,4 @@ public:
     virtual bool receiveData() = 0;
 };
 
-#endif //SINGLETHREAD_HANDLER_H
+#endif

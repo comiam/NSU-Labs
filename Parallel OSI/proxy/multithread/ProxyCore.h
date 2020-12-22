@@ -9,10 +9,12 @@
 #include <unistd.h>
 #include <cerrno>
 #include <cstring>
-#include <set>
 #include <map>
 #include <vector>
 #include <queue>
+#include <unordered_set>
+#include <algorithm>
+#include "monitor.h"
 #include "ConnectionHandler.h"
 
 #define POLL_SIZE_SEGMENT 50
@@ -29,12 +31,17 @@ public:
     bool isCreated() const;
     bool listenConnections();
 
+    void lockHandlers();
+    void unlockHandlers();
+    void madeSocketFreeForPoll(int sock);
+
     void setSocketUnavailableToSend(int socket);
     void setSocketAvailableToSend  (int socket);
-    bool addSocketToPoll(bool from_proxy_thread, int socket, short events, ConnectionHandler *executor);
+    bool addSocketToPoll(int socket, short events, ConnectionHandler *executor);
+    bool addSocketToPollWithoutBlocking(int socket, short events, ConnectionHandler *executor);
 
-    void                 clearHandler(int sock);
-    std::pair<int, int>  getTask();
+    void                removeHandler(int sock);
+    std::pair<int, int> getTask();
 
     ConnectionHandler *getHandlerBySocket(int socket);
 private:
@@ -46,19 +53,29 @@ private:
     int port = 0;
     std::vector<pthread_t> thread_pool;
     std::vector<pollfd> poll_set;
-    std::queue<std::pair<int, int>> task_queue;
-    std::set<int> task_list;
+    std::map<int, pollfd> busy_set;
     std::map<int, ConnectionHandler*> socketHandlers;
 
-    pthread_mutex_t core_mutex = PTHREAD_MUTEX_INITIALIZER;
-    pthread_mutex_t task_mutex = PTHREAD_MUTEX_INITIALIZER;
-    pthread_cond_t  task_cond  = PTHREAD_COND_INITIALIZER;
+    struct pair_hash
+    {
+        inline std::size_t operator()(const std::pair<int,int> & v) const
+        {
+            return v.first*31+v.second;
+        }
+    };
+    class TaskSet: public std::unordered_set<std::pair<int, int>, pair_hash>, public Monitor
+    {
+    public:
+        TaskSet(): std::unordered_set<std::pair<int, int>, pair_hash>(), Monitor() {}
+    } task_list;
+
+    //Monitor lock;
+    sem_t lock;
 
     bool created = false;
+    bool closing = false;
 
     ssize_t getSocketIndex(int _sock);
-
-    void removeSocket(size_t _sock);
 };
 
 #endif

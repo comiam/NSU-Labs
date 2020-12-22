@@ -9,13 +9,13 @@
 
 #define BUFFER_SIZE 4096
 
-class Client : public ConnectionHandler
+class Client : public ConnectionHandler, public Monitor
 {
 public:
     Client(int sock, ProxyCore *proxy_handler);
     ~Client() override;
 
-    int getSock() const;
+    int getSocket() const;
 
     void removeEndPoint();
     bool setEndPoint(Server *_end_point);

@@ -10,13 +10,13 @@
 
 class Client;
 
-class Server : public ConnectionHandler
+class Server: public ConnectionHandler, public Monitor
 {
 public:
     Server(CacheEntry *cache_buff, ProxyCore *proxy_handler);
     ~Server() override;
     bool execute(int event) override;
-    bool connectToServer(std::string &host);
+    bool connectToServer(std::string host);
 
     int getSocket() const;
 
@@ -33,15 +33,13 @@ private:
     bool closed = false;
     std::string send_buffer;
 
-    CacheEntry *buffer = nullptr;
+    CacheEntry *entry = nullptr;
     Client *start_point;
 
     http_parser parser;
     static http_parser_settings settings;
 
     ProxyCore *core;
-
-    pthread_mutex_t server_mutex = PTHREAD_MUTEX_INITIALIZER;
 
     bool sendData() override;
     bool receiveData() override;

@@ -2,7 +2,7 @@
 
 http_parser_settings Client::settings;
 
-Client::Client(int sock, ProxyCore *proxy)
+Client::Client(int sock, ProxyCore *proxy): Monitor()
 {
     this->sock = sock;
     this->core = proxy;
@@ -59,13 +59,18 @@ bool Client::receiveData()
 
 bool Client::sendData()
 {
+    entry->lock();
     std::string str = entry->getPartOfData(entry_offset, BUFFER_SIZE);
     if (!str.length())
     {
         if (entry->isFinished())
+        {
+            entry->unlock();
             return false;
+        }
         else if(!entry->isHavingSocketSource())
         {
+            entry->unlock();
             fprintf(stderr, "Can't download last part of cache %s. Downloading server socket is died!\n", url.c_str());
             return false;
         }
@@ -77,6 +82,8 @@ bool Client::sendData()
     entry_offset += str.length();
     if (entry_offset == entry->getDataSize() && entry->isFinished())
         closed = true;
+
+    entry->unlock();
 
     ssize_t len = send(sock, str.c_str(), str.length(), 0);
 
@@ -95,13 +102,17 @@ bool Client::sendData()
 
 Client::~Client()
 {
+    lock();
     Cache::getCache().unsubscribeToEntry(entry_key, sock);
 
     if(end_point)
     {
+        end_point->lock();
         end_point->removeStartPoint();
         end_point->closeServer();
+        end_point->unlock();
     }
+    unlock();
 }
 
 void Client::initHTTPParser()
@@ -119,9 +130,9 @@ int Client::handleUrl(http_parser *parser, const char *at, size_t len)
     auto *handler = (Client *) parser->data;
 
     /* ignore anyone another except GET, DELETE, GET, HEAD, POST, PUT method */
-    if (parser->method > 5)
+    if (parser->method > 5u)
     {
-        fprintf(stderr, "[--WARNING--] Ignore non GET, DELETE, HEAD, POST, PUT method on socket %i: %u\n", parser->method, handler->sock);
+        fprintf(stderr, "[--WARNING--] Ignore non GET, DELETE, HEAD, POST, PUT method on socket %u: %u\n", parser->method, handler->sock);
         handler->http_parse_error = true;
         return 1;
     }
@@ -197,13 +208,15 @@ int Client::handleData(http_parser *parser, const char *at, size_t len)
     {
         if (handler->end_point)
         {
+            handler->end_point->lock();
             handler->end_point->putDataToSendBuffer(at, len);
             handler->core->setSocketAvailableToSend(handler->end_point->getSocket());
+            handler->end_point->unlock();
         } else
             handler->server_send_buffer.append(at, len);
     } catch (std::bad_alloc &e)
     {
-        perror("[---ERROR---] Can't save data to server send buffer");
+        perror("[---ERROR---] Can't save data to server send entry");
         handler->http_parse_error = true;
         return 1;
     }
@@ -227,15 +240,17 @@ bool Client::sendToServer(Client *handler, std::string &str)
     {
         if (handler->end_point)
         {
+            handler->end_point->lock();
             handler->end_point->putDataToSendBuffer(str.c_str(), str.size());
             handler->core->setSocketAvailableToSend(handler->end_point->getSocket());
+            handler->end_point->unlock();
         } else
         {
             handler->server_send_buffer.append(str);
         }
     } catch (std::bad_alloc &e)
     {
-        perror("[---ERROR---] Can't save data to server send buffer");
+        perror("[---ERROR---] Can't save data to server send entry");
         handler->http_parse_error = true;
         return false;
     }
@@ -278,6 +293,8 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
     Cache &cached = Cache::getCache();
     handler->entry = cached.subscribeToEntry(entry_key, handler->sock);
 
+    handler->entry->lock();
+
     if (!handler->entry->isCreatedNow())
     {
         printf("[PROXY--INFO] Found cache of %s!\n", handler->url.c_str());
@@ -290,6 +307,7 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
             printf("[PROXY--INFO] Use part of cache and download remaining part from %s.\n", entry_key.substr(3).c_str());
 
         handler->can_use_cache = true;
+        handler->entry->unlock();
     } else
     {
         Server *server;
@@ -301,6 +319,8 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
             printf("[PROXY-ERROR] Can't allocate new memory for server side!\n");
             return false;
         }
+        handler->entry->unlock();
+
         server->setStartPoint(handler);
 
         printf("[PROXY--INFO] Cache of %s not found: connecting to %s...\n", handler->url.c_str(), host.c_str());
@@ -314,15 +334,18 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
             return false;
         }
 
+        server->lock();
         int serv = server->getSocket();
         try
         {
             server->putDataToSendBuffer(handler->server_send_buffer.c_str(), handler->server_send_buffer.size());
         } catch (std::bad_alloc &e)
         {
-            fprintf(stderr,"[PROXY-ERROR] Can't transfer send buffer from client socket %i to server socket %i\n", handler->sock, serv);
+            fprintf(stderr,"[PROXY-ERROR] Can't transfer send entry from client socket %i to server socket %i\n", handler->sock, serv);
+            server->unlock();
             return false;
         }
+        server->unlock();
 
         handler->server_send_buffer.clear();
         handler->end_point = server;
@@ -337,19 +360,24 @@ void Client::removeEndPoint()
     this->end_point = nullptr;
 }
 
-int Client::getSock() const
+int Client::getSocket() const
 {
     return sock;
 }
 
 bool Client::setEndPoint(Server *_end_point)
 {
+    if(end_point)
+        return false;
+
+    _end_point->lock();
     try
     {
         _end_point->putDataToSendBuffer(this->server_send_buffer.c_str(), this->server_send_buffer.size());
     } catch (std::bad_alloc &e)
     {
-        fprintf(stderr,"[PROXY-ERROR] Can't transfer send buffer from NEW client socket %i to server socket %i\n", this->sock, _end_point->getSocket());
+        fprintf(stderr,"[PROXY-ERROR] Can't transfer send entry from NEW client socket %i to server socket %i\n", this->sock, _end_point->getSocket());
+        _end_point->unlock();
         return false;
     }
     this->server_send_buffer.clear();

@@ -3,16 +3,10 @@
 
 http_parser_settings Server::settings;
 
-Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler)
+Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler): Monitor()
 {
-    this->buffer = cache_buff;
+    this->entry = cache_buff;
     this->core = proxy_handler;
-
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ERRORCHECK);
-
-    pthread_mutex_init(&server_mutex, &attr);
 
     cache_buff->setHavingSourceSocket(this);
 
@@ -22,27 +16,39 @@ Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler)
 
 Server::~Server()
 {
-    if(buffer)
-        buffer->unsetHavingSourceSocket();
+    lock();
+    if(entry)
+    {
+        entry->lock();
+        entry->unsetHavingSourceSocket();
+        entry->unlock();
+    }
 
     if(start_point)
+    {
+        start_point->lock();
         start_point->removeEndPoint();
+        start_point->unlock();
+    }
+    unlock();
 }
 
 bool Server::execute(int event)
 {
-    if(!buffer)
+    if(!entry)
     {
         printf("[SERVER-INFO] Server socket %i lost its own cache entry and closing...\n", sock);
         return false;
     }
 
-    if (closed)
+    if(closed && entry)
     {
-        if(buffer && buffer->getSubscribers() > 0 && !buffer->isFinished())
+        entry->lock();
+        if(entry->getSubscribers() > 0 && !entry->isFinished())
         {
             printf("[SERVER-INFO] Server socket %i lost client side socket and begin finding new client...\n", sock);
-            Client *client = buffer->getNewClientSide();
+            core->lockHandlers();
+            Client *client = entry->getNewClientSide();
 
             if(!client)
             {
@@ -50,14 +56,19 @@ bool Server::execute(int event)
                 return true;
             }
 
-            printf("[SERVER-INFO] Server socket %i became the new end point of client socket %i.\n", sock, client->getSock());
+            client->lock();
+            printf("[SERVER-INFO] Server socket %i became the new end point of client socket %i.\n", sock,
+                   client->getSocket());
             setStartPoint(client);
+            client->unlock();
+            core->unlockHandlers();
             closed = false;
-        }else
-        {
-            printf("[SERVER-INFO] Server socket %i lost start point and closing now...\n", sock);
-            return false;
         }
+        entry->unlock();
+    }else if(closed)
+    {
+        printf("[SERVER-INFO] Server socket %i lost start point and closing now...\n", sock);
+        return false;
     }
 
     if (event & POLLHUP || event & POLLERR)
@@ -72,7 +83,7 @@ bool Server::execute(int event)
     return true;
 }
 
-bool Server::connectToServer(std::string &host)
+bool Server::connectToServer(std::string host)
 {
     std::string host_name = host;
     size_t split_pos = host.find_first_of(':');
@@ -129,7 +140,7 @@ bool Server::connectToServer(std::string &host)
         return false;
     }
 
-    if (!core->addSocketToPoll(false, sock, POLLIN | POLLPRI | POLLOUT, this))
+    if (!core->addSocketToPoll(sock, POLLIN | POLLPRI | POLLOUT, this))
     {
         perror("[---ERROR---] Can't save server socket\n");
 
@@ -146,7 +157,6 @@ bool Server::connectToServer(std::string &host)
 
 bool Server::sendData()
 {
-    lock_guard lock(&server_mutex);
     ssize_t len = send(sock, send_buffer.c_str(), send_buffer.length(), 0);
 
     if (len == -1)
@@ -156,7 +166,8 @@ bool Server::sendData()
     }else
     {
         if(start_point)
-            printf("[SERVER-SEND] Send %zi bytes to server socket %i by client socket %i.\n", len, sock, start_point->getSock());
+            printf("[SERVER-SEND] Send %zi bytes to server socket %i by client socket %i.\n", len, sock,
+                   start_point->getSocket());
         else
             printf("[SERVER-SEND] Send %zi bytes to server socket %i by already closed client socket.\n", len, sock);
     }
@@ -177,17 +188,22 @@ bool Server::receiveData()
     if (len < 0)
     {
         perror("[---ERROR---] Can't recv data from server");
-        buffer->setFinished(true);
-        buffer->setInvalid(true);
+        entry->lock();
+        entry->setFinished(true);
+        entry->setInvalid(true);
+        entry->unlock();
         return false;
     }else if (!len)
     {
-        buffer->setFinished(true);
+        entry->lock();
+        entry->setFinished(true);
+        entry->unlock();
         return false;
     }else
     {
         if(start_point)
-            printf("[SERVER-RECV] Recv %zi bytes from server socket %i for client socket %i.\n", len, sock, start_point->getSock());
+            printf("[SERVER-RECV] Recv %zi bytes from server socket %i for client socket %i.\n", len, sock,
+                   start_point->getSocket());
         else
             printf("[SERVER-RECV] Recv %zi bytes from server socket %i to cache.\n", len, sock);
     }
@@ -199,16 +215,19 @@ bool Server::receiveData()
         return false;
     }
 
+    entry->lock();
     try
     {
-        buffer->appendData(buff, len);
+        entry->appendData(buff, len);
     } catch (std::bad_alloc &e)
     {
         perror("[---ERROR---] Can't cache server data");
+        entry->unlock();
         return false;
     }
 
-    buffer->noticeClientsToReadCache();
+    entry->noticeClientsToReadCache();
+    entry->unlock();
 
     return true;
 }
@@ -237,9 +256,13 @@ void Server::initHTTPParser()
 int Server::handleMessageComplete(http_parser *parser)
 {
     auto *handler = (Server *)parser->data;
-    handler->buffer->setFinished(true);
+
+    handler->entry->lock();
+    handler->entry->setFinished(true);
     if (parser->status_code != 200u)
-        handler->buffer->setInvalid(true);
+        handler->entry->setInvalid(true);
+
+    handler->entry->unlock();
 
     return 0;
 }
@@ -261,7 +284,7 @@ void Server::removeStartPoint()
 
 void Server::removeCacheEntry()
 {
-    buffer = nullptr;
+    entry = nullptr;
 }
 
 ProxyCore *Server::getCore()
@@ -271,6 +294,5 @@ ProxyCore *Server::getCore()
 
 void Server::putDataToSendBuffer(const char *data, size_t size)
 {
-    lock_guard lock(&server_mutex);
     send_buffer.append(data, size);
 }
