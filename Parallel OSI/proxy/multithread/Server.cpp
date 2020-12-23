@@ -35,12 +35,6 @@ Server::~Server()
 
 bool Server::execute(int event)
 {
-    if(!entry)
-    {
-        printf("[SERVER-INFO] Server socket %i lost its own cache entry and closing...\n", sock);
-        return false;
-    }
-
     if (event & POLLHUP || event & POLLERR)
         return false;
 
@@ -77,6 +71,11 @@ bool Server::execute(int event)
     }else if(closed)
     {
         printf("[SERVER-INFO] Server socket %i lost start point and closing now...\n", sock);
+        unlock();
+        return false;
+    } else if(!entry)
+    {
+        printf("[SERVER-INFO] Server socket %i lost its own cache entry and closing...\n", sock);
         unlock();
         return false;
     }
