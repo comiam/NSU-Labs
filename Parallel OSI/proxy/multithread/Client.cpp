@@ -42,17 +42,22 @@ bool Client::receiveData()
         return false;
     else
     {
+        lock();
         if(end_point)
             printf("[CLIENT-RECV] Recv %zi bytes from client socket %i for server socket %i.\n", len, sock, end_point->getSocket());
         else
             printf("[CLIENT-RECV] Recv %zi bytes from client socket %i for unreleased yet server.\n", len, sock);
+        unlock();
     }
 
+    lock();
     if (http_parser_execute(&parser, &Client::settings, buff, len) != len || http_parse_error)
     {
         perror("[---ERROR---] HTTP parsing ended with error");
+        unlock();
         return false;
-    }
+    }else
+        unlock();
 
     return true;
 }
@@ -92,10 +97,12 @@ bool Client::sendData()
         perror("[---ERROR---] Can't send data to client");
     else
     {
+        lock();
         if(end_point)
             printf("[CLIENT-SEND] Send %zi bytes to client socket %i by server socket %i.\n", len, sock, end_point->getSocket());
         else
             printf("[CLIENT-SEND] Send %zi bytes to client socket %i by cache.\n", len, sock);
+        unlock();
     }
 
     return true;
@@ -340,6 +347,7 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         try
         {
             server->putDataToSendBuffer(handler->server_send_buffer.c_str(), handler->server_send_buffer.size());
+            handler->core->setSocketAvailableToSend(server->getSocket());
         } catch (std::bad_alloc &e)
         {
             fprintf(stderr,"[PROXY-ERROR] Can't transfer send entry from client socket %i to server socket %i\n", handler->sock, serv);
@@ -375,6 +383,7 @@ bool Client::setEndPoint(Server *_end_point)
     try
     {
         _end_point->putDataToSendBuffer(this->server_send_buffer.c_str(), this->server_send_buffer.size());
+        core->setSocketAvailableToSend(_end_point->getSocket());
     } catch (std::bad_alloc &e)
     {
         fprintf(stderr,"[PROXY-ERROR] Can't transfer send entry from NEW client socket %i to server socket %i\n", this->sock, _end_point->getSocket());

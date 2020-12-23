@@ -6,7 +6,7 @@
 #include "ProxyCore.h"
 #include "http_parser.h"
 
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE 4096 * 3
 
 class Client;
 

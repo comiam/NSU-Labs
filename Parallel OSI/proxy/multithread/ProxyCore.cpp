@@ -123,37 +123,13 @@ bool ProxyCore::listenConnections()
 
     printf("[PROXY--CORE] Proxy started on port: %d\n", port);
 
+    std::vector<pollfd> trashbox(0);
+
     while (true)
     {
-        for (auto &i : busy_set)
-            poll_set.erase(std::remove(poll_set.begin(), poll_set.end(), i.second), poll_set.end());
-
-        free_lock.lock();
-        for (auto &i : free_set)
-        {
-            poll_set.push_back(busy_set[i]);
-            busy_set.erase(i);
-        }
-        free_set.clear();
-        free_lock.unlock();
-
-        remove_lock.lock();
-        for (auto &i : trash_set)
-            removeHandlerImpl(i);
-        trash_set.clear();
-        remove_lock.unlock();
-
-        add_lock.lock();
-        for (auto &i : new_server_set)
-            if (!addSocketToPollWithoutBlocking(i.first, POLLIN | POLLPRI | POLLOUT, i.second))
-            {
-                fprintf(stderr, "Can't add new server socket to poll from add set! Closing...");
-                closeSocket(new_client);
-                clearData();
-                return false;
-            }
-        new_server_set.clear();
-        add_lock.unlock();
+        for(auto &i : trashbox)
+            poll_set.erase(std::remove(poll_set.begin(), poll_set.end(), i), poll_set.end());
+        trashbox.clear();
 
         rdwr_lock.lock();
         for (auto &i : sock_rdwr)
@@ -168,6 +144,36 @@ bool ProxyCore::listenConnections()
             }
         }
         rdwr_lock.unlock();
+
+        add_lock.lock();
+        for (auto &i : new_server_set)
+            if (!addSocketToPollWithoutBlocking(i.first, POLLIN | POLLPRI | POLLOUT, i.second))
+            {
+                fprintf(stderr, "Can't add new server socket to poll from add set! Closing...");
+                closeSocket(new_client);
+                clearData();
+                return false;
+            }
+        new_server_set.clear();
+        add_lock.unlock();
+
+        free_lock.lock();
+        for (auto &i : free_set)
+        {
+            poll_set.push_back(busy_set[i]);
+            busy_set.erase(i);
+        }
+        free_set.clear();
+        free_lock.unlock();
+
+        remove_lock.lock();
+        for (auto &i : trash_set)
+        {
+            removeHandlerImpl(i);
+            busy_set.erase(i);
+        }
+        trash_set.clear();
+        remove_lock.unlock();
 
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), poll_set.size() == 1 && busy_set.empty() ? -1 : 1);
 
@@ -243,14 +249,14 @@ bool ProxyCore::listenConnections()
                     } else
                     {
                         task_list.lock();
-                        auto p = std::make_pair(poll_set[i].fd, revent);
+                        pollfd val = poll_set[i];
+                        auto p = std::make_pair(val.fd, revent);
                         if (!task_list.count(p))
                         {
                             task_list.insert(p);
-
-                            busy_set[poll_set[i].fd] = poll_set[i];
+                            busy_set[val.fd] = val;
+                            trashbox.push_back(val);
                         }
-
                         task_list.notify();
                         task_list.unlock();
                     }

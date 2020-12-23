@@ -41,6 +41,10 @@ bool Server::execute(int event)
         return false;
     }
 
+    if (event & POLLHUP || event & POLLERR)
+        return false;
+
+    lock();
     if(closed && entry)
     {
         entry->lock();
@@ -48,6 +52,7 @@ bool Server::execute(int event)
         {
             printf("[SERVER-INFO] Server socket %i lost client side socket and begin finding new client...\n", sock);
             core->lockHandlers();
+
             Client *client = entry->getNewClientSide();
             entry->unlock();
 
@@ -57,32 +62,38 @@ bool Server::execute(int event)
                         "[---ERROR---] Can't find new client... Server socket %i became work as daemon until full downloading a cache...\n",
                         sock);
                 core->unlockHandlers();
+                unlock();
                 return true;
-            }
+            }else
+                setStartPoint(client);
 
-            client->lock();
             printf("[SERVER-INFO] Server socket %i became the new end point of client socket %i.\n", sock,
                    client->getSocket());
-            setStartPoint(client);
-            client->unlock();
             core->unlockHandlers();
+
             closed = false;
         }else
             entry->unlock();
     }else if(closed)
     {
         printf("[SERVER-INFO] Server socket %i lost start point and closing now...\n", sock);
+        unlock();
         return false;
     }
 
-    if (event & POLLHUP || event & POLLERR)
+    if ((event & (POLLIN | POLLPRI)) && !receiveData())
+    {
+        unlock();
         return false;
+    }
 
     if ((event & POLLOUT) && !sendData())
+    {
+        unlock();
         return false;
+    }
 
-    if ((event & (POLLIN | POLLPRI)) && !receiveData())
-        return false;
+    unlock();
 
     return true;
 }
@@ -167,8 +178,11 @@ bool Server::sendData()
     {
         perror("[---ERROR---] Can't send data to server");
         return false;
-    }else
+    }else if(!len)
+        return true;
+    else
     {
+
         if(start_point)
             printf("[SERVER-SEND] Send %zi bytes to server socket %i by client socket %i.\n", len, sock,
                    start_point->getSocket());

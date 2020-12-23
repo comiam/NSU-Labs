@@ -69,6 +69,13 @@ void Cache::unsubscribeToEntry(std::string &url, int socket)
 
     if (it->second->isInvalid() || it->second->getSubscribers() == 0)
     {
+        auto *source = it->second->source;
+        if(source)
+        {
+           source->lock();
+           source->removeCacheEntry();
+           source->unlock();
+        }
         it->second->unlock();
         delete(it->second);
         cached_data.erase(it);
@@ -95,12 +102,6 @@ CacheEntry::CacheEntry(std::string &url): Monitor()
 
 CacheEntry::~CacheEntry()
 {
-    if(source)
-    {
-        source->lock();
-        source->removeCacheEntry();
-        source->unlock();
-    }
     delete data;
 
     sub_set.clear();
