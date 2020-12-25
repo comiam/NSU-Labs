@@ -27,7 +27,7 @@ public:
     ProxyCore(int port, int thread_count);
     ~ProxyCore();
 
-    void closeSocket(int sock) const;
+    static void closeSocket(int sock, bool is_server_sock);
     bool isCreated() const;
     bool listenConnections();
 
@@ -52,7 +52,9 @@ private:
 
     void removeHandlerImpl(int sock);
 
-    int sock = -1;
+    static void unlockMonitor(Monitor monitor);
+
+    int proxy_socket = -1;
     int port = 0;
     std::vector<pthread_t> thread_pool;
     std::vector<pollfd> poll_set;
@@ -83,7 +85,6 @@ private:
 
     bool created = false;
     bool closing = false;
-    bool poll_running = false;
 
     ssize_t getSocketIndex(int _sock);
 };

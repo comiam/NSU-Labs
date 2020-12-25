@@ -329,8 +329,6 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         }
         handler->entry->unlock();
 
-        server->setStartPoint(handler);
-
         printf("[PROXY--INFO] Cache of %s not found: connecting to %s...\n", handler->url.c_str(), host.c_str());
         if (!server->connectToServer(host))
         {
@@ -343,6 +341,8 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         }
 
         server->lock();
+        server->setStartPoint(handler);
+
         int serv = server->getSocket();
         try
         {

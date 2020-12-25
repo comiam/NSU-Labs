@@ -7,8 +7,6 @@
 #include <semaphore.h>
 #include "errhandle.h"
 
-//#define DEBUG_ENABLED
-
 class Monitor
 {
 private:
@@ -16,11 +14,13 @@ private:
     pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
 
     bool created = false;
+    bool locked  = false;
 
     void assertCreated() const;
 public:
     Monitor();
     ~Monitor();
+    bool isLocked();
     void wait();
     void notify();
     void notifyAll();

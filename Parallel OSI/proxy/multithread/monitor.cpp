@@ -59,6 +59,8 @@ Monitor::~Monitor()
         if (NO_ERROR != errcode)
             errorfln("Cannot destroy condition variable: %s", strerror(errcode));
 #elif !defined(DEBUG_ENABLED)
+        locked = false;
+        created = false;
         pthread_mutex_destroy(&m_lock);
         pthread_cond_destroy(&cv);
 #endif
@@ -83,7 +85,6 @@ void Monitor::notify()
 {
     assertCreated();
     int errcode = pthread_cond_signal(&cv);
-
     if (NO_ERROR != errcode)
     {
 #ifdef DEBUG_ENABLED
@@ -96,6 +97,7 @@ void Monitor::notify()
 void Monitor::wait()
 {
     assertCreated();
+    locked = false;
     int errcode = pthread_cond_wait(&cv, &m_lock);
     if (NO_ERROR != errcode)
     {
@@ -103,7 +105,8 @@ void Monitor::wait()
         errorfln("Failed to wait on monitor: %s", strerror(errcode));
 #endif
         exit(EXIT_FAILURE);
-    }
+    }else
+        locked = true;
 }
 
 void Monitor::lock()
@@ -118,7 +121,8 @@ void Monitor::lock()
         errorfln("Failed to poll_lock monitor: %s", strerror(errcode));
 #endif
         exit(EXIT_FAILURE);
-    }
+    }else
+        locked = true;
 }
 
 void Monitor::unlock()
@@ -130,7 +134,8 @@ void Monitor::unlock()
         errorfln("Failed to unlock monitor: %s", strerror(errcode));
 #endif
         exit(EXIT_FAILURE);
-    }
+    }else
+        locked = false;
 }
 
 void Monitor::assertCreated() const
@@ -143,4 +148,9 @@ void Monitor::assertCreated() const
         exit(EXIT_FAILURE);
     }
 
+}
+
+bool Monitor::isLocked()
+{
+    return locked;
 }

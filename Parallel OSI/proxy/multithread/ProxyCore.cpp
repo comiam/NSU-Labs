@@ -27,22 +27,22 @@ ProxyCore::ProxyCore(int port, int thread_count)
     addr.sin_port = htons(port);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    sock = socket(AF_INET, SOCK_STREAM, 0);
+    proxy_socket = socket(AF_INET, SOCK_STREAM, 0);
 
-    if(sock == -1)
+    if(proxy_socket == -1)
     {
         perror("[PROXY-ERROR] Can't create server socket");
         return;
     }
 
-    if (bind(sock, (sockaddr *) &addr, sizeof(addr)) == -1)
+    if (bind(proxy_socket, (sockaddr *) &addr, sizeof(addr)) == -1)
     {
         perror("[PROXY-ERROR] Can't bind socket on port");
-        close(sock);
+        close(proxy_socket);
         return;
     }
 
-    if(!initSocket(sock) || !initPollSet())
+    if(!initSocket(proxy_socket) || !initPollSet())
         return;
 
     Client::initHTTPParser();
@@ -82,27 +82,42 @@ void ProxyCore::clearData()
 {
     closing = true;
 
+#ifdef DEBUG_ENABLED
+    printf("Closing childs...\n");
+#endif
     task_list.lock();
     task_list.notifyAll();
     task_list.unlock();
 
-    for (auto thread : thread_pool)
-        pthread_cancel(thread);
+    for(auto &thr : thread_pool)
+        pthread_join(thr, nullptr);
+#ifdef DEBUG_ENABLED
+    printf("End closing childs...\n");
+    printf("Closing sockets...\n");
+#endif
 
     for (auto & i : poll_set)
     {
-        closeSocket(i.fd);
+        closeSocket(i.fd, i.fd == proxy_socket);
 
         if (socketHandlers[i.fd])
             delete(socketHandlers[i.fd]);
     }
+#ifdef DEBUG_ENABLED
+    printf("Poll set of sockets closed...\n");
+    printf("Begin close busy set of sockets...\n");
+#endif
     for (auto & i : busy_set)
     {
-        closeSocket(i.first);
+        closeSocket(i.first, false);
 
         if (socketHandlers[i.first])
             delete(socketHandlers[i.first]);
     }
+#ifdef DEBUG_ENABLED
+    printf("End closing sockets...\n");
+    printf("Clear data and closing monitors...\n");
+#endif
 
     thread_pool.clear();
     socketHandlers.clear();
@@ -113,6 +128,11 @@ void ProxyCore::clearData()
     free_set.clear();
     poll_set.clear();
     busy_set.clear();
+
+    unlockMonitor(add_lock);
+    unlockMonitor(free_lock);
+    unlockMonitor(remove_lock);
+    unlockMonitor(rdwr_lock);
 }
 
 bool ProxyCore::listenConnections()
@@ -143,6 +163,7 @@ bool ProxyCore::listenConnections()
                     poll_set[pos].events &= ~POLLOUT;
             }
         }
+        sock_rdwr.clear();
         rdwr_lock.unlock();
 
         add_lock.lock();
@@ -150,7 +171,7 @@ bool ProxyCore::listenConnections()
             if (!addSocketToPollWithoutBlocking(i.first, POLLIN | POLLPRI | POLLOUT, i.second))
             {
                 fprintf(stderr, "Can't add new server socket to poll from add set! Closing...");
-                closeSocket(new_client);
+                closeSocket(new_client, false);
                 clearData();
                 return false;
             }
@@ -175,9 +196,7 @@ bool ProxyCore::listenConnections()
         trash_set.clear();
         remove_lock.unlock();
 
-        poll_running = true;
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), 1);
-        poll_running = false;
 
         if (count == -1)
         {
@@ -203,22 +222,13 @@ bool ProxyCore::listenConnections()
                     {
                         if (revent & (POLLIN | POLLPRI))
                         {
-                            new_client = accept(sock, nullptr, nullptr);
+                            new_client = accept(proxy_socket, nullptr, nullptr);
                             if (new_client == -1)
                             {
                                 perror("[PROXY-ERROR] Can't accept new client");
                                 clearData();
                                 return false;
                             }
-
-                            /*if (fcntl(new_client, F_SETFL, O_NONBLOCK) == -1)
-                            {
-                                perror("[PROXY-ERROR] Can't set nonblock to client socket");
-
-                                closeSocket(new_client);
-                                clearData();
-                                return false;
-                            }*/
 
                             Client *client;
                             try
@@ -228,7 +238,7 @@ bool ProxyCore::listenConnections()
                             {
                                 perror("[PROXY-ERROR] Can't allocate new client");
 
-                                closeSocket(new_client);
+                                closeSocket(new_client, false);
                                 clearData();
                                 return false;
                             }
@@ -236,7 +246,7 @@ bool ProxyCore::listenConnections()
                             if (!addSocketToPollWithoutBlocking(new_client, POLLIN | POLLPRI, client))
                             {
                                 fprintf(stderr, "Can't add new socket to poll! Closing...");
-                                closeSocket(new_client);
+                                closeSocket(new_client, false);
                                 clearData();
                                 return false;
                             }
@@ -313,15 +323,9 @@ bool ProxyCore::addSocketToPoll(int socket, ConnectionHandler *executor)
 
 bool ProxyCore::initSocket(int sock_fd)
 {
-    sock = sock_fd;
+    proxy_socket = sock_fd;
 
-    /*if (fcntl(sock, F_SETFL, O_NONBLOCK) == -1)
-    {
-        perror("[PROXY-ERROR] Can't make socket nonblocking!");
-        clearData();
-        return false;
-    }*/
-    if (listen(sock, POLL_SIZE_SEGMENT) == -1)
+    if (listen(proxy_socket, POLL_SIZE_SEGMENT) == -1)
     {
         perror("[PROXY-ERROR] Can't set listen to server socket");
         clearData();
@@ -357,7 +361,7 @@ void ProxyCore::setSocketUnavailableToSend(int socket)
 bool ProxyCore::initPollSet()
 {
     pollfd fd{};
-    fd.fd = sock;
+    fd.fd = proxy_socket;
     fd.events = POLLIN | POLLPRI;
     fd.revents = 0;
 
@@ -382,9 +386,9 @@ ConnectionHandler *ProxyCore::getHandlerBySocket(int socket)
     return !socketHandlers.count(socket) ? nullptr : socketHandlers[socket];
 }
 
-void ProxyCore::closeSocket(int _sock) const
+void ProxyCore::closeSocket(int _sock, bool is_server_sock)
 {
-    shutdown(_sock, _sock == sock ? SHUT_RDWR : SHUT_WR);
+    shutdown(_sock, !is_server_sock ? SHUT_RDWR : SHUT_WR);
     close(_sock);
 }
 
@@ -397,9 +401,12 @@ void ProxyCore::removeHandler(int socket)
 
 std::pair<int, int> ProxyCore::getTask()
 {
+    if(closing)
+        return std::make_pair(-1,-1);
+
     task_list.lock();
 
-    while(task_list.empty())
+    while(task_list.empty() && !closing)
         task_list.wait();
 
     if(closing)
@@ -449,7 +456,13 @@ void ProxyCore::removeHandlerImpl(int _sock)
             break;
         }
 
-    closeSocket(_sock);
+    closeSocket(_sock, false);
+}
+
+void ProxyCore::unlockMonitor(Monitor monitor)
+{
+    if(monitor.isLocked())
+        monitor.unlock();
 }
 
 void cleanProxy(void* arg)
@@ -492,60 +505,19 @@ void *routine(void *args)
     return nullptr;
 }
 
-#ifdef DEBUG_ENABLED
-int total = 0;
-Monitor t;
-int getTotalCount()
-{
-    return total;
-}
-
-void inc()
-{
-    total ++;
-}
-
-void dec()
-{
-    t.lock();
-    total--;
-    t.unlock();
-}
-#endif
-
 void *worker_routine(void *args)
 {
-    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, nullptr);
     auto *parent = (ProxyCore*)args;
     std::pair<int, int> current_task;
     ConnectionHandler *handler;
 
     while(true)
     {
-        pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
-        current_task = parent->getTask();
-        pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, nullptr);
-
-        if(current_task.first == -1)
-        {
-            pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
+        if((current_task = parent->getTask()).first == -1)
             return nullptr;
-        }
 
         handler = parent->getHandlerBySocket(current_task.first);
-
-#ifdef DEBUG_ENABLED
-        t.lock();
-        inc();
-        printf("Thread got work, now active %i/10\n", getTotalCount());
-        t.unlock();
-#endif
-
         bool res = !handler->execute(current_task.second);
-
-#ifdef DEBUG_ENABLED
-        dec();
-#endif
 
         if(res)
             parent->removeHandler(current_task.first);

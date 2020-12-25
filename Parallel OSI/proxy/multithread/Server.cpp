@@ -86,7 +86,7 @@ bool Server::execute(int event)
         return false;
     }
 
-    if ((event & POLLOUT) && !sendData())
+    if (!send_buffer.empty() && (event & POLLOUT) && !sendData())
     {
         unlock();
         return false;
@@ -141,7 +141,7 @@ bool Server::connectToServer(std::string host)
     {
         perror("[---ERROR---] Can't connect to server");
 
-        core->closeSocket(sock);
+        ProxyCore::closeSocket(sock, false);
         sock = -1;
         freeaddrinfo(res_info);
         return false;
@@ -158,7 +158,7 @@ bool Server::connectToServer(std::string host)
     {
         perror("[---ERROR---] Can't save server socket\n");
 
-        core->closeSocket(sock);
+        ProxyCore::closeSocket(sock, false);
         sock = -1;
         freeaddrinfo(res_info);
         return false;
@@ -177,9 +177,9 @@ bool Server::sendData()
     {
         perror("[---ERROR---] Can't send data to server");
         return false;
-    }else if(!len)
+    }else /*if(!len)
         return true;
-    else
+    else*/
     {
 
         if(start_point)
@@ -255,7 +255,7 @@ int Server::getSocket() const
 
 int Server::tryResolveAddress(const std::string& host, addrinfo** res)
 {
-    addrinfo hints;
+    addrinfo hints{};
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_family = PF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
