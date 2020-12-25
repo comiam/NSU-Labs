@@ -20,7 +20,7 @@ public:
 
     Client* getNewClientSide();
     bool isHavingSocketSource();
-    bool isFinished();
+    bool isFinished() const;
     bool isCreatedNow() const;
 
     std::string getPartOfData(size_t beg, size_t length);
@@ -35,10 +35,10 @@ private:
     void addSubToList(int sock);
     void removeSubFromList(int sock);
     void noticeClientsToReadCache();
-    size_t getSubscribers();
+    size_t getSubscribers() const;
 
     bool containsSub(int sock);
-    bool isInvalid();
+    bool isInvalid() const;
 
     Server *source = nullptr;
     bool is_new_entry = true;

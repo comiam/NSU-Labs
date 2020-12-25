@@ -175,7 +175,9 @@ bool ProxyCore::listenConnections()
         trash_set.clear();
         remove_lock.unlock();
 
-        count = poll(poll_set.data(), (nfds_t) poll_set.size(), poll_set.size() == 1 && busy_set.empty() ? -1 : 1);
+        poll_running = true;
+        count = poll(poll_set.data(), (nfds_t) poll_set.size(), 1);
+        poll_running = false;
 
         if (count == -1)
         {
@@ -209,14 +211,14 @@ bool ProxyCore::listenConnections()
                                 return false;
                             }
 
-                            if (fcntl(new_client, F_SETFL, O_NONBLOCK) == -1)
+                            /*if (fcntl(new_client, F_SETFL, O_NONBLOCK) == -1)
                             {
                                 perror("[PROXY-ERROR] Can't set nonblock to client socket");
 
                                 closeSocket(new_client);
                                 clearData();
                                 return false;
-                            }
+                            }*/
 
                             Client *client;
                             try
@@ -313,12 +315,12 @@ bool ProxyCore::initSocket(int sock_fd)
 {
     sock = sock_fd;
 
-    if (fcntl(sock, F_SETFL, O_NONBLOCK) == -1)
+    /*if (fcntl(sock, F_SETFL, O_NONBLOCK) == -1)
     {
         perror("[PROXY-ERROR] Can't make socket nonblocking!");
         clearData();
         return false;
-    }
+    }*/
     if (listen(sock, POLL_SIZE_SEGMENT) == -1)
     {
         perror("[PROXY-ERROR] Can't set listen to server socket");

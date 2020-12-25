@@ -17,7 +17,7 @@
 #include "monitor.h"
 #include "ConnectionHandler.h"
 
-#define POLL_SIZE_SEGMENT 50
+#define POLL_SIZE_SEGMENT 100
 
 pthread_t initProxyCore(std::pair<int, int> &port);
 
@@ -83,6 +83,7 @@ private:
 
     bool created = false;
     bool closing = false;
+    bool poll_running = false;
 
     ssize_t getSocketIndex(int _sock);
 };

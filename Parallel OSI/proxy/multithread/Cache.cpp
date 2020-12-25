@@ -117,17 +117,17 @@ void CacheEntry::setInvalid(bool _invalid)
     this->invalid = _invalid;
 }
 
-bool CacheEntry::isFinished()
+bool CacheEntry::isFinished() const
 {
     return finished;
 }
 
-bool CacheEntry::isInvalid()
+bool CacheEntry::isInvalid() const
 {
     return invalid;
 }
 
-size_t CacheEntry::getSubscribers()
+size_t CacheEntry::getSubscribers() const
 {
     return subscribers;
 }
