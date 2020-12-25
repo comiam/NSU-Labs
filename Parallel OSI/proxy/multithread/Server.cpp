@@ -45,7 +45,6 @@ bool Server::execute(int event)
         if(entry->getSubscribers() > 0 && !entry->isFinished())
         {
             printf("[SERVER-INFO] Server socket %i lost client side socket and begin finding new client...\n", sock);
-            core->lockHandlers();
 
             Client *client = entry->getNewClientSide();
             entry->unlock();
@@ -55,7 +54,6 @@ bool Server::execute(int event)
                 fprintf(stderr,
                         "[---ERROR---] Can't find new client... Server socket %i became work as daemon until full downloading a cache...\n",
                         sock);
-                core->unlockHandlers();
                 unlock();
                 return true;
             }else
@@ -63,7 +61,6 @@ bool Server::execute(int event)
 
             printf("[SERVER-INFO] Server socket %i became the new end point of client socket %i.\n", sock,
                    client->getSocket());
-            core->unlockHandlers();
 
             closed = false;
         }else
@@ -177,9 +174,7 @@ bool Server::sendData()
     {
         perror("[---ERROR---] Can't send data to server");
         return false;
-    }else /*if(!len)
-        return true;
-    else*/
+    }else
     {
 
         if(start_point)

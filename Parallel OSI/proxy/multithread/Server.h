@@ -34,12 +34,12 @@ private:
     std::string send_buffer;
 
     CacheEntry *entry = nullptr;
-    Client *start_point;
+    Client *start_point = nullptr;
 
     http_parser parser;
     static http_parser_settings settings;
 
-    ProxyCore *core;
+    ProxyCore *core = nullptr;
 
     bool sendData() override;
     bool receiveData() override;

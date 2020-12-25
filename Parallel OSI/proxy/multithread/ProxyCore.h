@@ -50,7 +50,7 @@ private:
 
     bool addSocketToPollWithoutBlocking(int socket, short events, ConnectionHandler *executor);
 
-    void removeHandlerImpl(int sock);
+    void removeHandlerImpl(int sock, pollfd fd);
 
     static void unlockMonitor(Monitor monitor);
 
