@@ -50,7 +50,7 @@ private:
 
     bool addSocketToPoll(int socket, short events, ConnectionHandler *executor);
 
-    void removeHandlerImpl(int sock, pollfd fd);
+    void removeHandlerImpl(int sock);
 
     static void unlockMonitor(Monitor monitor);
 

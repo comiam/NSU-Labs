@@ -16,7 +16,7 @@ public:
     Server(CacheEntry *cache_buff, ProxyCore *proxy_handler);
     ~Server() override;
     bool execute(int event) override;
-    bool connectToServer(std::string host);
+    bool connectToServer(const std::string& host);
 
     int getSocket() const;
 

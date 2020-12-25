@@ -94,7 +94,7 @@ bool Server::execute(int event)
     return true;
 }
 
-bool Server::connectToServer(std::string host)
+bool Server::connectToServer(const std::string& host)
 {
     std::string host_name = host;
     size_t split_pos = host.find_first_of(':');
@@ -140,13 +140,6 @@ bool Server::connectToServer(std::string host)
 
         ProxyCore::closeSocket(sock, false);
         sock = -1;
-        freeaddrinfo(res_info);
-        return false;
-    }
-
-    if (fcntl(sock, F_SETFL, O_NONBLOCK) == -1)
-    {
-        perror("[---ERROR---] Can't set nonblock socket for server");
         freeaddrinfo(res_info);
         return false;
     }

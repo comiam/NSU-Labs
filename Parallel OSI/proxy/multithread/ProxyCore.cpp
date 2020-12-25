@@ -190,12 +190,14 @@ bool ProxyCore::listenConnections()
         free_lock.unlock();
 
         remove_lock.lock();
-        for (auto &i : trash_set)
-        {
-            removeHandlerImpl(i, busy_set[i]);
-            busy_set.erase(i);
-        }
-        trash_set.clear();
+        for (auto iter = trash_set.begin(); iter != trash_set.end(); ++iter)
+            if(!busy_set.count(*iter))
+            {
+                removeHandlerImpl(*iter);
+                auto next = iter + 1;
+                trash_set.erase(iter);
+                iter = next;
+            }
         remove_lock.unlock();
 
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), 1);
@@ -441,7 +443,7 @@ void ProxyCore::madeSocketFreeForPoll(int _sock)
     free_lock.unlock();
 }
 
-void ProxyCore::removeHandlerImpl(int _sock, pollfd fd)
+void ProxyCore::removeHandlerImpl(int _sock)
 {
     if(!socketHandlers[_sock])
         return;
@@ -451,7 +453,12 @@ void ProxyCore::removeHandlerImpl(int _sock, pollfd fd)
     delete(socketHandlers[_sock]);
 
     socketHandlers.erase(_sock);
-    poll_set.erase(std::remove(poll_set.begin(), poll_set.end(), fd), poll_set.end());
+    for(auto iter = poll_set.begin(); iter != poll_set.end(); ++iter)
+        if((*iter).fd == _sock)
+        {
+            poll_set.erase(iter);
+            break;
+        }
 
     closeSocket(_sock, false);
 }
@@ -513,12 +520,9 @@ void *worker_routine(void *args)
         if((current_task = parent->getTask()).first == -1)
             return nullptr;
 
-        if(!(handler = parent->getHandlerBySocket(current_task.first)))
-            continue;
+        handler = parent->getHandlerBySocket(current_task.first);
 
-        parent->lockHandlers();
         bool res = !handler->execute(current_task.second);
-        parent->unlockHandlers();
 
         if(res)
             parent->removeHandler(current_task.first);
