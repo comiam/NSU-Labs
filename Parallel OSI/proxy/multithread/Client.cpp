@@ -22,7 +22,7 @@ bool Client::execute(int event)
     if ((event & (POLLIN | POLLPRI)) && !receiveData())
         return false;
 
-    if (event & POLLOUT && entry && !sendData())
+    if ((event & POLLOUT) && entry && !sendData())
         return false;
 
     return true;

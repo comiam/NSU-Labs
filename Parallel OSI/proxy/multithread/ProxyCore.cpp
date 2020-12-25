@@ -168,7 +168,7 @@ bool ProxyCore::listenConnections()
 
         add_lock.lock();
         for (auto &i : new_server_set)
-            if (!addSocketToPollWithoutBlocking(i.first, POLLIN | POLLPRI | POLLOUT, i.second))
+            if (!addSocketToPoll(i.first, POLLIN | POLLPRI | POLLOUT, i.second))
             {
                 fprintf(stderr, "Can't add new server socket to poll from add set! Closing...");
                 closeSocket(new_client, false);
@@ -245,7 +245,7 @@ bool ProxyCore::listenConnections()
                                 return false;
                             }
 
-                            if (!addSocketToPollWithoutBlocking(new_client, POLLIN | POLLPRI, client))
+                            if (!addSocketToPoll(new_client, POLLIN | POLLPRI, client))
                             {
                                 fprintf(stderr, "Can't add new socket to poll! Closing...");
                                 closeSocket(new_client, false);
@@ -293,7 +293,7 @@ inline bool instanceOf(const T *ptr)
     return dynamic_cast<const Base*>(ptr) != nullptr;
 }
 
-bool ProxyCore::addSocketToPollWithoutBlocking(int socket, short events, ConnectionHandler *executor)
+bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *executor)
 {
     pollfd fd{};
     fd.fd = socket;
@@ -314,7 +314,7 @@ bool ProxyCore::addSocketToPollWithoutBlocking(int socket, short events, Connect
     return success;
 }
 
-bool ProxyCore::addSocketToPoll(int socket, ConnectionHandler *executor)
+bool ProxyCore::addSocketToPollQueue(int socket, ConnectionHandler *executor)
 {
     add_lock.lock();
     new_server_set.emplace_back(socket, executor);

@@ -150,7 +150,7 @@ void Monitor::assertCreated() const
 
 }
 
-bool Monitor::isLocked()
+bool Monitor::isLocked() const
 {
     return locked;
 }

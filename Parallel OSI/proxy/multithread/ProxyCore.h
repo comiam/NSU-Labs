@@ -37,7 +37,7 @@ public:
 
     void setSocketUnavailableToSend(int socket);
     void setSocketAvailableToSend  (int socket);
-    bool addSocketToPoll(int socket, ConnectionHandler *executor);
+    bool addSocketToPollQueue(int socket, ConnectionHandler *executor);
 
     void                removeHandler(int sock);
     std::pair<int, int> getTask();
@@ -48,7 +48,7 @@ private:
     bool initSocket(int sock_fd);
     bool initPollSet();
 
-    bool addSocketToPollWithoutBlocking(int socket, short events, ConnectionHandler *executor);
+    bool addSocketToPoll(int socket, short events, ConnectionHandler *executor);
 
     void removeHandlerImpl(int sock, pollfd fd);
 

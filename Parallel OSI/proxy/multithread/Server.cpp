@@ -151,7 +151,7 @@ bool Server::connectToServer(std::string host)
         return false;
     }
 
-    if (!core->addSocketToPoll(sock, this))
+    if (!core->addSocketToPollQueue(sock, this))
     {
         perror("[---ERROR---] Can't save server socket\n");
 

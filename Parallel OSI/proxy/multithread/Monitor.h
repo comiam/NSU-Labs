@@ -20,7 +20,7 @@ private:
 public:
     Monitor();
     ~Monitor();
-    bool isLocked();
+    bool isLocked() const;
     void wait();
     void notify();
     void notifyAll();
