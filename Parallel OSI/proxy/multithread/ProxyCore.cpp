@@ -522,22 +522,16 @@ void *worker_routine(void *args)
 
     while(true)
     {
-        //printf("get new task\n");
         if((current_task = parent->getTask()).first == -1)
             return nullptr;
-
-        //printf("got new task\n");
 
         if(!(handler = parent->getHandlerBySocket(current_task.first)))
             continue;
 
         bool res = !handler->execute(current_task.second);
 
-        //printf("after exec\n");
-
         parent->madeSocketFreeForPoll(current_task.first);
         if(res)
             parent->removeHandler(current_task.first);
-        //printf("new loop\n");
     }
 }
