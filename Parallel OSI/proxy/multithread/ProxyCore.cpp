@@ -41,7 +41,6 @@ ProxyCore::ProxyCore(int port, int thread_count)
         close(proxy_socket);
         return;
     }
-
     if(!initSocket(proxy_socket) || !initPollSet())
         return;
 
@@ -148,7 +147,7 @@ bool ProxyCore::listenConnections()
     while (true)
     {
         for(auto &i : trashbox)
-            poll_set.erase(std::remove(poll_set.begin(), poll_set.end(), i), poll_set.end());
+            poll_set.erase(std::remove(poll_set.begin() + 1, poll_set.end(), i), poll_set.end());
         trashbox.clear();
 
         rdwr_lock.lock();
@@ -190,14 +189,10 @@ bool ProxyCore::listenConnections()
         free_lock.unlock();
 
         remove_lock.lock();
-        for (auto iter = trash_set.begin(); iter != trash_set.end(); ++iter)
-            if(!busy_set.count(*iter))
-            {
-                removeHandlerImpl(*iter);
-                auto next = iter + 1;
-                trash_set.erase(iter);
-                iter = next;
-            }
+        for(int & iter : trash_set)
+            if(!busy_set.count(iter))
+                removeHandlerImpl(iter);
+        trash_set.clear();
         remove_lock.unlock();
 
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), 1);
@@ -524,9 +519,8 @@ void *worker_routine(void *args)
 
         bool res = !handler->execute(current_task.second);
 
+        parent->madeSocketFreeForPoll(current_task.first);
         if(res)
             parent->removeHandler(current_task.first);
-        else
-            parent->madeSocketFreeForPoll(current_task.first);
     }
 }

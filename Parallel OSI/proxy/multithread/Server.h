@@ -43,6 +43,7 @@ private:
 
     bool sendData() override;
     bool receiveData() override;
+    static int timeoutConnect(int sock, addrinfo *res_info);
 
     static int tryResolveAddress(const std::string& host, addrinfo** res);
 
