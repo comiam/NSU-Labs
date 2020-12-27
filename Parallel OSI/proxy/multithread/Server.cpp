@@ -34,18 +34,15 @@ bool Server::execute(int event)
             Client *client = entry->getNewClientSide();
             entry->unlock();
 
-            if (!client)
+            if (client)
             {
-                fprintf(stderr,
-                        "[---ERROR---] Can't find new client... Server socket %i became work as daemon until full downloading a cache...\n",
-                        sock);
-                unlock();
-                return true;
-            } else
                 setStartPoint(client);
-
-            printf("[SERVER-INFO] Server socket %i became the new end point of client socket %i.\n", sock,
-                   client->getSocket());
+                printf("[SERVER-INFO] Server socket %i became the new end point of client socket %i.\n", sock,
+                       client->getSocket());
+            } else
+                fprintf(stdout,
+                        "[SERVER-INFO] Can't find new client... "
+                        "Server socket %i became work as daemon until full downloading a cache...\n", sock);
 
             closed = false;
         } else

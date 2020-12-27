@@ -380,20 +380,20 @@ int Client::getSocket() const
 
 bool Client::setEndPoint(Server *_end_point)
 {
-    if(end_point)
+    if(end_point || closed)
         return false;
 
+    this->end_point = _end_point;
     try
     {
-        _end_point->putDataToSendBuffer(this->server_send_buffer.c_str(), this->server_send_buffer.size());
-        core->setSocketAvailableToSend(_end_point->getSocket());
+        this->end_point->putDataToSendBuffer(this->server_send_buffer.c_str(), this->server_send_buffer.size());
+        core->setSocketAvailableToSend(this->end_point->getSocket());
     } catch (std::bad_alloc &e)
     {
-        fprintf(stderr,"[PROXY-ERROR] Can't transfer send entry from NEW client socket %i to server socket %i\n", this->sock, _end_point->getSocket());
+        fprintf(stderr,"[PROXY-ERROR] Can't transfer send entry from NEW client socket %i to server socket %i\n", this->sock, this->end_point->getSocket());
         return false;
     }
     this->server_send_buffer.clear();
-    this->end_point = _end_point;
 
     return true;
 }
@@ -401,6 +401,7 @@ bool Client::setEndPoint(Server *_end_point)
 void Client::clearEndPoint()
 {
     lock();
+    closed = true;
     if(end_point)
     {
         end_point->lock();
