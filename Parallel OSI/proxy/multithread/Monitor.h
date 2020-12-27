@@ -5,6 +5,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <semaphore.h>
+#include <stdexcept>
 #include "errhandle.h"
 
 class Monitor
@@ -13,10 +14,7 @@ private:
     pthread_mutex_t m_lock = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t cv = PTHREAD_COND_INITIALIZER;
 
-    bool created = false;
     bool locked  = false;
-
-    void assertCreated() const;
 public:
     Monitor();
     ~Monitor();

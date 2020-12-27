@@ -147,7 +147,7 @@ bool ProxyCore::listenConnections()
     while (true)
     {
         for(auto &i : trashbox)
-            poll_set.erase(std::remove(poll_set.begin() + 1, poll_set.end(), i), poll_set.end());
+            poll_set.erase(std::remove(poll_set.begin(), poll_set.end(), i), poll_set.end());
         trashbox.clear();
 
         rdwr_lock.lock();
@@ -189,10 +189,13 @@ bool ProxyCore::listenConnections()
         free_lock.unlock();
 
         remove_lock.lock();
-        for(int & iter : trash_set)
-            if(!busy_set.count(iter))
-                removeHandlerImpl(iter);
-        trash_set.clear();
+        for(auto it = trash_set.begin();it != trash_set.end();)
+            if(!busy_set.count(*it))
+            {
+                removeHandlerImpl(*it);
+                trash_set.erase(it);
+            }else
+                it++;
         remove_lock.unlock();
 
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), 1);
@@ -262,7 +265,8 @@ bool ProxyCore::listenConnections()
                         task_list.lock();
                         pollfd val = poll_set[i];
                         auto p = std::make_pair(val.fd, revent);
-                        if (!task_list.count(p))
+                        if (!task_list.count(p) &&
+                                (std::find(trash_set.begin(), trash_set.end(), val.fd) == trash_set.end()))
                         {
                             task_list.insert(p);
                             busy_set[val.fd] = val;
@@ -448,12 +452,19 @@ void ProxyCore::removeHandlerImpl(int _sock)
     delete(socketHandlers[_sock]);
 
     socketHandlers.erase(_sock);
-    for(auto iter = poll_set.begin(); iter != poll_set.end(); ++iter)
+    poll_set.erase(
+            std::remove_if(
+                    poll_set.begin(),
+                    poll_set.end(),
+                    [_sock](const pollfd &p) { return p.fd == _sock; }
+                ),
+            poll_set.end());
+   /* for(auto iter = poll_set.begin(); iter != poll_set.end(); ++iter)
         if((*iter).fd == _sock)
         {
             poll_set.erase(iter);
             break;
-        }
+        }*/
 
     closeSocket(_sock, false);
 }

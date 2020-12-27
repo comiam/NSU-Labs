@@ -14,16 +14,28 @@ Client::Client(int sock, ProxyCore *proxy): Monitor()
 bool Client::execute(int event)
 {
     if (closed)
+    {
+        clearEndPoint();
         return false;
+    }
 
     if (event & (POLLHUP | POLLERR))
+    {
+        clearEndPoint();
         return false;
+    }
 
     if ((event & (POLLIN | POLLPRI)) && !receiveData())
+    {
+        clearEndPoint();
         return false;
+    }
 
     if ((event & POLLOUT) && entry && !sendData())
+    {
+        clearEndPoint();
         return false;
+    }
 
     return true;
 }
@@ -56,8 +68,8 @@ bool Client::receiveData()
         perror("[---ERROR---] HTTP parsing ended with error");
         unlock();
         return false;
-    }else
-        unlock();
+    }
+    unlock();
 
     return true;
 }
@@ -110,17 +122,7 @@ bool Client::sendData()
 
 Client::~Client()
 {
-    lock();
     Cache::getCache().unsubscribeToEntry(entry_key, sock);
-
-    if(end_point)
-    {
-        end_point->lock();
-        end_point->removeStartPoint();
-        end_point->closeServer();
-        end_point->unlock();
-    }
-    unlock();
 }
 
 void Client::initHTTPParser()
@@ -330,17 +332,19 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         handler->entry->unlock();
 
         printf("[PROXY--INFO] Cache of %s not found: connecting to %s...\n", handler->url.c_str(), host.c_str());
+
+        server->lock();
         if (!server->connectToServer(host))
         {
             printf("[PROXY-ERROR] Can't connect to server %s!\n", handler->url.c_str());
             handler->http_parse_error = true;
+            server->unlock();
             cached.unsubscribeToEntry(entry_key, handler->sock);
 
             delete(server);
             return false;
         }
 
-        server->lock();
         server->setStartPoint(handler);
 
         int serv = server->getSocket();
@@ -392,4 +396,18 @@ bool Client::setEndPoint(Server *_end_point)
     this->end_point = _end_point;
 
     return true;
+}
+
+void Client::clearEndPoint()
+{
+    lock();
+    if(end_point)
+    {
+        end_point->lock();
+        end_point->removeStartPoint();
+        end_point->closeServer();
+        end_point->unlock();
+        end_point = nullptr;
+    }
+    unlock();
 }

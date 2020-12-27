@@ -14,7 +14,7 @@ class Server: public ConnectionHandler, public Monitor
 {
 public:
     Server(CacheEntry *cache_buff, ProxyCore *proxy_handler);
-    ~Server() override;
+    ~Server() override = default;
     bool execute(int event) override;
     bool connectToServer(const std::string& host);
 
@@ -41,6 +41,7 @@ private:
 
     ProxyCore *core = nullptr;
 
+    void noticeClientAndCache();
     bool sendData() override;
     bool receiveData() override;
     static int timeoutConnect(int sock, addrinfo *res_info);
@@ -50,4 +51,4 @@ private:
     static int handleMessageComplete(http_parser *parser);
 };
 
-#endif //SINGLETHREAD_SERVER_H
+#endif

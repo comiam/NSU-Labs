@@ -14,31 +14,16 @@ Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler) : Monitor()
     parser.data = this;
 }
 
-Server::~Server()
-{
-    lock();
-    if (entry)
-    {
-        entry->lock();
-        entry->unsetHavingSourceSocket();
-        entry->unlock();
-    }
-
-    if (start_point)
-    {
-        start_point->lock();
-        start_point->removeEndPoint();
-        start_point->unlock();
-    }
-    unlock();
-}
-
 bool Server::execute(int event)
 {
-    if (event & POLLHUP || event & POLLERR)
-        return false;
-
     lock();
+    if (event & POLLHUP || event & POLLERR)
+    {
+        noticeClientAndCache();
+        unlock();
+        return false;
+    }
+
     if (closed && entry)
     {
         entry->lock();
@@ -68,23 +53,29 @@ bool Server::execute(int event)
     } else if (closed)
     {
         printf("[SERVER-INFO] Server socket %i lost start point and closing now...\n", sock);
+
+        noticeClientAndCache();
         unlock();
         return false;
     } else if (!entry)
     {
         printf("[SERVER-INFO] Server socket %i lost its own cache entry and closing...\n", sock);
+
+        noticeClientAndCache();
         unlock();
         return false;
     }
 
     if ((event & (POLLIN | POLLPRI)) && !receiveData())
     {
+        noticeClientAndCache();
         unlock();
         return false;
     }
 
     if (!send_buffer.empty() && (event & POLLOUT) && !sendData())
     {
+        noticeClientAndCache();
         unlock();
         return false;
     }
@@ -371,4 +362,22 @@ int Server::timeoutConnect(int sock, addrinfo *res_info)
     }
 
     return 0;
+}
+
+void Server::noticeClientAndCache()
+{
+    if (entry)
+    {
+        entry->lock();
+        entry->unsetHavingSourceSocket();
+        entry->unlock();
+    }
+
+    if (start_point)
+    {
+        start_point->lock();
+        start_point->removeEndPoint();
+        start_point->unlock();
+        start_point = nullptr;
+    }
 }

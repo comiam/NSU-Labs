@@ -1,3 +1,4 @@
+
 #include "Monitor.h"
 
 Monitor::Monitor()
@@ -9,7 +10,7 @@ Monitor::Monitor()
 #ifdef DEBUG_ENABLED
         errorfln("Failed to initialize attributes: %s", strerror(errcode));
 #endif
-        return;
+        throw std::runtime_error("Can't init monitor!");
     }
 
     errcode = pthread_mutexattr_settype(&attributes, PTHREAD_MUTEX_DEFAULT);
@@ -19,7 +20,17 @@ Monitor::Monitor()
         errorfln("Failed to set mutex type");
 #endif
         pthread_mutexattr_destroy(&attributes);
-        return;
+        throw std::runtime_error("Can't init monitor!");
+    }
+
+    errcode = pthread_mutexattr_setprotocol(&attributes, PTHREAD_PRIO_INHERIT);
+    if (NO_ERROR != errcode)
+    {
+#ifdef DEBUG_ENABLED
+        errorfln("Failed to set mutex type");
+#endif
+        pthread_mutexattr_destroy(&attributes);
+        throw std::runtime_error("Can't init monitor!");
     }
 
     errcode = pthread_mutex_init(&m_lock, &attributes);
@@ -30,7 +41,7 @@ Monitor::Monitor()
 #ifdef DEBUG_ENABLED
         errorfln("Cannot init mutex: %s", strerror(errcode));
 #endif
-        return;
+        throw std::runtime_error("Can't init monitor!");
     }
 
     errcode = pthread_cond_init(&cv, nullptr);
@@ -42,14 +53,10 @@ Monitor::Monitor()
         pthread_mutex_destroy(&m_lock);
         return;
     }
-
-    created = true;
 }
 
 Monitor::~Monitor()
 {
-    if(created)
-    {
 #ifdef DEBUG_ENABLED
         int errcode = pthread_mutex_destroy(&m_lock);
         if (NO_ERROR != errcode)
@@ -60,16 +67,13 @@ Monitor::~Monitor()
             errorfln("Cannot destroy condition variable: %s", strerror(errcode));
 #elif !defined(DEBUG_ENABLED)
         locked = false;
-        created = false;
         pthread_mutex_destroy(&m_lock);
         pthread_cond_destroy(&cv);
 #endif
-    }
 }
 
 void Monitor::notifyAll()
 {
-    assertCreated();
     int errcode = pthread_cond_broadcast(&cv);
 
     if (NO_ERROR != errcode)
@@ -77,26 +81,24 @@ void Monitor::notifyAll()
 #ifdef DEBUG_ENABLED
         errorfln("Failed to notify on monitor: %s", strerror(errcode));
 #endif
-        exit(EXIT_FAILURE);
+        throw std::runtime_error(strerror(errcode));
     }
 }
 
 void Monitor::notify()
 {
-    assertCreated();
     int errcode = pthread_cond_signal(&cv);
     if (NO_ERROR != errcode)
     {
 #ifdef DEBUG_ENABLED
         errorfln("Failed to notifyAll on monitor: %s", strerror(errcode));
 #endif
-        exit(EXIT_FAILURE);
+        throw std::runtime_error(strerror(errcode));
     }
 }
 
 void Monitor::wait()
 {
-    assertCreated();
     locked = false;
     int errcode = pthread_cond_wait(&cv, &m_lock);
     if (NO_ERROR != errcode)
@@ -104,15 +106,13 @@ void Monitor::wait()
 #ifdef DEBUG_ENABLED
         errorfln("Failed to wait on monitor: %s", strerror(errcode));
 #endif
-        exit(EXIT_FAILURE);
+        throw std::runtime_error(strerror(errcode));
     }else
         locked = true;
 }
 
 void Monitor::lock()
 {
-    assertCreated();
-
     int errcode = pthread_mutex_lock(&m_lock);
 
     if (NO_ERROR != errcode)
@@ -120,7 +120,7 @@ void Monitor::lock()
 #ifdef DEBUG_ENABLED
         errorfln("Failed to poll_lock monitor: %s", strerror(errcode));
 #endif
-        exit(EXIT_FAILURE);
+        throw std::runtime_error(strerror(errcode));
     }else
         locked = true;
 }
@@ -133,21 +133,9 @@ void Monitor::unlock()
 #ifdef DEBUG_ENABLED
         errorfln("Failed to unlock monitor: %s", strerror(errcode));
 #endif
-        exit(EXIT_FAILURE);
+        throw std::runtime_error(strerror(errcode));
     }else
         locked = false;
-}
-
-void Monitor::assertCreated() const
-{
-    if(!created)
-    {
-#ifdef DEBUG_ENABLED
-        errorfln("Monitor didn't created!");
-#endif
-        exit(EXIT_FAILURE);
-    }
-
 }
 
 bool Monitor::isLocked() const

@@ -46,6 +46,8 @@ private:
     bool receiveData() override;
     bool sendData() override;
 
+    void clearEndPoint();
+
     static http_parser_settings settings;
     static int handleUrl(http_parser *parser, const char *at, size_t len);
     static bool sendFirstLine(Client *handler);
