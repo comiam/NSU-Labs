@@ -184,7 +184,6 @@ bool ProxyCore::listenConnections()
                 poll_set.push_back(busy_set[i]);
                 busy_set.erase(i);
             }
-
         free_set.clear();
         free_lock.unlock();
 
@@ -262,10 +261,11 @@ bool ProxyCore::listenConnections()
                         }
                     } else
                     {
-                        lockHandlers();
                         task_list.lock();
                         pollfd val = poll_set[i];
                         auto p = std::make_pair(val.fd, revent);
+
+                        lockHandlers();
                         if (!task_list.count(p) &&
                                 (std::find(trash_set.begin(), trash_set.end(), val.fd)
                                 ==
@@ -275,9 +275,10 @@ bool ProxyCore::listenConnections()
                             busy_set[val.fd] = val;
                             trashbox.push_back(val);
                         }
+                        unlockHandlers();
+
                         task_list.notify();
                         task_list.unlock();
-                        unlockHandlers();
                     }
                 }
             }
@@ -308,8 +309,8 @@ bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *exe
     bool success = true;
     try
     {
-        poll_set.push_back(fd);
         socketHandlers[socket] = executor;
+        poll_set.push_back(fd);
     } catch (std::bad_alloc &e)
     {
         perror("[PROXY-ERROR] Can't allocate new pollfd or handler");
@@ -448,7 +449,7 @@ void ProxyCore::madeSocketFreeForPoll(int _sock)
 
 void ProxyCore::removeHandlerImpl(int _sock)
 {
-    if(!socketHandlers[_sock])
+    if(!socketHandlers.count(_sock))
         return;
 
     printf("[PROXY--CORE] %s socket %i closed\n", instanceOf<Client>(socketHandlers[_sock]) ? "Client" : "Server", _sock);
@@ -521,15 +522,22 @@ void *worker_routine(void *args)
 
     while(true)
     {
+        //printf("get new task\n");
         if((current_task = parent->getTask()).first == -1)
             return nullptr;
 
-        handler = parent->getHandlerBySocket(current_task.first);
+        //printf("got new task\n");
+
+        if(!(handler = parent->getHandlerBySocket(current_task.first)))
+            continue;
 
         bool res = !handler->execute(current_task.second);
+
+        //printf("after exec\n");
 
         parent->madeSocketFreeForPoll(current_task.first);
         if(res)
             parent->removeHandler(current_task.first);
+        //printf("new loop\n");
     }
 }

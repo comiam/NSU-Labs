@@ -3,7 +3,7 @@
 
 http_parser_settings Server::settings;
 
-Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler) : Monitor()
+Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler)
 {
     this->entry = cache_buff;
     this->core = proxy_handler;
@@ -16,16 +16,17 @@ Server::Server(CacheEntry *cache_buff, ProxyCore *proxy_handler) : Monitor()
 
 bool Server::execute(int event)
 {
-    lock();
     if (event & POLLHUP || event & POLLERR)
     {
         noticeClientAndCache();
-        unlock();
         return false;
     }
 
+    closed_lock.lock();
+    entry_lock.lock();
     if (closed && entry)
     {
+        closed_lock.unlock();
         entry->lock();
         if (entry->getSubscribers() > 0 && !entry->isFinished())
         {
@@ -44,40 +45,46 @@ bool Server::execute(int event)
                         "[SERVER-INFO] Can't find new client... "
                         "Server socket %i became work as daemon until full downloading a cache...\n", sock);
 
+            closed_lock.lock();
             closed = false;
+            closed_lock.unlock();
         } else
             entry->unlock();
     } else if (closed)
     {
+        entry_lock.unlock();
+        closed_lock.unlock();
         printf("[SERVER-INFO] Server socket %i lost start point and closing now...\n", sock);
 
         noticeClientAndCache();
-        unlock();
         return false;
     } else if (!entry)
     {
+        entry_lock.unlock();
+        closed_lock.unlock();
         printf("[SERVER-INFO] Server socket %i lost its own cache entry and closing...\n", sock);
 
         noticeClientAndCache();
-        unlock();
         return false;
-    }
+    } else
+        closed_lock.unlock();
 
     if ((event & (POLLIN | POLLPRI)) && !receiveData())
     {
+        entry_lock.unlock();
         noticeClientAndCache();
-        unlock();
         return false;
-    }
+    } else
+        entry_lock.unlock();
 
+    io_lock.lock();
     if (!send_buffer.empty() && (event & POLLOUT) && !sendData())
     {
+        io_lock.unlock();
         noticeClientAndCache();
-        unlock();
         return false;
     }
-
-    unlock();
+    io_lock.unlock();
 
     return true;
 }
@@ -148,7 +155,6 @@ bool Server::connectToServer(const std::string &host)
     return true;
 }
 
-
 bool Server::sendData()
 {
     ssize_t len = send(sock, send_buffer.c_str(), send_buffer.length(), 0);
@@ -159,12 +165,13 @@ bool Server::sendData()
         return false;
     } else
     {
-
+        sp_lock.lock();
         if (start_point)
             printf("[SERVER-SEND] Send %zi bytes to server socket %i by client socket %i.\n", len, sock,
                    start_point->getSocket());
         else
             printf("[SERVER-SEND] Send %zi bytes to server socket %i by already closed client socket.\n", len, sock);
+        sp_lock.unlock();
     }
 
     send_buffer.erase(0, len);
@@ -183,24 +190,32 @@ bool Server::receiveData()
     if (len < 0)
     {
         perror("[---ERROR---] Can't recv data from server");
-        entry->lock();
-        entry->setFinished(true);
-        entry->setInvalid(true);
-        entry->unlock();
+        if (entry)
+        {
+            entry->lock();
+            entry->setFinished(true);
+            entry->setInvalid(true);
+            entry->unlock();
+        }
         return false;
     } else if (!len)
     {
-        entry->lock();
-        entry->setFinished(true);
-        entry->unlock();
+        if (entry)
+        {
+            entry->lock();
+            entry->setFinished(true);
+            entry->unlock();
+        }
         return false;
     } else
     {
+        sp_lock.lock();
         if (start_point)
             printf("[SERVER-RECV] Recv %zi bytes from server socket %i for client socket %i.\n", len, sock,
                    start_point->getSocket());
         else
             printf("[SERVER-RECV] Recv %zi bytes from server socket %i to cache.\n", len, sock);
+        sp_lock.unlock();
     }
 
     size_t parsed = http_parser_execute(&parser, &Server::settings, buff, len);
@@ -263,22 +278,30 @@ int Server::handleMessageComplete(http_parser *parser)
 
 void Server::closeServer()
 {
+    closed_lock.lock();
     closed = true;
+    closed_lock.unlock();
 }
 
 void Server::setStartPoint(Client *client)
 {
+    sp_lock.lock();
     this->start_point = client;
+    sp_lock.unlock();
 }
 
 void Server::removeStartPoint()
 {
+    sp_lock.lock();
     this->start_point = nullptr;
+    sp_lock.unlock();
 }
 
 void Server::removeCacheEntry()
 {
+    entry_lock.lock();
     entry = nullptr;
+    entry_lock.unlock();
 }
 
 ProxyCore *Server::getCore()
@@ -288,7 +311,9 @@ ProxyCore *Server::getCore()
 
 void Server::putDataToSendBuffer(const char *data, size_t size)
 {
+    io_lock.lock();
     send_buffer.append(data, size);
+    io_lock.unlock();
 }
 
 int Server::timeoutConnect(int sock, addrinfo *res_info)
@@ -330,13 +355,15 @@ int Server::timeoutConnect(int sock, addrinfo *res_info)
                 // Socket selected for write
                 if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (void *) (&valopt), &lon) < 0)
                 {
-                    fprintf(stderr, "[---ERROR---] Error on socket %i in getsockopt() %d - %s\n", sock, errno, strerror(errno));
+                    fprintf(stderr, "[---ERROR---] Error on socket %i in getsockopt() %d - %s\n", sock, errno,
+                            strerror(errno));
                     return -1;
                 }
                 // Check the value returned...
                 if (valopt)
                 {
-                    fprintf(stderr, "[---ERROR---] Error on socket %i in delayed connection() %d - %s\n", sock, valopt, strerror(valopt));
+                    fprintf(stderr, "[---ERROR---] Error on socket %i in delayed connection() %d - %s\n", sock, valopt,
+                            strerror(valopt));
                     return -1;
                 }
             } else
@@ -363,13 +390,16 @@ int Server::timeoutConnect(int sock, addrinfo *res_info)
 
 void Server::noticeClientAndCache()
 {
+    entry_lock.lock();
     if (entry)
     {
         entry->lock();
         entry->unsetHavingSourceSocket();
         entry->unlock();
     }
+    entry_lock.unlock();
 
+    sp_lock.lock();
     if (start_point)
     {
         start_point->lock();
@@ -377,4 +407,5 @@ void Server::noticeClientAndCache()
         start_point->unlock();
         start_point = nullptr;
     }
+    sp_lock.unlock();
 }
