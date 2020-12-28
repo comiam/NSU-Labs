@@ -127,6 +127,7 @@ void ProxyCore::clearData()
     free_set.clear();
     poll_set.clear();
     busy_set.clear();
+    trashbox.clear();
 
     unlockMonitor(add_lock);
     unlockMonitor(free_lock);
@@ -138,64 +139,17 @@ bool ProxyCore::listenConnections()
 {
     int count;
     int revent;
-    int new_client;
 
     printf("[PROXY--CORE] Proxy started on port: %d\n", port);
 
-    std::vector<pollfd> trashbox(0);
-
     while (true)
     {
-        for(auto &i : trashbox)
-            poll_set.erase(std::remove(poll_set.begin(), poll_set.end(), i), poll_set.end());
-        trashbox.clear();
-
-        rdwr_lock.lock();
-        for (auto &i : sock_rdwr)
-        {
-            ssize_t pos = getSocketIndex(i.first);
-            if (pos != -1)
-            {
-                if(i.second)
-                    poll_set[pos].events |= POLLOUT;
-                else
-                    poll_set[pos].events &= ~POLLOUT;
-            }
-        }
-        sock_rdwr.clear();
-        rdwr_lock.unlock();
-
-        add_lock.lock();
-        for (auto &i : new_server_set)
-            if (!addSocketToPoll(i.first, POLLIN | POLLPRI | POLLOUT, i.second))
-            {
-                fprintf(stderr, "Can't add new server socket to poll from add set! Closing...");
-                closeSocket(new_client, false);
-                clearData();
-                return false;
-            }
-        new_server_set.clear();
-        add_lock.unlock();
-
-        free_lock.lock();
-        for (auto &i : free_set)
-            if(busy_set.count(i))
-            {
-                poll_set.push_back(busy_set[i]);
-                busy_set.erase(i);
-            }
-        free_set.clear();
-        free_lock.unlock();
-
-        lockHandlers();
-        for(auto it = trash_set.begin();it != trash_set.end();)
-            if(!busy_set.count(*it))
-            {
-                removeHandlerImpl(*it);
-                trash_set.erase(it);
-            }else
-                it++;
-        unlockHandlers();
+        removeBusyConnectionsFromPoll();
+        markPollSockets();
+        if(!addServerConnections())
+            return false;
+        freeBusyConnections();
+        deleteDeadConnections();
 
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), 1);
 
@@ -209,83 +163,25 @@ bool ProxyCore::listenConnections()
         }else if (count == 0)
             continue;
         else
-        {
             for (size_t i = 0; i < poll_set.size(); ++i)
-            {
-                revent = poll_set[i].revents;
-                if (!revent)
+                if (!(revent = poll_set[i].revents))
                     continue;
                 else
                 {
                     poll_set[i].revents = 0;
 
-                    if (!i)
+                    if(i == 0 && (!(revent & (POLLIN | POLLPRI)) || !addClientConnection()))//only for proxy socket
                     {
-                        if (revent & (POLLIN | POLLPRI))
-                        {
-                            new_client = accept(proxy_socket, nullptr, nullptr);
-                            if (new_client == -1)
-                            {
-                                perror("[PROXY-ERROR] Can't accept new client");
-                                clearData();
-                                return false;
-                            }
-
-                            Client *client;
-                            try
-                            {
-                                client = new Client(new_client, this);
-                            } catch (std::bad_alloc &e)
-                            {
-                                perror("[PROXY-ERROR] Can't allocate new client");
-
-                                closeSocket(new_client, false);
-                                clearData();
-                                return false;
-                            }
-
-                            if (!addSocketToPoll(new_client, POLLIN | POLLPRI, client))
-                            {
-                                fprintf(stderr, "Can't add new socket to poll! Closing...");
-                                closeSocket(new_client, false);
-                                clearData();
-                                return false;
-                            }
-
-                            printf("[PROXY--INFO] Connected new user with socket %d\n", new_client);
-                        } else
-                        {
-                            fprintf(stderr, "[PROXY-ERROR] Can't accept new client! Closing proxy...\n");
+                        fprintf(stderr, "[PROXY-ERROR] Can't accept new client! Closing proxy...\n");
+                        if(!(revent & (POLLIN | POLLPRI)))
                             clearData();
-                            return false;
-                        }
-                    } else
-                    {
-                        task_list.lock();
-                        pollfd val = poll_set[i];
-                        auto p = std::make_pair(val.fd, revent);
-
-                        lockHandlers();
-                        if (!task_list.count(p) &&
-                                (std::find(trash_set.begin(), trash_set.end(), val.fd)
-                                ==
-                                trash_set.end()))
-                        {
-                            task_list.insert(p);
-                            busy_set[val.fd] = val;
-                            trashbox.push_back(val);
-                        }
-                        unlockHandlers();
-
-                        task_list.notify();
-                        task_list.unlock();
-                    }
+                        return false;
+                    }else if(i != 0)
+                        addNewTask(i, revent);
                 }
-            }
-        }
     }
 
-    return false;
+    return true;
 }
 
 bool operator==(const pollfd &first, const pollfd &second)
@@ -474,6 +370,131 @@ void ProxyCore::unlockMonitor(Monitor monitor)
         monitor.unlock();
 }
 
+void ProxyCore::markPollSockets()
+{
+    rdwr_lock.lock();
+    for (auto &i : sock_rdwr)
+    {
+        ssize_t pos = getSocketIndex(i.first);
+        if (pos != -1)
+        {
+            if(i.second)
+                poll_set[pos].events |= POLLOUT;
+            else
+                poll_set[pos].events &= ~POLLOUT;
+        }
+    }
+    sock_rdwr.clear();
+    rdwr_lock.unlock();
+}
+
+bool ProxyCore::addServerConnections()
+{
+    add_lock.lock();
+    for (auto &i : new_server_set)
+        if (!addSocketToPoll(i.first, POLLIN | POLLPRI | POLLOUT, i.second))
+        {
+            fprintf(stderr, "Can't add new server socket to poll from add set! Closing...");
+            closeSocket(i.first, false);
+            clearData();
+            return false;
+        }
+    new_server_set.clear();
+    add_lock.unlock();
+
+    return true;
+}
+
+void ProxyCore::freeBusyConnections()
+{
+    free_lock.lock();
+    for (auto &i : free_set)
+        if(busy_set.count(i))
+        {
+            poll_set.push_back(busy_set[i]);
+            busy_set.erase(i);
+        }
+    free_set.clear();
+    free_lock.unlock();
+}
+
+void ProxyCore::deleteDeadConnections()
+{
+    lockHandlers();
+    for(auto it = trash_set.begin();it != trash_set.end();)
+        if(!busy_set.count(*it))
+        {
+            removeHandlerImpl(*it);
+            trash_set.erase(it);
+        }else
+            it++;
+    unlockHandlers();
+}
+
+void ProxyCore::removeBusyConnectionsFromPoll()
+{
+    for(auto &i : trashbox)
+        poll_set.erase(std::remove(poll_set.begin(), poll_set.end(), i), poll_set.end());
+    trashbox.clear();
+}
+
+bool ProxyCore::addClientConnection()
+{
+    int new_client = accept(proxy_socket, nullptr, nullptr);
+    if (new_client == -1)
+    {
+        perror("[PROXY-ERROR] Can't accept new socket");
+        clearData();
+        return false;
+    }
+
+    Client *client;
+    try
+    {
+        client = new Client(new_client, this);
+    } catch (std::bad_alloc &e)
+    {
+        perror("[PROXY-ERROR] Can't allocate memory for new connection handler");
+
+        closeSocket(new_client, false);
+        clearData();
+        return false;
+    }
+
+    if (!addSocketToPoll(new_client, POLLIN | POLLPRI, client))
+    {
+        fprintf(stderr, "[PROXY-ERROR] Can't add new socket to poll!\n");
+        closeSocket(new_client, false);
+        clearData();
+        return false;
+    }
+
+    printf("[PROXY--INFO] Connected new user with socket %d\n", new_client);
+    return true;
+}
+
+void ProxyCore::addNewTask(int poll_position, int revent)
+{
+    task_list.lock();
+    pollfd val = poll_set[poll_position];
+    auto p = std::make_pair(val.fd, revent);
+
+    lockHandlers();
+    if (!task_list.count(p) &&
+        (std::find(trash_set.begin(), trash_set.end(), val.fd)
+         ==
+         trash_set.end()))
+    {
+        task_list.insert(p);
+        busy_set[val.fd] = val;
+        trashbox.push_back(val);
+    }
+    unlockHandlers();
+
+    task_list.notify();
+    task_list.unlock();
+}
+
 void cleanProxy(void* arg)
 {
     delete((ProxyCore*)arg);
@@ -504,7 +525,7 @@ void *routine(void *args)
         return nullptr;
     }
 
-    if (proxy->listenConnections())
+    if (!proxy->listenConnections())
     {
         printf("Proxy closed with error!\n");
         return nullptr;

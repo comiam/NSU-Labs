@@ -51,6 +51,13 @@ private:
     bool addSocketToPoll(int socket, short events, ConnectionHandler *executor);
 
     void removeHandlerImpl(int sock);
+    void markPollSockets();
+    bool addServerConnections();
+    bool addClientConnection();
+    void freeBusyConnections();
+    void deleteDeadConnections();
+    void removeBusyConnectionsFromPoll();
+    void addNewTask(int poll_position, int revent);
 
     static void unlockMonitor(Monitor monitor);
 
@@ -62,6 +69,7 @@ private:
     std::vector<std::pair<int, bool>> sock_rdwr;
     std::vector<int> free_set;
     std::vector<std::pair<int, ConnectionHandler*>> new_server_set;
+    std::vector<pollfd> trashbox;
     std::map<int, pollfd> busy_set;
     std::map<int, ConnectionHandler*> socketHandlers;
 
