@@ -10,7 +10,7 @@
 #include "Monitor.h"
 
 #define NANO 1000000000L
-#define MAX_LIVE_TIME_NANO (15*NANO)
+#define MAX_LIVE_TIME_NANO (90*NANO)
 
 class Server;
 class Client;
