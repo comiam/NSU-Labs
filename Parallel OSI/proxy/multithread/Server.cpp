@@ -352,18 +352,10 @@ int Server::timeoutConnect(int sock, addrinfo *res_info)
                 return -1;
             } else if (res > 0)
             {
-                // Socket selected for write
-                if (getsockopt(sock, SOL_SOCKET, SO_ERROR, (void *) (&valopt), &lon) < 0)
-                {
-                    fprintf(stderr, "[---ERROR---] Error on socket %i in getsockopt() %d - %s\n", sock, errno,
-                            strerror(errno));
-                    return -1;
-                }
                 // Check the value returned...
-                if (valopt)
+                if (!FD_ISSET(sock, &myset))
                 {
-                    fprintf(stderr, "[---ERROR---] Error on socket %i in delayed connection() %d - %s\n", sock, valopt,
-                            strerror(valopt));
+                    fprintf(stderr, "[---ERROR---] Error on socket %i in delayed connection()\n", sock);
                     return -1;
                 }
             } else
