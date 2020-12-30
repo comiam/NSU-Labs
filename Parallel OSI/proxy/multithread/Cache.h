@@ -9,6 +9,9 @@
 #include <set>
 #include "Monitor.h"
 
+#define NANO 1000000000L
+#define MAX_LIVE_TIME_NANO (15*NANO)
+
 class Server;
 class Client;
 
@@ -46,7 +49,15 @@ private:
     bool invalid = false;
     size_t subscribers = 0;
     std::set<int> sub_set;
+    std::string url;
     std::string *data;
+
+    long live_time_total;
+    struct timespec live_time_elapsed{0, 0};
+
+    void resetTimer();
+    bool isTimedOut() const;
+    void updateTimer(struct timespec &newTime);
 
     friend class Cache;
     friend class Server;
@@ -59,6 +70,7 @@ public:
 
     CacheEntry *subscribeToEntry(std::string &url, int client_socket);
     void unsubscribeToEntry(std::string &url, int socket);
+    void updateTimers();
 
     ~Cache();
 private:

@@ -93,6 +93,7 @@ private:
 
     bool created = false;
     bool closing = false;
+    bool have_marked_connections = false;
 
     ssize_t getSocketIndex(int _sock);
 };

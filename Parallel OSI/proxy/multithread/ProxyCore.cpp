@@ -145,11 +145,13 @@ bool ProxyCore::listenConnections()
     while (true)
     {
         removeBusyConnectionsFromPoll();
-        markPollSockets();
         if(!addServerConnections())
             return false;
         freeBusyConnections();
+        markPollSockets();
         deleteDeadConnections();
+
+        Cache::getCache().updateTimers();
 
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), 1);
 
@@ -160,7 +162,7 @@ bool ProxyCore::listenConnections()
 
             fprintf(stderr, "[PROXY-ERROR] Poll error: %s\n", strerror(errno));
             break;
-        }else if (count == 0)
+        }else if (count == 0 && !have_marked_connections)
             continue;
         else
             for (size_t i = 0; i < poll_set.size(); ++i)
@@ -179,6 +181,7 @@ bool ProxyCore::listenConnections()
                     }else if(i != 0)
                         addNewTask(i, revent);
                 }
+        have_marked_connections = false;
     }
 
     return true;
@@ -384,6 +387,7 @@ void ProxyCore::markPollSockets()
                 poll_set[pos].events &= ~POLLOUT;
         }
     }
+    have_marked_connections = !sock_rdwr.empty();
     sock_rdwr.clear();
     rdwr_lock.unlock();
 }
@@ -425,7 +429,7 @@ void ProxyCore::deleteDeadConnections()
         if(!busy_set.count(*it))
         {
             removeHandlerImpl(*it);
-            trash_set.erase(it);
+            it = trash_set.erase(it);
         }else
             it++;
     unlockHandlers();

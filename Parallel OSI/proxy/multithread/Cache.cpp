@@ -20,6 +20,8 @@ CacheEntry *Cache::subscribeToEntry(std::string &url, int client_socket)
         cache = createEntry(url);
 
     cache->lock();
+    cache->resetTimer();
+
     if(flag)
         cache->is_new_entry = false;
     cache->addSubToList(client_socket);
@@ -67,7 +69,7 @@ void Cache::unsubscribeToEntry(std::string &url, int socket)
 
     it->second->removeSubFromList(socket);
 
-    if (it->second->isInvalid() || it->second->getSubscribers() == 0)
+    if (it->second->isInvalid() || (it->second->getSubscribers() == 0 && it->second->isTimedOut()))
     {
         auto *source = it->second->source;
         it->second->unlock();
@@ -91,17 +93,52 @@ Cache::~Cache()
     cached_data.unlock();
 }
 
+void Cache::updateTimers()
+{
+    cached_data.lock();
+
+    struct timespec newTime{0, 0};
+    clock_gettime (CLOCK_REALTIME, &newTime);
+
+    for(auto set = cached_data.begin();set != cached_data.end();)
+    {
+        CacheEntry* entry = set->second;
+        entry->lock();
+
+        entry->updateTimer(newTime);
+        if(entry->isTimedOut() && entry->getSubscribers() == 0)
+        {
+            auto *source = entry->source;
+            entry->unlock();
+            if(source)
+                source->removeCacheEntry();
+
+            delete(entry);
+            set = cached_data.erase(set);
+        }else
+        {
+            entry->unlock();
+            ++set;
+        }
+    }
+
+    cached_data.unlock();
+}
+
 CacheEntry::CacheEntry(std::string &url): Monitor()
 {
     invalid = url.substr(0, 2) != "01";
+    this->url = url;
     data = new std::string();
 }
 
 CacheEntry::~CacheEntry()
 {
     delete data;
+    printf("[PROXY--CORE] Cache of %s is deleted from memory...\n", url.substr(3, url.size()).c_str());
 
     sub_set.clear();
+    url.clear();
 }
 
 void CacheEntry::setFinished(bool _finished)
@@ -146,6 +183,7 @@ void CacheEntry::setHavingSourceSocket(Server *server)
 
 std::string CacheEntry::getPartOfData(size_t beg, size_t length)
 {
+    resetTimer();
     return data->substr(beg, length);
 }
 
@@ -156,6 +194,7 @@ void CacheEntry::appendData(char *buff, size_t length)
 
 size_t CacheEntry::getDataSize()
 {
+    resetTimer();
     return data->length();
 }
 
@@ -211,4 +250,21 @@ Client *CacheEntry::getNewClientSide()
     }
 
     return client;
+}
+
+void CacheEntry::resetTimer()
+{
+    live_time_total = 0;
+}
+
+bool CacheEntry::isTimedOut() const
+{
+    return live_time_total >= MAX_LIVE_TIME_NANO;
+}
+
+void CacheEntry::updateTimer(struct timespec &newTime)
+{
+    live_time_total += NANO * (newTime.tv_sec - live_time_elapsed.tv_sec) + (newTime.tv_nsec - live_time_elapsed.tv_nsec);
+    live_time_elapsed.tv_nsec = newTime.tv_nsec;
+    live_time_elapsed.tv_sec = newTime.tv_sec;
 }
