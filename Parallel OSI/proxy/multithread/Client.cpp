@@ -15,25 +15,25 @@ bool Client::execute(int event)
 {
     if (closed)
     {
-        clearEndPoint();
+        destroyClientSide();
         return false;
     }
 
     if (event & (POLLHUP | POLLERR))
     {
-        clearEndPoint();
+        destroyClientSide();
         return false;
     }
 
     if ((event & (POLLIN | POLLPRI)) && !receiveData())
     {
-        clearEndPoint();
+        destroyClientSide();
         return false;
     }
 
     if ((event & POLLOUT) && entry && !sendData())
     {
-        clearEndPoint();
+        destroyClientSide();
         return false;
     }
 
@@ -92,8 +92,14 @@ bool Client::sendData()
             return false;
         }
 
-        entry->unlock();
         core->setSocketUnavailableToSend(sock);
+
+        if(entry->isInvalid())
+        {
+            entry->unlock();
+            return false;
+        }else
+            entry->unlock();
         return true;
     }
 
@@ -118,11 +124,6 @@ bool Client::sendData()
     }
 
     return true;
-}
-
-Client::~Client()
-{
-    Cache::getCache().unsubscribeToEntry(entry_key, sock);
 }
 
 void Client::initHTTPParser()
@@ -202,7 +203,7 @@ int Client::handleHeadersComplete(http_parser *parser)
         return 1;
 
     std::string end("\r\n");
-    if (!sendToServer(handler, end))
+    if (!sendToServer(handler, end) || !prepareDataSource(parser, handler, handler->host_name))
         return 1;
 
     return 0;
@@ -272,10 +273,11 @@ bool Client::sendHeader(http_parser *parser, Client *handler)
     if (handler->prev_key == "Connection")
         handler->prev_value = "close";
 
-    /* If we get hostname and may select data source */
-    if (handler->prev_key == "Host" &&
-        !prepareDataSource(parser, handler, handler->prev_value))
-        return false;
+    if (handler->prev_key == "Host")
+        handler->host_name = handler->prev_value;
+
+    if (handler->prev_key == "Range")
+        handler->range_bytes = handler->prev_value;
 
     std::string header_line = handler->prev_key + ": " + handler->prev_value + "\r\n";
     handler->prev_key.clear();
@@ -296,8 +298,10 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
     else
         entry_key = std::string(method) + ":" + handler->url;
 
-    Cache &cached = Cache::getCache();
-    handler->entry = cached.subscribeToEntry(entry_key, handler->sock);
+    if(!handler->range_bytes.empty())
+        entry_key += "-" + handler->range_bytes;
+
+    handler->entry = Cache::getCache().subscribeToEntry(entry_key, handler->sock);
 
     handler->entry->lock();
 
@@ -322,22 +326,27 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
             server = new Server(handler->entry, handler->core);
         } catch (std::bad_alloc &e)
         {
-            printf("[PROXY-ERROR] Can't allocate new memory for server side!\n");
+            fprintf(stderr,"[PROXY-ERROR] Can't allocate new memory for server side!\n");
             return false;
         }
-        handler->entry->unlock();
+
 
         printf("[PROXY--INFO] Cache of %s not found: connecting to %s...\n", handler->url.c_str(), host.c_str());
 
         if (!server->connectToServer(host))
         {
-            printf("[PROXY-ERROR] Can't connect to server %s!\n", handler->url.c_str());
+            fprintf(stderr, "[PROXY-ERROR] Can't connect to server %s!\n", handler->url.c_str());
             handler->http_parse_error = true;
-            cached.unsubscribeToEntry(entry_key, handler->sock);
+
+            handler->entry->setInvalid(true);
+            handler->entry->unlock();
+
+            Cache::getCache().unsubscribeToEntry(entry_key, handler->sock);
 
             delete(server);
             return false;
-        }
+        }else
+            handler->entry->unlock();
 
         server->setStartPoint(handler);
 
@@ -391,7 +400,7 @@ bool Client::setEndPoint(Server *_end_point)
     return true;
 }
 
-void Client::clearEndPoint()
+void Client::destroyClientSide()
 {
     lock();
     closed = true;
@@ -402,4 +411,5 @@ void Client::clearEndPoint()
         end_point = nullptr;
     }
     unlock();
+    Cache::getCache().unsubscribeToEntry(entry_key, sock);
 }

@@ -1,5 +1,5 @@
-#ifndef SINGLETHREAD_PROXYCORE_H
-#define SINGLETHREAD_PROXYCORE_H
+#ifndef MULTITHREAD_PROXYCORE_H
+#define MULTITHREAD_PROXYCORE_H
 
 #include <cstdlib>
 #include <poll.h>

@@ -60,7 +60,7 @@ void Cache::unsubscribeToEntry(std::string &url, int socket)
     }
 
     it->second->lock();
-    if (it->second->containsSub(socket))
+    if (!it->second->containsSub(socket))
     {
         it->second->unlock();
         cached_data.unlock();
@@ -141,14 +141,14 @@ CacheEntry::~CacheEntry()
     url.clear();
 }
 
-void CacheEntry::setFinished(bool _finished)
+void CacheEntry::setFinished(bool finished)
 {
-    this->finished = _finished;
+    this->finished = finished;
 }
 
-void CacheEntry::setInvalid(bool _invalid)
+void CacheEntry::setInvalid(bool invalid)
 {
-    this->invalid = _invalid;
+    this->invalid = invalid;
 }
 
 bool CacheEntry::isFinished() const

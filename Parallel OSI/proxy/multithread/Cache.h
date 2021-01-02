@@ -1,5 +1,5 @@
-#ifndef _CACHE_H
-#define _CACHE_H
+#ifndef MULTITHREAD_CACHE_H
+#define MULTITHREAD_CACHE_H
 
 #include <cstdio>
 #include <cstring>
@@ -10,7 +10,7 @@
 #include "Monitor.h"
 
 #define NANO 1000000000L
-#define MAX_LIVE_TIME_NANO (90*NANO)
+#define MAX_LIVE_TIME_NANO (15*NANO)
 
 class Server;
 class Client;
@@ -25,6 +25,8 @@ public:
     bool isHavingSocketSource();
     bool isFinished() const;
     bool isCreatedNow() const;
+    bool isInvalid() const;
+    void setInvalid(bool invalid);
 
     std::string getPartOfData(size_t beg, size_t length);
     void        appendData(char *buff, size_t length);
@@ -32,8 +34,7 @@ public:
 private:
     void setHavingSourceSocket(Server *server);
     void unsetHavingSourceSocket();
-    void setFinished(bool _finished);
-    void setInvalid(bool _invalid);
+    void setFinished(bool finished);
 
     void addSubToList(int sock);
     void removeSubFromList(int sock);
@@ -41,7 +42,6 @@ private:
     size_t getSubscribers() const;
 
     bool containsSub(int sock);
-    bool isInvalid() const;
 
     Server *source = nullptr;
     bool is_new_entry = true;
@@ -84,7 +84,5 @@ private:
         CacheEntryMap(): std::map<std::string, CacheEntry *>(), Monitor() {}
     } cached_data;
 };
-
-
 
 #endif

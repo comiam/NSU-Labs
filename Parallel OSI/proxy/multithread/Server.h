@@ -1,12 +1,12 @@
-#ifndef SINGLETHREAD_SERVER_H
-#define SINGLETHREAD_SERVER_H
+#ifndef MULTITHREAD_SERVER_H
+#define MULTITHREAD_SERVER_H
 
 #include <netdb.h>
 #include "Cache.h"
 #include "ProxyCore.h"
 #include "http_parser.h"
 
-#define BUFFER_SIZE 4096 * 3
+#define BUFFER_SIZE 4096 * 16
 
 class Client;
 

@@ -28,7 +28,7 @@ bool Server::execute(int event)
     {
         closed_lock.unlock();
         entry->lock();
-        if (entry->getSubscribers() > 0 && !entry->isFinished())
+        if (entry->getSubscribers() > 0 && !entry->isFinished() && !entry->isTimedOut())
         {
             printf("[SERVER-INFO] Server socket %i lost client side socket and begin finding new client...\n", sock);
 
@@ -236,7 +236,13 @@ bool Server::receiveData()
         return false;
     }
     entry->noticeClientsToReadCache();
-    entry->unlock();
+
+    if(entry->isInvalid())
+    {
+        entry->unlock();
+        return false;
+    }else
+        entry->unlock();
 
     return true;
 }

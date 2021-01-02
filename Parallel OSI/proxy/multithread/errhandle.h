@@ -1,5 +1,5 @@
-#ifndef LAB10_ERRHANDLE_H
-#define LAB10_ERRHANDLE_H
+#ifndef MULTITHREAD_ERRHANDLE_H
+#define MULTITHREAD_ERRHANDLE_H
 
 #include <cstdio>
 

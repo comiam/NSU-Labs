@@ -1,5 +1,5 @@
-#ifndef MONITOR_H
-#define MONITOR_H
+#ifndef MULTITHREAD_MONITOR_H
+#define MULTITHREAD_MONITOR_H
 
 #include <pthread.h>
 #include <cstring>

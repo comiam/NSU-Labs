@@ -1,5 +1,5 @@
-#ifndef SINGLETHREAD_CLIENT_H
-#define SINGLETHREAD_CLIENT_H
+#ifndef MULTITHREAD_CLIENT_H
+#define MULTITHREAD_CLIENT_H
 
 #include "ProxyCore.h"
 #include "ConnectionHandler.h"
@@ -7,13 +7,13 @@
 #include "Server.h"
 #include "Cache.h"
 
-#define BUFFER_SIZE 4096 * 3
+#define BUFFER_SIZE 4096 * 16
 
 class Client : public ConnectionHandler, public Monitor
 {
 public:
     Client(int sock, ProxyCore *proxy_handler);
-    ~Client() override;
+    ~Client() override = default;
 
     int getSocket() const;
 
@@ -43,10 +43,13 @@ private:
     std::string prev_key; // temp data of key of http request
     std::string prev_value; // temp key of key of http request
 
+    std::string host_name;
+    std::string range_bytes;
+
     bool receiveData() override;
     bool sendData() override;
 
-    void clearEndPoint();
+    void destroyClientSide();
 
     static http_parser_settings settings;
     static int handleUrl(http_parser *parser, const char *at, size_t len);
@@ -62,4 +65,4 @@ private:
     static int handleData(http_parser *parser, const char *at, size_t len);
 };
 
-#endif //SINGLETHREAD_CLIENT_H
+#endif
