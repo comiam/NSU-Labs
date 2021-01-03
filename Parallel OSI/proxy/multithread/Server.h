@@ -58,13 +58,14 @@ private:
     bool sendData() override;
     bool receiveData() override;
 
-    static int timeoutConnect(int sock, addrinfo *res_info);
-    static int tryResolveAddress(const std::string& host, addrinfo** res);
-    static int handleMessageComplete(http_parser *parser);
+    static int  timeoutConnect(int sock, addrinfo *res_info);
+    static int  tryResolveAddress(const std::string& host, addrinfo** res);
+    static int  handleMessageComplete(http_parser *parser);
 
-    static int handleHeaderField(http_parser *parser, const char *at, size_t len);
-    static int handleHeaderValue(http_parser *parser, const char *at, size_t len);
-    static int handleHeadersComplete(http_parser *parser);
+    static int  handleHeaderField(http_parser *parser, const char *at, size_t len);
+    static int  handleHeaderValue(http_parser *parser, const char *at, size_t len);
+    static void handleHeader(Server *handler);
+    //static int handleHeadersComplete(http_parser *parser);
 };
 
 #endif
