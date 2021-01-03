@@ -56,7 +56,7 @@ bool Client::receiveData()
     {
         lock();
         if(end_point)
-            printf("[CLIENT-RECV] Recv %zi bytes from client socket %i for server socket %i.\n", len, sock, end_point->getSocket());
+            printf("[CLIENT-RECV] Recv %zi bytes from client socket %i for server socket %i.\n", len, sock, end_point_sock);
         else
             printf("[CLIENT-RECV] Recv %zi bytes from client socket %i for unreleased yet server.\n", len, sock);
         unlock();
@@ -78,15 +78,14 @@ bool Client::receiveData()
 bool Client::sendData()
 {
     entry->lock();
-    std::string str = entry->getPartOfData(entry_offset, BUFFER_SIZE);
-    if (!str.length())
+    auto str = entry->getPartOfData(entry_offset, BUFFER_SIZE);
+    if (!str.first)
     {
         if (entry->isFinished())
         {
             entry->unlock();
             return false;
-        }
-        else if(!entry->isHavingSocketSource())
+        }else if(!entry->isHavingSocketSource())
         {
             entry->unlock();
             fprintf(stderr, "Can't download last part of cache %s. Downloading server socket is died!\n", url.c_str());
@@ -94,24 +93,17 @@ bool Client::sendData()
         }
 
         core->setSocketUnavailableToSend(sock);
-
-        if(entry->isInvalid())
-        {
-            entry->unlock();
-            return false;
-        }else
-            entry->unlock();
-
+        entry->unlock();
         return true;
     }
 
-    entry_offset += str.length();
+    entry_offset += str.first;
     if (entry_offset == entry->getDataSize() && entry->isFinished())
         closed = true;
 
     entry->unlock();
 
-    ssize_t len = send(sock, str.c_str(), str.length(), 0);
+    ssize_t len = send(sock, str.second, str.first, 0);
 
     if (len < 0)
         perror("[---ERROR---] Can't send pipe_data to client");
@@ -119,7 +111,7 @@ bool Client::sendData()
     {
         lock();
         if(end_point)
-            printf("[CLIENT-SEND] Send %zi bytes to client socket %i by server socket %i.\n", len, sock, end_point->getSocket());
+            printf("[CLIENT-SEND] Send %zi bytes to client socket %i by server socket %i.\n", len, sock, end_point_sock);
         else
             printf("[CLIENT-SEND] Send %zi bytes to client socket %i by cache.\n", len, sock);
         unlock();
@@ -222,9 +214,9 @@ int Client::handleData(http_parser *parser, const char *at, size_t len)
         if (handler->end_point)
         {
             handler->end_point->putDataToSendBuffer(at, len);
-            handler->core->setSocketAvailableToSend(handler->end_point->getSocket());
+            handler->core->setSocketAvailableToSend(handler->end_point_sock);
         } else
-            handler->server_send_buffer.append(at, len);
+            handler->server_send_buffer.insert(handler->server_send_buffer.end(), at, at + len);
     } catch (std::bad_alloc &e)
     {
         perror("[---ERROR---] Can't save pipe_data to server send entry");
@@ -252,11 +244,9 @@ bool Client::sendToServer(Client *handler, std::string &str)
         if (handler->end_point)
         {
             handler->end_point->putDataToSendBuffer(str.c_str(), str.size());
-            handler->core->setSocketAvailableToSend(handler->end_point->getSocket());
+            handler->core->setSocketAvailableToSend(handler->end_point_sock);
         } else
-        {
-            handler->server_send_buffer.append(str);
-        }
+            handler->server_send_buffer.insert(handler->server_send_buffer.end(), str.c_str(), str.c_str() + str.size());
     } catch (std::bad_alloc &e)
     {
         perror("[---ERROR---] Can't save pipe_data to server send entry");
@@ -355,7 +345,7 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
         int serv = server->getSocket();
         try
         {
-            server->putDataToSendBuffer(handler->server_send_buffer.c_str(), handler->server_send_buffer.size());
+            server->putDataToSendBuffer(handler->server_send_buffer.data(), handler->server_send_buffer.size());
         } catch (std::bad_alloc &e)
         {
             fprintf(stderr,"[PROXY-ERROR] Can't transfer send entry from client socket %i to server socket %i\n", handler->sock, serv);
@@ -390,13 +380,14 @@ bool Client::setEndPoint(Server *_end_point)
     this->end_point = _end_point;
     try
     {
-        this->end_point->putDataToSendBuffer(this->server_send_buffer.c_str(), this->server_send_buffer.size());
+        this->end_point->putDataToSendBuffer(this->server_send_buffer.data(), this->server_send_buffer.size());
     } catch (std::bad_alloc &e)
     {
         fprintf(stderr,"[PROXY-ERROR] Can't transfer send entry from NEW client socket %i to server socket %i\n", this->sock, this->end_point->getSocket());
         return false;
     }
-    core->setSocketAvailableToSend(this->end_point->getSocket());
+    end_point_sock = this->end_point->getSocket();
+    core->setSocketAvailableToSend(end_point_sock);
     this->server_send_buffer.clear();
 
     return true;

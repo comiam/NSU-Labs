@@ -32,7 +32,7 @@ private:
     int sock = -1;
 
     Monitor io_lock;
-    std::string send_buffer;
+    std::vector<char> send_buffer;
 
     Monitor closed_lock;
     bool closed = false;
@@ -42,11 +42,17 @@ private:
 
     Monitor sp_lock;
     Client *start_point = nullptr;
+    int start_point_sock = 0;
 
     http_parser parser;
     static http_parser_settings settings;
 
     ProxyCore *core = nullptr;
+
+    bool http_parse_error = false;
+    std::string prev_key;
+    std::string prev_value;
+    long cache_input_data_size = -1;
 
     void noticeClientAndCache();
     bool sendData() override;
@@ -55,6 +61,10 @@ private:
     static int timeoutConnect(int sock, addrinfo *res_info);
     static int tryResolveAddress(const std::string& host, addrinfo** res);
     static int handleMessageComplete(http_parser *parser);
+
+    static int handleHeaderField(http_parser *parser, const char *at, size_t len);
+    static int handleHeaderValue(http_parser *parser, const char *at, size_t len);
+    static int handleHeadersComplete(http_parser *parser);
 };
 
 #endif

@@ -29,6 +29,7 @@ private:
     ProxyCore *core;
     http_parser parser;
     Server *end_point = nullptr;
+    int end_point_sock = 0;
 
     CacheEntry *entry = nullptr;
     std::string entry_key;
@@ -39,7 +40,7 @@ private:
     size_t entry_offset = 0;
 
     std::string url;//current url target of http request
-    std::string server_send_buffer; // used for pipe_data for not already opened server
+    std::vector<char> server_send_buffer; // used for pipe_data for not already opened server
     std::string prev_key; // temp pipe_data of key of http request
     std::string prev_value; // temp key of key of http request
 
@@ -52,17 +53,17 @@ private:
     void destroyClientSide();
 
     static http_parser_settings settings;
-    static int handleUrl(http_parser *parser, const char *at, size_t len);
+    static int  handleUrl(http_parser *parser, const char *at, size_t len);
     static bool sendFirstLine(Client *handler);
     static bool sendToServer(Client *handler, std::string &str);
 
-    static int  handleHeaderField(http_parser *parser, const char *at, size_t len);
+    static int  handleData(http_parser *parser, const char *at, size_t len);
     static bool sendHeader(Client *handler);
     static bool prepareDataSource(http_parser *parser, Client *handler, std::string &host);
 
+    static int handleHeaderField(http_parser *parser, const char *at, size_t len);
     static int handleHeaderValue(http_parser *parser, const char *at, size_t len);
     static int handleHeadersComplete(http_parser *parser);
-    static int handleData(http_parser *parser, const char *at, size_t len);
 };
 
 #endif

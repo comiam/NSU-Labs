@@ -157,24 +157,24 @@ bool Server::connectToServer(const std::string &host)
 
 bool Server::sendData()
 {
-    ssize_t len = send(sock, send_buffer.c_str(), send_buffer.length(), 0);
+    ssize_t len = send(sock, send_buffer.data(), send_buffer.size(), 0);
 
     if (len == -1)
     {
-        perror("[---ERROR---] Can't send pipe_data to server");
+        perror("[---ERROR---] Can't send data to server");
         return false;
     } else
     {
         sp_lock.lock();
         if (start_point)
             printf("[SERVER-SEND] Send %zi bytes to server socket %i by client socket %i.\n", len, sock,
-                   start_point->getSocket());
+                   start_point_sock);
         else
             printf("[SERVER-SEND] Send %zi bytes to server socket %i by already closed client socket.\n", len, sock);
         sp_lock.unlock();
     }
 
-    send_buffer.erase(0, len);
+    send_buffer.erase(send_buffer.begin(), send_buffer.begin() + len);
     if (send_buffer.empty())
         core->setSocketUnavailableToSend(sock);
 
@@ -189,7 +189,7 @@ bool Server::receiveData()
 
     if (len < 0)
     {
-        perror("[---ERROR---] Can't recv pipe_data from server");
+        perror("[---ERROR---] Can't recv data from server");
         if (entry)
         {
             entry->lock();
@@ -212,26 +212,32 @@ bool Server::receiveData()
         sp_lock.lock();
         if (start_point)
             printf("[SERVER-RECV] Recv %zi bytes from server socket %i for client socket %i.\n", len, sock,
-                   start_point->getSocket());
+                   start_point_sock);
         else
             printf("[SERVER-RECV] Recv %zi bytes from server socket %i to cache.\n", len, sock);
         sp_lock.unlock();
     }
 
     size_t parsed = http_parser_execute(&parser, &Server::settings, buff, len);
-    if ((ssize_t) parsed != len)
+    if ((ssize_t) parsed != len || http_parse_error)
     {
         perror("[---ERROR---] Can't parse http from client");
         return false;
     }
 
     entry->lock();
+    if(cache_input_data_size != -1)
+    {
+        entry->setDataCapacity(cache_input_data_size);
+        cache_input_data_size = -1;
+    }
+
     try
     {
         entry->appendData(buff, len);
     } catch (std::bad_alloc &e)
     {
-        perror("[---ERROR---] Can't cache server pipe_data");
+        perror("[---ERROR---] Can't cache server data");
         entry->unlock();
         return false;
     }
@@ -265,7 +271,10 @@ int Server::tryResolveAddress(const std::string &host, addrinfo **res)
 void Server::initHTTPParser()
 {
     http_parser_settings_init(&settings);
-    settings.on_message_complete = handleMessageComplete;
+    settings.on_message_complete    = handleMessageComplete;
+    settings.on_header_field        = handleHeaderField;
+    settings.on_header_value        = handleHeaderValue;
+    settings.on_headers_complete    = handleHeadersComplete;
 }
 
 int Server::handleMessageComplete(http_parser *parser)
@@ -293,6 +302,7 @@ void Server::setStartPoint(Client *client)
 {
     sp_lock.lock();
     this->start_point = client;
+    this->start_point_sock = start_point->getSocket();
     sp_lock.unlock();
 }
 
@@ -318,7 +328,7 @@ ProxyCore *Server::getCore()
 void Server::putDataToSendBuffer(const char *data, size_t size)
 {
     io_lock.lock();
-    send_buffer.append(data, size);
+    send_buffer.insert(send_buffer.end(), data, data + size);
     io_lock.unlock();
 }
 
@@ -327,8 +337,6 @@ int Server::timeoutConnect(int sock, addrinfo *res_info)
     int arg;
     int res;
     fd_set myset;
-    int valopt;
-    socklen_t lon;
 
     arg = O_NONBLOCK;
     if (fcntl(sock, F_SETFL, arg) < 0)
@@ -406,4 +414,48 @@ void Server::noticeClientAndCache()
         start_point = nullptr;
     }
     sp_lock.unlock();
+}
+
+int Server::handleHeaderField(http_parser *parser, const char *at, size_t len)
+{
+    auto *handler = (Server *) parser->data;
+
+    try
+    {
+        handler->prev_key.append(at, len);
+    } catch (std::bad_alloc &e)
+    {
+        perror("[---ERROR---] Can't save client header key");
+        handler->http_parse_error = true;
+        return 1;
+    }
+    return 0;
+}
+
+int Server::handleHeaderValue(http_parser *parser, const char *at, size_t len)
+{
+    auto *handler = (Server *) parser->data;
+
+    try
+    {
+        handler->prev_value.append(at, len);
+    } catch (std::bad_alloc &e)
+    {
+        perror("[---ERROR---] Can't save client header value");
+        handler->http_parse_error = true;
+        return 1;
+    }
+    return 0;
+}
+
+int Server::handleHeadersComplete(http_parser *parser)
+{
+    auto *handler = (Server *) parser->data;
+
+    if (handler->prev_key == "Content-Length")
+        handler->cache_input_data_size = std::stoi(handler->prev_value);
+
+    handler->prev_key.clear();
+    handler->prev_value.clear();
+    return 0;
 }

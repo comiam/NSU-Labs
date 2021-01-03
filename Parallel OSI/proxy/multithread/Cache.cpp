@@ -129,12 +129,12 @@ CacheEntry::CacheEntry(std::string &url): Monitor()
 {
     invalid = url.substr(0, 2) != "01";
     this->url = url;
-    data = new std::string();
+    data = new std::vector<char>();
 }
 
 CacheEntry::~CacheEntry()
 {
-    delete data;
+    delete(data);
     printf("[PROXY--CORE] Cache of %s is deleted from memory...\n", url.substr(3, url.size()).c_str());
 
     sub_set.clear();
@@ -181,21 +181,23 @@ void CacheEntry::setHavingSourceSocket(Server *server)
     source = server;
 }
 
-std::string CacheEntry::getPartOfData(size_t beg, size_t length)
+std::pair<size_t, char*> CacheEntry::getPartOfData(size_t beg, size_t length)
 {
     resetTimer();
-    return data->substr(beg, length);
+    size_t end_data_length = length < data->size() - beg ? length : data->size() - beg;
+
+    return std::make_pair(end_data_length, data->data() + beg);
 }
 
 void CacheEntry::appendData(char *buff, size_t length)
 {
-    data->append(buff, length);
+    data->insert(data->end(), buff, buff + length);
 }
 
 size_t CacheEntry::getDataSize()
 {
     resetTimer();
-    return data->length();
+    return data->size();
 }
 
 bool CacheEntry::isCreatedNow() const
@@ -267,4 +269,9 @@ void CacheEntry::updateTimer(struct timespec &newTime)
     live_time_total += NANO * (newTime.tv_sec - live_time_elapsed.tv_sec) + (newTime.tv_nsec - live_time_elapsed.tv_nsec);
     live_time_elapsed.tv_nsec = newTime.tv_nsec;
     live_time_elapsed.tv_sec = newTime.tv_sec;
+}
+
+void CacheEntry::setDataCapacity(long capacity)
+{
+    data->reserve(capacity);
 }

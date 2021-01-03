@@ -7,6 +7,7 @@
 #include <string>
 #include <map>
 #include <set>
+#include <vector>
 #include "Monitor.h"
 
 #define NANO 1000000000L
@@ -28,13 +29,14 @@ public:
     bool isInvalid() const;
     void setInvalid(bool invalid);
 
-    std::string getPartOfData(size_t beg, size_t length);
-    void        appendData(char *buff, size_t length);
-    size_t      getDataSize();
+    std::pair<size_t, char*> getPartOfData(size_t beg, size_t length);
+    void                     appendData(char *buff, size_t length);
+    size_t                   getDataSize();
 private:
     void setHavingSourceSocket(Server *server);
     void unsetHavingSourceSocket();
     void setFinished(bool finished);
+    void setDataCapacity(long capacity);
 
     void addSubToList(int sock);
     void removeSubFromList(int sock);
@@ -50,7 +52,7 @@ private:
     size_t subscribers = 0;
     std::set<int> sub_set;
     std::string url;
-    std::string *data;
+    std::vector<char> *data;
 
     long live_time_total;
     struct timespec live_time_elapsed{0, 0};

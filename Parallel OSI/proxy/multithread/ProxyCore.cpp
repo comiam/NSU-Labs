@@ -105,6 +105,9 @@ void ProxyCore::clearData()
     task_list.notifyAll();
     task_list.unlock();
 
+    if(!isCreated())
+        return;
+
     for(auto &thr : thread_pool)
         pthread_join(thr, nullptr);
 #ifdef DEBUG_ENABLED
@@ -554,21 +557,21 @@ void *routine(void *args)
         return nullptr;
     }
 
-    pthread_cleanup_push(cleanProxy, proxy);
-
     if(!proxy->isCreated())
     {
         perror("Can't init proxy");
+        cleanProxy(proxy);
         return nullptr;
     }
 
+    pthread_cleanup_push(cleanProxy, proxy);
     if (!proxy->listenConnections())
     {
         printf("Proxy closed with error!\n");
         return nullptr;
     }
-
     pthread_cleanup_pop(1);
+
     return nullptr;
 }
 
@@ -591,6 +594,7 @@ void *worker_routine(void *args)
         parent->madeSocketFreeForPoll(current_task.first);
         if(res)
             parent->removeHandler(current_task.first);
+
         parent->noticePoll();
     }
 }
