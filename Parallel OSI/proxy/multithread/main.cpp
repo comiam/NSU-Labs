@@ -17,7 +17,6 @@ int main(int argc, char *argv[])
     int count = atoi(argv[2]);
 
     sigset(SIGPIPE, SIG_IGN);
-    sigset(SIGSTOP, SIG_IGN);
     sigset(SIGTERM, &sig_handler);
     sigset(SIGINT, &sig_handler);
 

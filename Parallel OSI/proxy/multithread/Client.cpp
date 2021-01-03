@@ -48,7 +48,7 @@ bool Client::receiveData()
 
     if (len < 0)
     {
-        perror("[---ERROR---] Can't receive data from client");
+        perror("[---ERROR---] Can't receive pipe_data from client");
         return false;
     } else if(!len)
         return false;
@@ -63,13 +63,14 @@ bool Client::receiveData()
     }
 
     lock();
-    if (http_parser_execute(&parser, &Client::settings, buff, len) != len || http_parse_error)
+    int stat = http_parser_execute(&parser, &Client::settings, buff, len) != len || http_parse_error;
+    unlock();
+
+    if (stat)
     {
         perror("[---ERROR---] HTTP parsing ended with error");
-        unlock();
         return false;
     }
-    unlock();
 
     return true;
 }
@@ -100,6 +101,7 @@ bool Client::sendData()
             return false;
         }else
             entry->unlock();
+
         return true;
     }
 
@@ -112,7 +114,7 @@ bool Client::sendData()
     ssize_t len = send(sock, str.c_str(), str.length(), 0);
 
     if (len < 0)
-        perror("[---ERROR---] Can't send data to client");
+        perror("[---ERROR---] Can't send pipe_data to client");
     else
     {
         lock();
@@ -165,7 +167,7 @@ int Client::handleHeaderField(http_parser *parser, const char *at, size_t len)
 {
     auto *handler = (Client *) parser->data;
 
-    if (!sendHeader(parser, handler))
+    if (!sendHeader(handler))
         return 1;
 
     try
@@ -199,7 +201,7 @@ int Client::handleHeaderValue(http_parser *parser, const char *at, size_t len)
 int Client::handleHeadersComplete(http_parser *parser)
 {
     auto *handler = (Client *) parser->data;
-    if (!sendHeader(parser, handler))
+    if (!sendHeader(handler))
         return 1;
 
     std::string end("\r\n");
@@ -225,7 +227,7 @@ int Client::handleData(http_parser *parser, const char *at, size_t len)
             handler->server_send_buffer.append(at, len);
     } catch (std::bad_alloc &e)
     {
-        perror("[---ERROR---] Can't save data to server send entry");
+        perror("[---ERROR---] Can't save pipe_data to server send entry");
         handler->http_parse_error = true;
         return 1;
     }
@@ -257,14 +259,14 @@ bool Client::sendToServer(Client *handler, std::string &str)
         }
     } catch (std::bad_alloc &e)
     {
-        perror("[---ERROR---] Can't save data to server send entry");
+        perror("[---ERROR---] Can't save pipe_data to server send entry");
         handler->http_parse_error = true;
         return false;
     }
     return true;
 }
 
-bool Client::sendHeader(http_parser *parser, Client *handler)
+bool Client::sendHeader(Client *handler)
 {
     if (handler->prev_key.empty())
         return true;

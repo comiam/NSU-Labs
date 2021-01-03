@@ -81,9 +81,9 @@ typedef struct http_parser_settings http_parser_settings;
  * useful for handling responses to a CONNECT request which may not contain
  * `Upgrade` or `Connection: upgrade` headers.
  *
- * http_data_cb does not return data chunks. It will be called arbitrarily
+ * http_data_cb does not return pipe_data chunks. It will be called arbitrarily
  * many times for each string. E.G. you might get 10 callbacks for "on_url"
- * each providing just a few characters more data.
+ * each providing just a few characters more pipe_data.
  */
 typedef int (*http_data_cb) (http_parser*, const char *at, size_t length);
 typedef int (*http_cb) (http_parser*);
@@ -253,7 +253,7 @@ enum flags
   XX(HEADER_OVERFLOW,                                                \
      "too many header bytes seen; overflow detected")                \
   XX(CLOSED_CONNECTION,                                              \
-     "data received after completed connection: close message")      \
+     "pipe_data received after completed connection: close message")      \
   XX(INVALID_VERSION, "invalid HTTP version")                        \
   XX(INVALID_STATUS, "invalid HTTP status code")                     \
   XX(INVALID_METHOD, "invalid HTTP method")                          \

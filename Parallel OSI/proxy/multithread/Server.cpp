@@ -161,7 +161,7 @@ bool Server::sendData()
 
     if (len == -1)
     {
-        perror("[---ERROR---] Can't send data to server");
+        perror("[---ERROR---] Can't send pipe_data to server");
         return false;
     } else
     {
@@ -189,7 +189,7 @@ bool Server::receiveData()
 
     if (len < 0)
     {
-        perror("[---ERROR---] Can't recv data from server");
+        perror("[---ERROR---] Can't recv pipe_data from server");
         if (entry)
         {
             entry->lock();
@@ -231,7 +231,7 @@ bool Server::receiveData()
         entry->appendData(buff, len);
     } catch (std::bad_alloc &e)
     {
-        perror("[---ERROR---] Can't cache server data");
+        perror("[---ERROR---] Can't cache server pipe_data");
         entry->unlock();
         return false;
     }

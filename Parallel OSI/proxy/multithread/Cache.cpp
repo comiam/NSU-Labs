@@ -223,7 +223,7 @@ void CacheEntry::removeSubFromList(int sock)
 
 bool CacheEntry::containsSub(int sock)
 {
-    return sub_set.find(sock) == sub_set.end();
+    return sub_set.find(sock) != sub_set.end();
 }
 
 Client *CacheEntry::getNewClientSide()

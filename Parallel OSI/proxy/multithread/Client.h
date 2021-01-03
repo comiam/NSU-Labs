@@ -39,8 +39,8 @@ private:
     size_t entry_offset = 0;
 
     std::string url;//current url target of http request
-    std::string server_send_buffer; // used for data for not already opened server
-    std::string prev_key; // temp data of key of http request
+    std::string server_send_buffer; // used for pipe_data for not already opened server
+    std::string prev_key; // temp pipe_data of key of http request
     std::string prev_value; // temp key of key of http request
 
     std::string host_name;
@@ -57,7 +57,7 @@ private:
     static bool sendToServer(Client *handler, std::string &str);
 
     static int  handleHeaderField(http_parser *parser, const char *at, size_t len);
-    static bool sendHeader(http_parser *parser, Client *handler);
+    static bool sendHeader(Client *handler);
     static bool prepareDataSource(http_parser *parser, Client *handler, std::string &host);
 
     static int handleHeaderValue(http_parser *parser, const char *at, size_t len);

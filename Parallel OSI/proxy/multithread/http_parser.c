@@ -99,7 +99,7 @@ do {                                                                 \
 /* Run the notify callback FOR and don't consume the current byte */
 #define CALLBACK_NOTIFY_NOADVANCE(FOR)  CALLBACK_NOTIFY_(FOR, p - data)
 
-/* Run data callback FOR with LEN bytes, returning ER if it fails */
+/* Run pipe_data callback FOR with LEN bytes, returning ER if it fails */
 #define CALLBACK_DATA_(FOR, LEN, ER)                                 \
 do {                                                                 \
   assert(HTTP_PARSER_ERRNO(parser) == HPE_OK);                       \
@@ -122,11 +122,11 @@ do {                                                                 \
   }                                                                  \
 } while (0)
 
-/* Run the data callback FOR and consume the current byte */
+/* Run the pipe_data callback FOR and consume the current byte */
 #define CALLBACK_DATA(FOR)                                           \
     CALLBACK_DATA_(FOR, p - FOR##_mark, p - data + 1)
 
-/* Run the data callback FOR and don't consume the current byte */
+/* Run the pipe_data callback FOR and don't consume the current byte */
 #define CALLBACK_DATA_NOADVANCE(FOR)                                 \
     CALLBACK_DATA_(FOR, p - FOR##_mark, p - data)
 
@@ -1880,7 +1880,7 @@ reexecute:
           /* Mimic CALLBACK_DATA_NOADVANCE() but with one extra byte.
            *
            * The alternative to doing this is to wait for the next byte to
-           * trigger the data callback, just as in every other case. The
+           * trigger the pipe_data callback, just as in every other case. The
            * problem with this is that this makes it difficult for the test
            * harness to distinguish between complete-on-EOF and
            * complete-on-length. It's not clear that this distinction is
@@ -2001,7 +2001,7 @@ reexecute:
             && parser->content_length != ULLONG_MAX);
 
         /* See the explanation in s_body_identity for why the content
-         * length and data pointers are managed this way.
+         * length and pipe_data pointers are managed this way.
          */
         MARK(body);
         parser->content_length -= to_read;
@@ -2043,7 +2043,7 @@ reexecute:
    * them in series (unset marks will not result in callbacks).
    *
    * We use the NOADVANCE() variety of callbacks here because 'p' has already
-   * overflowed 'data' and this allows us to correct for the off-by-one that
+   * overflowed 'pipe_data' and this allows us to correct for the off-by-one that
    * we'd otherwise have (since CALLBACK_DATA() is meant to be run with a 'p'
    * value that's in-bounds).
    */
@@ -2134,7 +2134,7 @@ http_status_str (enum http_status s)
 void
 http_parser_init (http_parser *parser, enum http_parser_type t)
 {
-  void *data = parser->data; /* preserve application data */
+  void *data = parser->data; /* preserve application pipe_data */
   memset(parser, 0, sizeof(*parser));
   parser->data = data;
   parser->type = t;
