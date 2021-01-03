@@ -65,7 +65,6 @@ private:
     static int  handleHeaderField(http_parser *parser, const char *at, size_t len);
     static int  handleHeaderValue(http_parser *parser, const char *at, size_t len);
     static void handleHeader(Server *handler);
-    //static int handleHeadersComplete(http_parser *parser);
 };
 
 #endif

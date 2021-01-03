@@ -274,7 +274,6 @@ void Server::initHTTPParser()
     settings.on_message_complete    = handleMessageComplete;
     settings.on_header_field        = handleHeaderField;
     settings.on_header_value        = handleHeaderValue;
-    //settings.on_headers_complete    = handleHeadersComplete;
 }
 
 int Server::handleMessageComplete(http_parser *parser)
@@ -462,18 +461,3 @@ void Server::handleHeader(Server *handler)
     handler->prev_key.clear();
     handler->prev_value.clear();
 }
-/*
-
-int Server::handleHeadersComplete(http_parser *parser)
-{
-    auto *handler = (Server *) parser->data;
-
-    if (handler->prev_key == "Content-Length")
-        handler->cache_input_data_size = std::stoi(handler->prev_value);
-
-    handler->prev_key.clear();
-    handler->prev_value.clear();
-    return 0;
-}
-
- */
