@@ -48,7 +48,7 @@ bool Client::receiveData()
 
     if (len < 0)
     {
-        perror("[---ERROR---] Can't receive pipe_data from client");
+        perror("[---ERROR---] Can't receive data from client");
         return false;
     } else if(!len)
         return false;
@@ -106,7 +106,7 @@ bool Client::sendData()
     ssize_t len = send(sock, str.second, str.first, 0);
 
     if (len < 0)
-        perror("[---ERROR---] Can't send pipe_data to client");
+        perror("[---ERROR---] Can't send data to client");
     else
     {
         lock();
@@ -219,7 +219,7 @@ int Client::handleData(http_parser *parser, const char *at, size_t len)
             handler->server_send_buffer.insert(handler->server_send_buffer.end(), at, at + len);
     } catch (std::bad_alloc &e)
     {
-        perror("[---ERROR---] Can't save pipe_data to server send entry");
+        perror("[---ERROR---] Can't save data to server send entry");
         handler->http_parse_error = true;
         return 1;
     }
@@ -249,7 +249,7 @@ bool Client::sendToServer(Client *handler, std::string &str)
             handler->server_send_buffer.insert(handler->server_send_buffer.end(), str.c_str(), str.c_str() + str.size());
     } catch (std::bad_alloc &e)
     {
-        perror("[---ERROR---] Can't save pipe_data to server send entry");
+        perror("[---ERROR---] Can't save data to server send entry");
         handler->http_parse_error = true;
         return false;
     }
@@ -354,6 +354,7 @@ bool Client::prepareDataSource(http_parser *parser, Client *handler, std::string
 
         handler->server_send_buffer.clear();
         handler->end_point = server;
+        handler->end_point_sock = server->getSocket();
 
         handler->core->setSocketAvailableToSend(server->getSocket());
     }

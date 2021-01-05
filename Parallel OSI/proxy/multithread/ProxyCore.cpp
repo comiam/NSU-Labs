@@ -115,45 +115,33 @@ void ProxyCore::clearData()
     printf("Closing sockets...\n");
 #endif
 
+    close(poll_pipe[0]);
+    close(poll_pipe[1]);
+    poll_set.erase(poll_set.begin());
     for (auto & i : poll_set)
     {
-        if(i.fd == poll_pipe[0])
-            close(i.fd);
-        else
-        {
-            closeSocket(i.fd, i.fd == proxy_socket);
+        closeSocket(i.fd, i.fd == proxy_socket);
 
-            if (socketHandlers[i.fd])
-                delete(socketHandlers[i.fd]);
-        }
+        if (socket_handlers.count(i.fd))
+            delete(socket_handlers[i.fd]);
     }
-    close(poll_pipe[1]);
-#ifdef DEBUG_ENABLED
-    printf("Poll set of sockets closed...\n");
-    printf("Begin close busy set of sockets...\n");
-#endif
-    for (auto & i : busy_set)
-    {
-        closeSocket(i.first, false);
 
-        if (socketHandlers[i.first])
-            delete(socketHandlers[i.first]);
-    }
 #ifdef DEBUG_ENABLED
     printf("End closing sockets...\n");
-    printf("Clear pipe_data and closing monitors...\n");
+    printf("Clear data and closing monitors...\n");
 #endif
 
     thread_pool.clear();
-    socketHandlers.clear();
+    socket_handlers.clear();
+    socket_positions.clear();
     new_server_set.clear();
     sock_rdwr.clear();
     task_list.clear();
+    task_order.clear();
     trash_set.clear();
     free_set.clear();
     poll_set.clear();
     busy_set.clear();
-    trashbox.clear();
 
     unlockMonitor(add_lock);
     unlockMonitor(free_lock);
@@ -170,12 +158,11 @@ bool ProxyCore::listenConnections()
 
     while (true)
     {
-        removeBusyConnectionsFromPoll();
         if(!addServerConnections())
             return false;
-        freeBusyConnections();
-        deleteDeadConnections();
+        handleBusyConnections();
         markPollSockets();
+        deleteDeadConnections();
         Cache::getCache().updateTimers();
 
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), -1);
@@ -195,7 +182,8 @@ bool ProxyCore::listenConnections()
                     continue;
                 else
                 {
-                    poll_set[i].revents = 0;
+                    if(i <= 1)
+                        poll_set[i].revents = 0;
 
                     if(i == 0 && (revent & (POLLIN | POLLPRI)))
                     {
@@ -207,18 +195,21 @@ bool ProxyCore::listenConnections()
                         if(!(revent & (POLLIN | POLLPRI)))
                             clearData();
                         return false;
-                    }else if(i != 1)
-                        addNewTask(i, revent);
+                    }else if(i > 1)
+                    {
+                        task_list.lock();
+                        if(!busy_set[poll_set[i].fd] && !task_list.count(poll_set[i].fd))
+                        {
+                            poll_set[i].revents = 0;
+                            addNewTask(poll_set[i].fd, revent);
+                        }
+                        task_list.unlock();
+                    }
                 }
         have_marked_connections = false;
     }
 
     return true;
-}
-
-bool operator==(const pollfd &first, const pollfd &second)
-{
-    return first.fd == second.fd && first.events == second.events;
 }
 
 template<typename Base, typename T>
@@ -237,7 +228,9 @@ bool ProxyCore::addSocketToPoll(int socket, short events, ConnectionHandler *exe
     bool success = true;
     try
     {
-        socketHandlers[socket] = executor;
+        socket_handlers[socket] = executor;
+        socket_positions[socket] = poll_set.size();
+        busy_set[socket] = false;
         poll_set.push_back(fd);
     } catch (std::bad_alloc &e)
     {
@@ -273,24 +266,20 @@ bool ProxyCore::initSocket(int sock_fd)
 
 ssize_t ProxyCore::getSocketIndex(int _sock)
 {
-    for(auto iter = poll_set.begin(); iter != poll_set.end(); ++iter)
-        if((*iter).fd == _sock)
-            return std::distance(poll_set.begin(), iter);
-
-    return -1;
+    return socket_positions.count(_sock) ? socket_positions[_sock] : -1;
 }
 
 void ProxyCore::setSocketAvailableToSend(int socket)
 {
     rdwr_lock.lock();
-    sock_rdwr.emplace_back(socket, 1);
+    sock_rdwr[socket] = true;
     rdwr_lock.unlock();
 }
 
 void ProxyCore::setSocketUnavailableToSend(int socket)
 {
     rdwr_lock.lock();
-    sock_rdwr.emplace_back(socket, 0);
+    sock_rdwr[socket] = false;
     rdwr_lock.unlock();
 }
 
@@ -321,7 +310,7 @@ bool ProxyCore::isCreated() const
 
 ConnectionHandler *ProxyCore::getHandlerBySocket(int socket)
 {
-    return !socketHandlers.count(socket) ? nullptr : socketHandlers[socket];
+    return !socket_handlers.count(socket) ? nullptr : socket_handlers[socket];
 }
 
 void ProxyCore::closeSocket(int _sock, bool is_server_sock)
@@ -344,7 +333,7 @@ std::pair<int, int> ProxyCore::getTask()
 
     task_list.lock();
 
-    while(task_list.empty() && !closing)
+    while(task_order.empty() && !closing)
         task_list.wait();
 
     if(closing)
@@ -353,11 +342,16 @@ std::pair<int, int> ProxyCore::getTask()
         return std::make_pair(-1,-1);
     }
 
-    auto elem = *task_list.begin();
-    task_list.erase(elem);
+    int next_sock = task_order.front();
+    auto elem = task_list[next_sock];
+
+    task_order.pop_front();
+    task_list.erase(next_sock);
+
+    busy_set[next_sock] = true;
     task_list.unlock();
 
-    return elem;
+    return std::make_pair(next_sock, elem);
 }
 
 void ProxyCore::lockHandlers()
@@ -377,25 +371,27 @@ void ProxyCore::madeSocketFreeForPoll(int _sock)
     free_lock.unlock();
 }
 
-void ProxyCore::removeHandlerImpl(int _sock)
+void ProxyCore::removeHandlerImpl(int sock)
 {
-    if(!socketHandlers.count(_sock))
+    if(!socket_handlers.count(sock))
         return;
 
-    printf("[PROXY--CORE] %s socket %i closed\n", instanceOf<Client>(socketHandlers[_sock]) ? "Client" : "Server", _sock);
+    printf("[PROXY--CORE] %s socket %i closed\n", instanceOf<Client>(socket_handlers[sock]) ? "Client" : "Server", sock);
 
-    delete(socketHandlers[_sock]);
+    delete(socket_handlers[sock]);
 
-    socketHandlers.erase(_sock);
-    poll_set.erase(
-            std::remove_if(
-                    poll_set.begin(),
-                    poll_set.end(),
-                    [_sock](const pollfd &p) { return p.fd == _sock; }
-                ),
-            poll_set.end());
+    socket_handlers.erase(sock);
+    poll_set.erase(poll_set.begin() + socket_positions[sock]);
 
-    closeSocket(_sock, false);
+    task_list.erase(sock);
+    task_order.remove_if([=](int elem){ return elem == sock; });
+    busy_set[sock] = false;
+
+    socket_positions.clear();
+    for (int i = 0; i < poll_set.size(); ++i)
+        socket_positions[poll_set[i].fd] = i;
+
+    closeSocket(sock, false);
 }
 
 void ProxyCore::unlockMonitor(Monitor monitor)
@@ -440,37 +436,42 @@ bool ProxyCore::addServerConnections()
     return true;
 }
 
-void ProxyCore::freeBusyConnections()
+void ProxyCore::handleBusyConnections()
 {
+    task_list.lock();
     free_lock.lock();
     for (auto &i : free_set)
-        if(busy_set.count(i))
-        {
-            poll_set.push_back(busy_set[i]);
-            busy_set.erase(i);
-        }
+    {
+        busy_set[i] = false;
+        int pos = getSocketIndex(i);
+        if(pos != -1)
+            poll_set[pos].events |= POLLIN | POLLPRI;
+    }
     free_set.clear();
     free_lock.unlock();
+
+    for (auto &s : busy_set)
+    {
+        int pos = getSocketIndex(s.first);
+        if(pos != -1 && busy_set[s.first])
+            poll_set[pos].events &= ~(POLLIN | POLLPRI);
+    }
+    task_list.unlock();
 }
 
 void ProxyCore::deleteDeadConnections()
 {
     lockHandlers();
+    task_list.lock();
     for(auto it = trash_set.begin();it != trash_set.end();)
-        if(!busy_set.count(*it))
+        if(!busy_set[*it])
         {
             removeHandlerImpl(*it);
             it = trash_set.erase(it);
         }else
             it++;
+    task_list.unlock();
     unlockHandlers();
-}
-
-void ProxyCore::removeBusyConnectionsFromPoll()
-{
-    for(auto &i : trashbox)
-        poll_set.erase(std::remove(poll_set.begin(), poll_set.end(), i), poll_set.end());
-    trashbox.clear();
 }
 
 bool ProxyCore::addClientConnection()
@@ -508,26 +509,17 @@ bool ProxyCore::addClientConnection()
     return true;
 }
 
-void ProxyCore::addNewTask(int poll_position, int revent)
+void ProxyCore::addNewTask(int sock, int revent)
 {
-    task_list.lock();
-    pollfd val = poll_set[poll_position];
-    auto p = std::make_pair(val.fd, revent);
-
     lockHandlers();
-    if (!task_list.count(p) &&
-        (std::find(trash_set.begin(), trash_set.end(), val.fd)
-         ==
-         trash_set.end()))
+    bool not_deleted = (trash_set.empty() || std::find(trash_set.begin(), trash_set.end(), sock) == trash_set.end());
+    if (not_deleted)
     {
-        task_list.insert(p);
-        busy_set[val.fd] = val;
-        trashbox.push_back(val);
+        task_list[sock] = revent;
+        task_order.push_back(sock);
+        task_list.notify();
     }
     unlockHandlers();
-
-    task_list.notify();
-    task_list.unlock();
 }
 
 void ProxyCore::noticePoll()

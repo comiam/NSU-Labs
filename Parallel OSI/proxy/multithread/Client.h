@@ -40,8 +40,8 @@ private:
     size_t entry_offset = 0;
 
     std::string url;//current url target of http request
-    std::vector<char> server_send_buffer; // used for pipe_data for not already opened server
-    std::string prev_key; // temp pipe_data of key of http request
+    std::vector<char> server_send_buffer; // used for data for not already opened server
+    std::string prev_key; // temp data of key of http request
     std::string prev_value; // temp key of key of http request
 
     std::string host_name;

@@ -335,7 +335,6 @@ int Server::timeoutConnect(int sock, addrinfo *res_info)
 {
     int arg;
     int res;
-    fd_set myset;
 
     arg = O_NONBLOCK;
     if (fcntl(sock, F_SETFL, arg) < 0)
@@ -347,16 +346,18 @@ int Server::timeoutConnect(int sock, addrinfo *res_info)
     // Trying to connect with timeout
     res = connect(sock, res_info->ai_addr, res_info->ai_addrlen);
 
-    struct timeval tv{};
-
     if (res < 0)
     {
         if (errno == EINPROGRESS)
         {
+            struct timeval tv{};
             tv.tv_sec = 5;
             tv.tv_usec = 0;
+
+            fd_set myset;
             FD_ZERO(&myset);
             FD_SET(sock, &myset);
+
             res = select(sock + 1, nullptr, &myset, nullptr, &tv);
 
             if (res < 0 && errno != EINTR)
