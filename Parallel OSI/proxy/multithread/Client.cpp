@@ -1,4 +1,5 @@
 #include "Client.h"
+#include "io_utils.h"
 
 http_parser_settings Client::settings;
 
@@ -44,7 +45,8 @@ bool Client::receiveData()
 {
     char buff[BUFFER_SIZE];
 
-    ssize_t len = recv(sock, buff, BUFFER_SIZE, 0);
+    ssize_t len;
+    SIG_SAFE_IO_BLOCK(recv(sock, buff, BUFFER_SIZE, 0), len)
 
     if (len < 0)
     {
@@ -103,7 +105,8 @@ bool Client::sendData()
 
     entry->unlock();
 
-    ssize_t len = send(sock, str.second, str.first, 0);
+    ssize_t len;
+    SIG_SAFE_IO_BLOCK(send(sock, str.second, str.first, 0), len)
 
     if (len < 0)
         perror("[---ERROR---] Can't send data to client");

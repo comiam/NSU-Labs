@@ -1,5 +1,6 @@
 #include "Server.h"
 #include "Client.h"
+#include "io_utils.h"
 
 http_parser_settings Server::settings;
 
@@ -157,7 +158,8 @@ bool Server::connectToServer(const std::string &host)
 
 bool Server::sendData()
 {
-    ssize_t len = send(sock, send_buffer.data(), send_buffer.size(), 0);
+    ssize_t len;
+    SIG_SAFE_IO_BLOCK(send(sock, send_buffer.data(), send_buffer.size(), 0), len)
 
     if (len == -1)
     {
@@ -185,7 +187,8 @@ bool Server::receiveData()
 {
     char buff[BUFFER_SIZE];
 
-    ssize_t len = recv(sock, buff, BUFFER_SIZE, 0);
+    ssize_t len;
+    SIG_SAFE_IO_BLOCK(recv(sock, buff, BUFFER_SIZE, 0), len)
 
     if (len < 0)
     {
@@ -344,7 +347,7 @@ int Server::timeoutConnect(int sock, addrinfo *res_info)
     }
 
     // Trying to connect with timeout
-    res = connect(sock, res_info->ai_addr, res_info->ai_addrlen);
+    SIG_SAFE_IO_BLOCK(connect(sock, res_info->ai_addr, res_info->ai_addrlen), res)
 
     if (res < 0)
     {
@@ -358,7 +361,7 @@ int Server::timeoutConnect(int sock, addrinfo *res_info)
             FD_ZERO(&myset);
             FD_SET(sock, &myset);
 
-            res = select(sock + 1, nullptr, &myset, nullptr, &tv);
+            SIG_SAFE_IO_BLOCK(select(sock + 1, nullptr, &myset, nullptr, &tv), res)
 
             if (res < 0 && errno != EINTR)
             {

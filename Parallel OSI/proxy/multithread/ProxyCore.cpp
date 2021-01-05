@@ -1,5 +1,6 @@
 #include "ProxyCore.h"
 #include "Client.h"
+#include "io_utils.h"
 
 void *routine(void* args);
 
@@ -187,7 +188,7 @@ bool ProxyCore::listenConnections()
 
                     if(i == 0 && (revent & (POLLIN | POLLPRI)))//listen poll notifier
                     {
-                        read(poll_set[0].fd, &pipe_data, sizeof(char));
+                        SIG_SAFE_IO_BLOCK2(read(poll_set[0].fd, &pipe_data, sizeof(char)))
                         if(pipe_data == CLOSE_SIGNAL)
                             return true;//safe section of code, we can go out of here
                         else
@@ -195,8 +196,6 @@ bool ProxyCore::listenConnections()
                     }else if(i == 1 && (!(revent & (POLLIN | POLLPRI)) || !addClientConnection()))//it's proxy socket
                     {
                         fprintf(stderr, "[PROXY-ERROR] Can't accept new client! Closing proxy...\n");
-                        if(!(revent & (POLLIN | POLLPRI)))
-                            clearData();
                         return false;
                     }else if(i > 1)
                     {
@@ -260,7 +259,6 @@ bool ProxyCore::initSocket(int sock_fd)
     if (listen(proxy_socket, POLL_SIZE_SEGMENT) == -1)
     {
         perror("[PROXY-ERROR] Can't set listen to server socket");
-        clearData();
         return false;
     }
 
@@ -430,7 +428,6 @@ bool ProxyCore::addServerConnections()
         {
             fprintf(stderr, "Can't add new server socket to poll from add set! Closing...");
             closeSocket(i.first, false);
-            clearData();
             return false;
         }
     new_server_set.clear();
@@ -479,11 +476,12 @@ void ProxyCore::deleteDeadConnections()
 
 bool ProxyCore::addClientConnection()
 {
-    int new_client = accept(proxy_socket, nullptr, nullptr);
+    int new_client;
+
+    SIG_SAFE_IO_BLOCK(accept(proxy_socket, nullptr, nullptr), new_client)
     if (new_client == -1)
     {
         perror("[PROXY-ERROR] Can't accept new socket");
-        clearData();
         return false;
     }
 
@@ -494,9 +492,7 @@ bool ProxyCore::addClientConnection()
     } catch (std::bad_alloc &e)
     {
         perror("[PROXY-ERROR] Can't allocate memory for new connection handler");
-
         closeSocket(new_client, false);
-        clearData();
         return false;
     }
 
@@ -504,7 +500,6 @@ bool ProxyCore::addClientConnection()
     {
         fprintf(stderr, "[PROXY-ERROR] Can't add new socket to poll!\n");
         closeSocket(new_client, false);
-        clearData();
         return false;
     }
 
@@ -527,7 +522,7 @@ void ProxyCore::addNewTask(int sock, int revent)
 
 void ProxyCore::noticePoll()
 {
-    write(poll_pipe[1], &pipe_data, sizeof(char));
+    SIG_SAFE_IO_BLOCK2(write(poll_pipe[1], &pipe_data, sizeof(char)))
 }
 
 int ProxyCore::getProxyNotifier()
