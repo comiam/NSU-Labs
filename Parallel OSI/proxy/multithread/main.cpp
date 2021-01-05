@@ -2,7 +2,7 @@
 #include <csignal>
 
 void sig_handler(int sig);
-pthread_t thread;
+int  proxy_notifier = -1;
 
 int main(int argc, char *argv[])
 {
@@ -20,16 +20,23 @@ int main(int argc, char *argv[])
     sigset(SIGTERM, &sig_handler);
     sigset(SIGINT, &sig_handler);
 
-    auto arg = std::make_pair(port, count);
-    thread = initProxyCore(arg);
+    auto arg = std::make_tuple(port, count, &proxy_notifier);
+    pthread_t thread = initProxyCore(arg);
+
     if(thread)
-        pthread_join(thread, nullptr);
+        pthread_join(thread, nullptr);//we may do anything this thread, come on))
 
     return 0;
 }
 
 void sig_handler(int signum)
 {
-    pthread_cancel(thread);
+    if(proxy_notifier == -1)
+        printf("Interesting shit happened on signal %i...\n", signum);
+    else
+    {
+        char close_answer = CLOSE_SIGNAL;
+        write(proxy_notifier, &close_answer, sizeof(char));
+    }
 }
 

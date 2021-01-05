@@ -17,8 +17,9 @@
 #include "ConnectionHandler.h"
 
 #define POLL_SIZE_SEGMENT 100
+#define CLOSE_SIGNAL -1
 
-pthread_t initProxyCore(std::pair<int, int> &port);
+pthread_t initProxyCore(std::tuple<int, int, int*> &port);
 
 class ProxyCore
 {
@@ -28,6 +29,7 @@ public:
 
     bool isCreated() const;
     bool listenConnections();
+    int getProxyNotifier();
 
     void lockHandlers();
     void unlockHandlers();
@@ -40,7 +42,6 @@ public:
     bool                addSocketToPollQueue(int socket, ConnectionHandler *executor);
     void                removeHandler(int sock);
     void                noticePoll();
-
 
     static void closeSocket(int sock, bool is_server_sock);
 private:
@@ -62,7 +63,7 @@ private:
     static void unlockMonitor(Monitor monitor);
 
     char pipe_data = 0;
-    int poll_pipe[2];
+    int poll_pipe[2] = {0,0};
     int proxy_socket = -1;
     int port = 0;
     std::vector<pthread_t> thread_pool;

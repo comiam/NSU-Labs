@@ -5,7 +5,7 @@ void *routine(void* args);
 
 void *worker_routine(void *args);
 
-pthread_t initProxyCore(std::pair<int, int> &args)
+pthread_t initProxyCore(std::tuple<int, int, int*> &args)
 {
     pthread_t proxy_thread;
     if (!pthread_create(&proxy_thread, nullptr, routine, &args))
@@ -96,17 +96,17 @@ ProxyCore::~ProxyCore()
 
 void ProxyCore::clearData()
 {
-    closing = true;
+    if(!isCreated())
+        return;
 
 #ifdef DEBUG_ENABLED
     printf("Closing childs...\n");
 #endif
+    closing = true;
+
     task_list.lock();
     task_list.notifyAll();
     task_list.unlock();
-
-    if(!isCreated())
-        return;
 
     for(auto &thr : thread_pool)
         pthread_join(thr, nullptr);
@@ -185,11 +185,14 @@ bool ProxyCore::listenConnections()
                     if(i <= 1)
                         poll_set[i].revents = 0;
 
-                    if(i == 0 && (revent & (POLLIN | POLLPRI)))
+                    if(i == 0 && (revent & (POLLIN | POLLPRI)))//listen poll notifier
                     {
                         read(poll_set[0].fd, &pipe_data, sizeof(char));
-                        continue;
-                    }else if(i == 1 && (!(revent & (POLLIN | POLLPRI)) || !addClientConnection()))//only for proxy socket
+                        if(pipe_data == CLOSE_SIGNAL)
+                            return true;//safe section of code, we can go out of here
+                        else
+                            continue;//it's was wakeup from handlers to handle new tasks
+                    }else if(i == 1 && (!(revent & (POLLIN | POLLPRI)) || !addClientConnection()))//it's proxy socket
                     {
                         fprintf(stderr, "[PROXY-ERROR] Can't accept new client! Closing proxy...\n");
                         if(!(revent & (POLLIN | POLLPRI)))
@@ -209,7 +212,7 @@ bool ProxyCore::listenConnections()
         have_marked_connections = false;
     }
 
-    return true;
+    return false;//proxy will be here because of poll was broken
 }
 
 template<typename Base, typename T>
@@ -527,22 +530,20 @@ void ProxyCore::noticePoll()
     write(poll_pipe[1], &pipe_data, sizeof(char));
 }
 
-void cleanProxy(void* arg)
+int ProxyCore::getProxyNotifier()
 {
-    delete((ProxyCore*)arg);
+    return poll_pipe[1];
 }
 
 void *routine(void *args)
 {
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
-    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, nullptr);
     ProxyCore *proxy;
 
-    auto *p = (std::pair<int, int>*)args;
+    auto *p = (std::tuple<int, int, int*>*)args;
 
     try
     {
-        proxy = new ProxyCore(p->first, p->second);
+        proxy = new ProxyCore(std::get<0>(*p), std::get<1>(*p));
     } catch (std::bad_alloc &e)
     {
         perror("Can't init proxy");
@@ -552,18 +553,16 @@ void *routine(void *args)
     if(!proxy->isCreated())
     {
         perror("Can't init proxy");
-        cleanProxy(proxy);
+        delete(proxy);
         return nullptr;
     }
 
-    pthread_cleanup_push(cleanProxy, proxy);
+    *(std::get<2>(*p)) = proxy->getProxyNotifier();
+
     if (!proxy->listenConnections())
-    {
         printf("Proxy closed with error!\n");
-        return nullptr;
-    }
-    pthread_cleanup_pop(1);
 
+    delete(proxy);
     return nullptr;
 }
 
