@@ -55,7 +55,7 @@ bool Server::execute(int event)
     {
         entry_lock.unlock();
         closed_lock.unlock();
-        printf("[SERVER-INFO] Server socket %i lost start point and closing now...\n", sock);
+        printf("[SERVER-INFO] Server socket %i lost start point and closed now...\n", sock);
 
         noticeClientAndCache();
         return false;
@@ -63,7 +63,7 @@ bool Server::execute(int event)
     {
         entry_lock.unlock();
         closed_lock.unlock();
-        printf("[SERVER-INFO] Server socket %i lost its own cache entry and closing...\n", sock);
+        printf("[SERVER-INFO] Server socket %i lost its own cache entry and closed...\n", sock);
 
         noticeClientAndCache();
         return false;

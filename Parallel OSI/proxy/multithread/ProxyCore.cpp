@@ -3,8 +3,8 @@
 #include "io_utils.h"
 
 void *routine(void* args);
-
 void *worker_routine(void *args);
+void *cache_timer_routine(void *args);
 
 pthread_t initProxyCore(std::tuple<int, int, int*> &args)
 {
@@ -81,6 +81,19 @@ ProxyCore::ProxyCore(int port, int thread_count)
         thread_pool.push_back(thread);
     }
 
+    if(pthread_create(&cache_timer_thread, nullptr, cache_timer_routine, (void*)this))
+    {
+        printf("Can't create cache timer thread for proxy! Shutting down...\n");
+
+        for (auto j : thread_pool)
+            pthread_cancel(j);
+
+        close(poll_pipe[0]);
+        close(poll_pipe[1]);
+        closeSocket(proxy_socket, true);
+        return;
+    }
+
     printf("\n[PROXY--CORE] Proxy created!\n");
 
     created = true;
@@ -88,22 +101,14 @@ ProxyCore::ProxyCore(int port, int thread_count)
 
 ProxyCore::~ProxyCore()
 {
-    clearData();
-    printf("\n[PROXY--CORE] Proxy closed!\n");
-
-    created = false;
-    closing = true;
-}
-
-void ProxyCore::clearData()
-{
     if(!isCreated())
         return;
 
 #ifdef DEBUG_ENABLED
     printf("Closing childs...\n");
 #endif
-    closing = true;
+
+    closed = true;
 
     task_list.lock();
     task_list.notifyAll();
@@ -111,8 +116,12 @@ void ProxyCore::clearData()
 
     for(auto &thr : thread_pool)
         pthread_join(thr, nullptr);
+
+    pthread_cancel(cache_timer_thread);
+    pthread_join(cache_timer_thread, nullptr);
+
 #ifdef DEBUG_ENABLED
-    printf("End closing childs...\n");
+    printf("End closed childs...\n");
     printf("Closing sockets...\n");
 #endif
 
@@ -128,8 +137,8 @@ void ProxyCore::clearData()
     }
 
 #ifdef DEBUG_ENABLED
-    printf("End closing sockets...\n");
-    printf("Clear data and closing monitors...\n");
+    printf("End closed sockets...\n");
+    printf("Clear data and closed monitors...\n");
 #endif
 
     thread_pool.clear();
@@ -148,6 +157,10 @@ void ProxyCore::clearData()
     unlockMonitor(free_lock);
     unlockMonitor(remove_lock);
     unlockMonitor(rdwr_lock);
+
+    printf("\n[PROXY--CORE] Proxy closed!\n");
+
+    created = false;
 }
 
 bool ProxyCore::listenConnections()
@@ -164,7 +177,6 @@ bool ProxyCore::listenConnections()
         handleBusyConnections();
         markPollSockets();
         deleteDeadConnections();
-        Cache::getCache().updateTimers();
 
         count = poll(poll_set.data(), (nfds_t) poll_set.size(), -1);
 
@@ -329,15 +341,15 @@ void ProxyCore::removeHandler(int socket)
 
 std::pair<int, int> ProxyCore::getTask()
 {
-    if(closing)
+    if(closed)
         return std::make_pair(-1,-1);
 
     task_list.lock();
 
-    while(task_order.empty() && !closing)
+    while(task_order.empty() && !closed)
         task_list.wait();
 
-    if(closing)
+    if(closed)
     {
         task_list.unlock();
         return std::make_pair(-1,-1);
@@ -530,6 +542,11 @@ int ProxyCore::getProxyNotifier()
     return poll_pipe[1];
 }
 
+bool ProxyCore::isClosed() const
+{
+    return closed;
+}
+
 void *routine(void *args)
 {
     ProxyCore *proxy;
@@ -583,4 +600,22 @@ void *worker_routine(void *args)
 
         parent->noticePoll();
     }
+}
+
+void *cache_timer_routine(void *args)
+{
+    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, nullptr);
+    pthread_setcanceltype(PTHREAD_CANCEL_DEFERRED, nullptr);
+    auto *parent = (ProxyCore*)args;
+
+    while(!parent->isClosed())
+    {
+        parent->lockHandlers();
+        Cache::getCache().updateTimers();
+        parent->unlockHandlers();
+
+        sleep(1);
+    }
+
+    return nullptr;
 }

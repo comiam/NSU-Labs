@@ -27,6 +27,7 @@ public:
     ProxyCore(int port, int thread_count);
     ~ProxyCore();
 
+    bool isClosed() const;
     bool isCreated() const;
     bool listenConnections();
     int getProxyNotifier();
@@ -47,7 +48,6 @@ public:
 private:
     bool initSocket(int sock_fd);
     bool initPollSet();
-    void clearData();
 
     bool    addSocketToPoll(int socket, short events, ConnectionHandler *executor);
     void    removeHandlerImpl(int sock);
@@ -66,6 +66,8 @@ private:
     int poll_pipe[2] = {0,0};
     int proxy_socket = -1;
     int port = 0;
+
+    pthread_t cache_timer_thread;
     std::vector<pthread_t> thread_pool;
     std::vector<pollfd> poll_set;
     std::vector<int> trash_set;
@@ -90,7 +92,7 @@ private:
     Monitor rdwr_lock;
 
     bool created = false;
-    bool closing = false;
+    bool closed = false;
     bool have_marked_connections = false;
 };
 
