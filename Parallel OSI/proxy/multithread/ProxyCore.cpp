@@ -121,7 +121,7 @@ ProxyCore::~ProxyCore()
     pthread_join(cache_timer_thread, nullptr);
 
 #ifdef DEBUG_ENABLED
-    printf("End closed childs...\n");
+    printf("End closing childs...\n");
     printf("Closing sockets...\n");
 #endif
 
@@ -137,8 +137,8 @@ ProxyCore::~ProxyCore()
     }
 
 #ifdef DEBUG_ENABLED
-    printf("End closed sockets...\n");
-    printf("Clear data and closed monitors...\n");
+    printf("End closing sockets...\n");
+    printf("Clear data and closing monitors...\n");
 #endif
 
     thread_pool.clear();
