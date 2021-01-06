@@ -12,8 +12,7 @@ pthread_t initProxyCore(std::tuple<int, int, int*> &args)
     {
         printf("Proxy thread created!\n");
         return proxy_thread;
-    }
-    else
+    }else
     {
         fprintf(stderr, "Can't create proxy thread! Closing...\n");
         return 0;
@@ -44,7 +43,7 @@ ProxyCore::ProxyCore(int port, int thread_count)
 
     if(pipe(poll_pipe))
     {
-        perror("Can't init pipe for poll");
+        perror("[PROXY-ERROR] Can't init pipe for poll");
         closeSocket(proxy_socket, true);
         return;
     }
@@ -67,7 +66,7 @@ ProxyCore::ProxyCore(int port, int thread_count)
     {
         if(pthread_create(&thread, nullptr, worker_routine, (void*)this))
         {
-            printf("Can't create needed count of worker threads for proxy! Shutting down...\n");
+            fprintf(stderr, "[PROXY-ERROR] Can't create needed count of worker threads for proxy! Shutting down...\n");
 
             for (auto j : thread_pool)
                 pthread_cancel(j);
@@ -82,7 +81,7 @@ ProxyCore::ProxyCore(int port, int thread_count)
 
     if(pthread_create(&cache_timer_thread, nullptr, cache_timer_routine, (void*)this))
     {
-        printf("Can't create cache timer thread for proxy! Shutting down...\n");
+        fprintf(stderr, "[PROXY-ERROR] Can't create cache timer thread for proxy! Shutting down...\n");
 
         for (auto j : thread_pool)
             pthread_cancel(j);
