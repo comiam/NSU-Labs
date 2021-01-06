@@ -1,6 +1,5 @@
 #include "ProxyCore.h"
 #include "Client.h"
-#include "io_utils.h"
 
 void *routine(void* args);
 void *worker_routine(void *args);

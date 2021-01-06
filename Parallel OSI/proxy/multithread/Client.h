@@ -6,6 +6,7 @@
 #include "http_parser.h"
 #include "Server.h"
 #include "Cache.h"
+#include "io_utils.h"
 
 #define BUFFER_SIZE 4096 * 16
 
