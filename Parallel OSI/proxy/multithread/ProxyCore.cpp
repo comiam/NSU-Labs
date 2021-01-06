@@ -328,7 +328,7 @@ ConnectionHandler *ProxyCore::getHandlerBySocket(int socket)
 void ProxyCore::closeSocket(int _sock, bool is_server_sock)
 {
     shutdown(_sock, !is_server_sock ? SHUT_RDWR : SHUT_WR);
-    close(_sock);
+    SIG_SAFE_IO_BLOCK2(close(_sock))
 }
 
 void ProxyCore::removeHandler(int socket)
