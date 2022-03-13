@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?> <!-- Using optional BOM (0xEF 0xBB 0xBF) -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+    <xs:element name="node">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="tag" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+            <xs:attribute name="id" type="xs:unsignedLong"/>
+            <xs:attribute name="lat" type="xs:double"/>
+            <xs:attribute name="lon" type="xs:double"/>
+            <xs:attribute name="user" type="xs:string"/>
+            <xs:attribute name="uid" type="xs:unsignedLong"/>
+            <xs:attribute name="visible" type="xs:boolean"/>
+            <xs:attribute name="version" type="xs:unsignedLong"/>
+            <xs:attribute name="changeset" type="xs:unsignedLong"/>
+            <xs:attribute name="timestamp" type="xs:dateTime"/>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="tag">
+        <xs:complexType>
+            <xs:attribute name="k" type="xs:string"/>
+            <xs:attribute name="v" type="xs:string"/>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
