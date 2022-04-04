@@ -13,6 +13,6 @@ fun main() {
     val resourceLoader = ResourceLoader()
     DBManager.runInsertionTest(resourceLoader.path!!,
         {SingleConnectionManager(DbProps.parseDBProps())},
-        NodeServiceFactory.Strategy.PREPARED_STATEMENT
+        NodeServiceFactory.Strategy.BATCH
     )
 }
