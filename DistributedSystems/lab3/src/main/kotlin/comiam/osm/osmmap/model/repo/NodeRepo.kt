@@ -10,7 +10,8 @@ import java.util.*
 interface NodeRepo: JpaRepository<Node, Long> {
     @Query(nativeQuery = true, value =
             "select * from nodes\n" +
-            "where point(longitude, latitude) <@> point(:longitude, :latitude) < :radius"
+            "where point(longitude, latitude) <@> point(:longitude, :latitude) < :radius\n" +
+            "order by point(longitude, latitude) <@> point(:longitude, :latitude) desc"
     )
     fun searchNodeByPointAndDistance(latitude: Float, longitude: Float, radius: Float): Iterable<Node>
 }
