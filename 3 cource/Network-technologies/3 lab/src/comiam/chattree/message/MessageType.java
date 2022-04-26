@@ -1,0 +1,11 @@
+package comiam.chattree.message;
+
+public enum MessageType
+{
+    TEXT_MESSAGE,
+    CONNECT_MESSAGE,
+    SUCCESS_CONNECT_MESSAGE,
+    NEW_REPLACEMENT_MESSAGE,
+    SUCCESS_RECEIVED_MESSAGE,
+    HEARTBEAT_MESSAGE
+}
