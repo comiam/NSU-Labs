@@ -36,4 +36,4 @@
         words_acc
         (seq_all_words (concat_seq_to_words words_acc seq [] 0) seq n)))))
 
-(println (seq_all_words [] `(\a \b \c) 3))
+;(println (seq_all_words [] `(\a \b \c) 2))
