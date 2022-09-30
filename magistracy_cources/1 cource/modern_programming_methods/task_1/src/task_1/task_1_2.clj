@@ -10,14 +10,14 @@
           new-seq (rest seq)]
       (if (nil? new-word)                                   ; если случился повтор подряд идущих символов
         (recur word new-seq words-acc)
-        (recur word new-seq (concat words-acc (list new-word)))))))
+        (recur word new-seq (into words-acc (list new-word)))))))
 
 (defn concat-seq-to-words
   "Делает новые подпоследовательности слов, добавляя символы"
   [words seq words-acc]
   (if (empty? words)                                        ; если перебрали все слова
     words-acc
-    (recur (rest words) seq (concat words-acc (concat-seq-to-word (first words) seq [])))))
+    (recur (rest words) seq (into words-acc (concat-seq-to-word (first words) seq [])))))
 
 (defn seq-all-words
   "Создаёт последовательность секвенций символов char-seq длины n без повторяющихся попарно символов"
