@@ -1,39 +1,33 @@
-(ns task-1.task_1_1)
+(ns task-1.task-1-1
+  (:require [task-1.task-common :refer :all]))
 
-(defn append_char_to_word
-  "Соединяет символ со словом, если такой же символ не встречается в начале слова"
-  [word char]
-  (if (= (first word) char)
-    word
-    (str char word)))
-
-(defn concat_seq_to_word
+(defn concat-seq-to-word
   "Делает подпоследовательность слов, соединяя текущее слово со всеми символами из набора"
-  [word seq seq_i words_acc]
-  (if (= seq_i (count seq))                                 ; если соединили уже все символы со словом
-    words_acc
-    (let [new_word (append_char_to_word word (nth seq seq_i))
-          new_seq (inc seq_i)]
-      (if (= word new_word)                                 ; если случился повтор подряд идущих символов
-        (concat_seq_to_word word seq new_seq words_acc)
-        (concat_seq_to_word word seq new_seq (doall (concat words_acc (list new_word))))))))
+  [word seq words-acc]
+  (if (empty? seq)                                          ; если соединили уже все символы со словом
+    words-acc
+    (let [new-word (append-char-to-word word (first seq))
+          new-seq (rest seq)]
+      (if (nil? new-word)                                   ; если случился повтор подряд идущих символов
+        (concat-seq-to-word word new-seq words-acc)
+        (concat-seq-to-word word new-seq (concat words-acc (list new-word)))))))
 
-(defn concat_seq_to_words
+(defn concat-seq-to-words
   "Делает новые подпоследовательности слов, добавляя символы"
-  [words seq words_acc words_i]
-  (if (= (count words) words_i)                             ; если перебрали все слова
-    words_acc
-    (concat_seq_to_words words seq (doall (concat words_acc (concat_seq_to_word (nth words words_i) seq 0 []))) (inc words_i))))
+  [words seq words-acc]
+  (if (empty? words)                                        ; если перебрали все слова
+    words-acc
+    (concat-seq-to-words (rest words) seq (concat words-acc (concat-seq-to-word (first words) seq [])))))
 
-(defn seq_all_words
-  "Создаёт последовательность секвенций символов char_seq длины n без повторяющихся попарно символов"
-  [words_acc seq n]
-  (if (= 0 (count seq))                                     ; проверка на пустой набор
-    []
-    (if (= 0 (count words_acc))                             ; начало рекурсии
-      (seq_all_words (map str seq) seq n)
-      (if (= (count (nth words_acc 0)) n)                   ; если длина слов равна n
-        words_acc
-        (seq_all_words (concat_seq_to_words words_acc seq [] 0) seq n)))))
+(defn seq-all-words
+  "Создаёт последовательность секвенций символов char-seq длины n без повторяющихся попарно символов"
+  [words-acc seq n]
+  (if (empty? seq)                                          ; проверка на пустой набор
+    `()
+    (if (empty? words-acc)                                  ; начало рекурсии
+      (seq-all-words seq seq n)
+      (if (= (count (first words-acc)) n)                   ; если длина слов равна n
+        words-acc
+        (seq-all-words (concat-seq-to-words words-acc seq []) seq n)))))
 
-;(println (seq_all_words [] `(\a \b \c) 2))
+(println (seq-all-words [] `("a" "b" "c") 3))
