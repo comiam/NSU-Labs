@@ -13,8 +13,12 @@
 
 (deftest length-test
   (testing "Test lengths"
-    (loop [i 2]
-      (is (= (calc-subseq-length i 2) (count (seq-all-words [] (char-range i) 2))))
-      (if (= i 26)
+    (loop [word_len 2]
+      (loop [i 2]
+        (is (= (calc-subseq-length i word_len) (count (seq-all-words [] (char-range i) word_len))))
+        (if (= i 7)
+          ()
+          (recur (inc i))))
+      (if (= word_len 5)
         ()
-        (recur (inc i))))))
+        (recur (inc word_len))))))
