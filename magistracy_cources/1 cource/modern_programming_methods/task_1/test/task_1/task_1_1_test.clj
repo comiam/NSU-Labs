@@ -16,10 +16,12 @@
   (map char (range 97 (+ 97 len))))
 
 (defn calc_subseq_length
-  ([char_len len] (calc_subseq_length (dec len) (dec char_len) char_len))
-  ([cur_ind factor acc] (if (= 0 cur_ind)
-                          acc
-                          (calc_subseq_length (dec cur_ind) factor (* factor acc)))))
+  ([char_len len]
+   (calc_subseq_length (dec len) (dec char_len) char_len))
+  ([cur_ind factor acc]
+   (if (= 0 cur_ind)
+     acc
+     (calc_subseq_length (dec cur_ind) factor (* factor acc)))))
 
 (deftest length_test
   (testing "Test lengths"
