@@ -1,0 +1,391 @@
+import lingo/pegcode/driver;
+
+export {
+	ArExp ::= ArSum, ArMin, ArDiv, ArPow, ArMult, ArInt, ArVar;
+	ArSum(l:ArExp, r:ArExp);
+	ArMin(l:ArExp, r:ArExp);
+	ArDiv(up:ArExp, down:ArExp);
+	ArPow(l:ArExp, pow:ArExp);
+	ArMult(l:ArExp, r:ArExp);
+	ArInt(val:int);
+	ArVar(var:string);
+
+	s2ar(s:string) -> ArExp;
+	ar2s(ar:Maybe<ArExp>) -> string;
+	simplifyTree(ar:ArExp) -> Maybe<ArExp>;
+}
+
+s2ar(s:string) -> ArExp {
+	gram="#include syntax_tree_exp.lingo";
+	parsic(compilePegGrammar(gram), s, defaultPegActions);
+}
+
+ar2s(ar:Maybe<ArExp>) -> string {
+	if(isNone(ar))
+		"error tree!!!"
+	else {
+		switch(either(ar, ArInt(0))) {
+			ArPow(l, power): 
+				concatStrings(["(", ar2s(Some(l)), "^", ar2s(Some(power)), ")"]);
+			ArDiv(up, down): 
+				concatStrings(["(", ar2s(Some(up)), " / ", ar2s(Some(down)), ")"]);
+			ArMin(l, r): 
+				concatStrings(["(", ar2s(Some(l)), " - ", ar2s(Some(r)), ")"]);
+			ArSum(l, r): 
+				concatStrings(["(", ar2s(Some(l)), " + ", ar2s(Some(r)), ")"]);
+			ArMult(l, r): 
+				concatStrings(["(", ar2s(Some(l)), " * ", ar2s(Some(r)), ")"]);
+			ArInt(val): 
+				i2s(val);
+			ArVar(var):
+				var;
+		}
+	}
+}
+
+Args ::= VarInt, IntVar, IntInt, VarVar;
+VarInt(l:string, r:int);
+IntVar(l:int, r:string);
+IntInt(l:int, r:int);
+VarVar(l:string, r:string); 
+
+detectOperands(l:ArExp, r:ArExp) -> Args {
+	typeInt0 = detectNumOperand(l);
+	typeString0 = detectVarOperand(l);
+
+	typeInt1 = detectNumOperand(r);
+	typeString1 = detectVarOperand(r);
+
+	if(isNone(typeInt0))
+	{
+		if(isNone(typeInt1))
+			VarVar(typeString0, typeString1)
+		else
+			VarInt(typeString0, either(typeInt1, 0));
+	}else
+	{
+		if(isNone(typeInt1))
+			IntVar(either(typeInt0, 0), typeString1)
+		else
+			IntInt(either(typeInt0, 0), either(typeInt1, 0));		
+	}
+}
+
+simplifyTree(ar:ArExp) -> Maybe<ArExp> {
+	//Find simple expression like a^1, a+0, a*0, a-0 etc
+	removeTrivialExp(ar, None(), 0);
+
+	//fold x+x+x+x+x+...+x to nx and x*x*x*x*...*x = x^n and 1/x/x/x/x/x/x/x = 1/x^n
+}
+
+execSimplifier(m: Maybe<ArExp>, useExprAsVar: bool, condOp: (string, ArExp) -> Maybe<ArExp>) -> Maybe<ArExp> {
+	if(isNone(m))
+		None()
+	else
+	{
+		if(useExprAsVar) {
+
+			}e
+		arr = extractArgs(either(m,ArInt(0)));
+
+		if(length(arr) == 0)
+			m
+		else {
+			newL = detectAndReplace(arr[0], condOp);
+			newR = detectAndReplace(arr[1], condOp);
+		
+			if(isNone(newL) || isNone(newR))
+				None()
+			else {
+				op = detectType(either(m,ArInt(0)));
+				condOp(op, createStruct(op, either(newL, ArInt(0)), either(newR, ArInt(0))));
+			}	
+		}
+	}
+}
+
+detectAndReplace(ar:ArExp, condOp) -> Maybe<ArExp> {
+	switch(ar) {
+		ArInt(val): 
+			Some(ar);
+		ArVar(var):
+			Some(ar);
+		default:
+			execSimplifier(Some(ar), condOp);
+	}
+}
+
+extractArgs(ar:ArExp) -> [ArExp] {
+	switch(ar) {
+		ArPow(l, power):
+			[l,power];
+		ArDiv(up, down): 
+			[up,down];
+		ArMin(l, r): 
+			[l,r];
+		ArSum(l, r): 
+			[l,r];
+		ArMult(l, r): 
+			[l,r];
+		default:
+			[];
+	}	
+}
+
+detectType(ar: ArExp) -> string {
+	switch (ar) {
+		ArPow(l, power):
+			"^";
+		ArDiv(up, down): 
+			"/";
+		ArMin(l, r): 
+			"-";
+		ArSum(l, r): 
+			"+";
+		ArMult(l, r): 
+			"*";
+		ArInt(val): 
+			"int";
+		ArVar(var):
+			"variable";	
+	}
+}
+
+createStruct(op: string, l:ArExp, r:ArExp) -> ArExp {
+	if(op == "+")
+	{
+		ArSum(l,r);
+	}else if(op == "-")
+	{
+		ArMin(l,r);
+	}else if(op == "*")
+	{
+		ArMult(l,r);
+	}else if(op == "/")
+	{
+		ArDiv(l,r);
+	}else if(op == "^")
+	{
+		ArPow(l,r);
+	}else 
+		l;
+}
+
+detectNumOperand(ar:ArExp) -> Maybe<int> {
+	switch(ar) {
+		ArInt(val):
+			Some(val);
+		default:
+			None();		
+	}
+}
+
+detectVarOperand(ar:ArExp) -> string {
+	switch(ar) {
+		ArVar(var):
+			var;
+		default:
+			"";		
+	}
+}
+
+removeTrivialExp(ar:ArExp, old: Maybe<ArExp>, iteration: int) -> Maybe<ArExp> {
+	if(isNone(old) && iteration > 0)
+		None()
+	else {
+		it0 = execSimplifier(Some(ar), \op, ar0 -> {
+			if(op != "^")
+				Some(ar0)
+			else
+			{
+				p = cast(ar0 : ArExp -> ArPow);
+				switch(detectOperands(p.l,p.pow)) { //We don't know about variables, so we cant find out anything in many situations
+					IntInt(l0,r0):
+						if(r0 == 0)//x^0
+							Some(ArInt(1))
+						else if(r0 == 1)//x^1
+							Some(ArInt(l0))
+						else {
+							if(l0 == 1)//1^x
+								Some(ArInt(1))
+							else if(l0 == 0)//0^x, there we can set it, because of x != 0, it we can find out from the conditions above
+								Some(ArInt(0))
+							else
+								Some(ar0);	
+						}	
+					VarInt(l0,r0):
+						if(r0 == 0) //x^0
+							Some(ArInt(1))
+						else if(r0 == 1) //x^1
+							Some(ArVar(l0))
+						else
+							Some(ar0);
+					IntVar(l0,r0):
+						if(l0 == 1) //1^x, we can't set condition 0^x, because of we don't anything about x, it can be equal zero
+							Some(ArInt(1))
+						else
+							Some(ar0);			
+					default:
+						Some(ar0);
+				}
+			}	
+		});
+
+		it1 = execSimplifier(it0, \op, ar0 -> {
+			if(op != "*")
+				Some(ar0)
+			else
+			{
+				p = cast(ar0 : ArExp -> ArMult);
+				switch(detectOperands(p.l,p.r)) {
+					IntInt(l0,r0):
+						if(r0 == 0 || l0 == 0)//x*0 or 0*r
+							Some(ArInt(0))
+						else if(r0 == 1)//x*1 or 1*x
+							Some(ArInt(l0))
+						else if(l0 == 1)
+							Some(ArInt(r0))
+						else
+							Some(ar0);	
+					VarInt(l0,r0):
+						if(r0 == 0)
+							Some(ArInt(0))
+						else if(r0 == 1)
+							Some(ArVar(l0))
+						else
+							Some(ar0);
+					IntVar(l0,r0):
+						if(l0 == 0)
+							Some(ArInt(0))
+						else if(l0 == 1)
+							Some(ArVar(r0))
+						else
+							Some(ar0);			
+					default:
+						Some(ar0);
+				}
+			}	
+		});
+
+		it2 = execSimplifier(it1, \op, ar0 -> {
+			if(op != "/")
+				Some(ar0)
+			else
+			{
+				p = cast(ar0 : ArExp -> ArDiv);
+				switch(detectOperands(p.up,p.down)) {
+					IntInt(l0,r0):
+						if(l0 == 0)// 0/x
+							Some(ArInt(0))
+						else if(r0 == 0)//divide by zero
+							None()
+						else if(r0 == 1)// x/1
+							Some(ArInt(l0))
+						else if(r0 == l0)// x/x
+							Some(ArInt(1))
+						else	
+							Some(ar0);	
+					VarInt(l0,r0):// another conditions similar to the previous conditions
+						if(r0 == 0)
+							Some(ArInt(0))
+						else if(r0 == 1)
+							Some(ArVar(l0))
+						else
+							Some(ar0);
+					IntVar(l0,r0):
+						if(l0 == 0)
+							Some(ArInt(0))
+						else
+							Some(ar0);
+					VarVar(l0,r0):
+						if(l0 == r0)
+							Some(ArInt(1))
+						else
+							Some(ar0);			
+				}
+			}	
+		});
+
+		it3 = execSimplifier(it2, \op, ar0 -> {
+			if(op != "-")
+				Some(ar0)
+			else
+			{
+				p = cast(ar0 : ArExp -> ArMin);
+				switch(detectOperands(p.l,p.r)) {
+					IntInt(l0,r0):
+						if(r0 == l0) // x-x
+							Some(ArInt(0))
+						else if(l0 == 0)// 0-x
+							Some(ArInt(-r0))
+						else if(r0 == 0)// x-0
+							Some(ArInt(l0))
+						else 
+							Some(ar0);	
+					VarInt(l0,r0):// another conditions similar to the previous conditions
+						if(r0 == 0)
+							Some(ArVar(l0))
+						else
+							Some(ar0);
+					IntVar(l0,r0):
+						if(l0 == 0)
+							Some(ArMult(ArInt(-1), ArVar(r0)))
+						else
+							Some(ar0);
+					VarVar(l0,r0):
+						if(l0 == r0)
+							Some(ArInt(0))
+						else
+							Some(ar0);			
+				}
+			}	
+		});
+
+		it4 = execSimplifier(it3, \op, ar0 -> {
+			if(op != "+")
+				Some(ar0)
+			else
+			{
+				p = cast(ar0 : ArExp -> ArSum);
+				switch(detectOperands(p.l,p.r)) {
+					IntInt(l0,r0):
+						if(l0 == 0)// 0+x
+							Some(ArInt(r0))
+						else if(r0 == 0)// x+0
+							Some(ArInt(l0))
+						else if(r0 == l0) // x+x = 2x
+							Some(ArMult(ArInt(2), ArInt(l0)))
+						else	
+							Some(ar0);	
+					VarInt(l0,r0):// another conditions similar to the previous conditions
+						if(r0 == 0)
+							Some(ArVar(l0))
+						else
+							Some(ar0);
+					IntVar(l0,r0):
+						if(l0 == 0)
+							Some(ArVar(r0))
+						else
+							Some(ar0);
+					VarVar(l0,r0):
+						if(l0 == r0)
+							Some(ArMult(ArInt(2), ArVar(l0)))
+						else
+							Some(ar0);			
+				}
+			}	
+		});	
+
+		if(isNone(it4))
+			None()
+		else {
+			exp = either(it4, ArInt(0));
+			oldExp = either(old, ArInt(0));
+
+			if(exp == oldExp)
+				it4
+			else
+				removeTrivialExpIter(exp, it4, iteration + 1);
+		}		
+	}
+}

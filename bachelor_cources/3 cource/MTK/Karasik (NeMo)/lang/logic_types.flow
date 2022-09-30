@@ -1,0 +1,18 @@
+export {
+	Formule ::= Atom, Or, And, Neg, Implication, AllQuantor, ExiQuantor, EmptyAtom;
+	Atom(test:string, f:LogicTypeValue, s:LogicTypeValue);
+	EmptyAtom();
+	Or(f:Formule, s:Formule);
+	And(f:Formule, s:Formule);
+	Neg(f:Formule);
+	Implication(f:Formule, s:Formule);
+	AllQuantor(var: string, f: Formule);
+	ExiQuantor(var: string, f: Formule);
+	
+	LogicTypeValue ::= LInt, LVariable, LBinOp, LAccessArray, LRedefineArray;
+	LVariable(name:string);
+	LAccessArray(name:LogicTypeValue, index:LogicTypeValue);
+	LRedefineArray(name:LogicTypeValue, index:LogicTypeValue, value:LogicTypeValue);
+	LInt(v:int);
+	LBinOp(op:string, f:LogicTypeValue, s:LogicTypeValue);
+}

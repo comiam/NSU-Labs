@@ -1,0 +1,19 @@
+import alg;
+import simplifier;
+import var_parse;
+import derivative;
+import ratfun;
+
+main() -> void {
+	alg = readUntil("\n");
+
+	//var = trim(rtrim2(readUntil("\n"), "\n"));
+	//vars = readUntil("\n");
+
+	//println(ar2s(simplifyTree(s2alg(alg))));
+	//println(calcVarRpn(s2rpn(alg), s2vars(vars)));
+	//println(calcSimpleRpn(s2rpn(alg)));
+	//println(ar2s(ar2diff(s2ar(alg), var)));
+
+	println(rf2s(alg2rf(s2alg(alg))));
+}

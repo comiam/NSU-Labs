@@ -1,0 +1,57 @@
+import maybe;
+import runtime;
+import lang/logic_types;
+
+export {
+	ProgramSequence(op:Operation, next:Maybe<ProgramSequence>);
+
+	Operation ::= VarDefine, Command, Annotation, EmptyOp;
+	VarDefine(name:string, type:TypeValue, value:TypeValue);
+	Annotation(formule:Formule);
+	EmptyOp();
+
+	TypeValue ::= Int, Variable, Array, Operator, EmptyType, ErrorType;
+	Operator ::= BinOp, UnOp, ArrayAccess, VarRedefine, VarArrayRedefine;
+
+	Variable(name:string);
+	Int(v:int);
+	Array(size:int);
+	EmptyType();
+	ErrorType();
+
+	BinOp(op:string, f:TypeValue, s:TypeValue);
+	UnOp(op:string, u:TypeValue);
+	ArrayAccess(var:Variable, ind:TypeValue);
+	VarRedefine(name:string, value:TypeValue);
+	VarArrayRedefine(name: string, index: TypeValue, value:TypeValue);
+
+	Command ::= If, While, Test, Sequence, Choice, VarRedefine, VarArrayRedefine, Loop, Print;
+	If(test:Test, a:Command, b:Command);
+	While(test:Test, a:Command, invariant:Maybe<Annotation>);
+	Test(test:string, f:TypeValue, s:TypeValue);
+	Print(data:TypeValue);
+	Sequence(f:Command, s:Command);
+	Choice(f:Command, s:Command);
+	Loop(f:Command, invariant:Maybe<Annotation>);
+
+	invertTest(t:Test) -> Test;
+}
+
+invertTest(t:Test) -> Test {
+	if(t.test == "==") 
+		Test("!=", t.f, t.s)
+	else if(t.test == "<=") 
+		Test(">", t.f, t.s)		
+	else if(t.test == ">=") 
+		Test("<", t.f, t.s)
+	else if(t.test == "!=") 
+		Test("==", t.f, t.s)	
+	else if(t.test == ">") 
+		Test("<=", t.f, t.s)
+	else if(t.test == "<") 
+		Test(">=", t.f, t.s)
+	else {
+		println("Unknown test: " + t.test + " !");
+		t;
+	}
+}

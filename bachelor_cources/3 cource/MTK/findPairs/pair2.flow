@@ -1,0 +1,17 @@
+import runtime;
+import ds/set;
+
+findPair(m: int, arr: [int]) -> [Pair<int, int>] {
+	set = buildSet(arr);
+
+	set2array(fold(arr, makeSet(), \setPair, x->{
+		if(containsSet(set, m-x) && m-x <= x && !containsSet(setPair, Pair(x, m-x)))
+			insertSet(setPair, Pair(m-x, x))
+		else
+			setPair;
+	}));
+}
+
+main() -> void {
+	println(findPair(10, [5, 5, 4, 6, 2, 8, 13, -3, 0, 10]));
+}

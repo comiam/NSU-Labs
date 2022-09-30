@@ -1,0 +1,39 @@
+import runtime;
+import lingo/pegcode/driver;
+
+ArExp ::= ArSum, ArMult, ArInt;
+ArSum(l:ArExp, r:ArExp);
+ArMult(l:ArExp, r:ArExp);
+ArInt(val:int);
+
+s2ar(s:string) -> ArExp {
+	gram="#include rpn_exp.lingo";
+	parsic(compilePegGrammar(gram), s, defaultPegActions);
+}
+
+ar2s(ar:ArExp) -> string {
+	switch(ar) {
+		ArSum(l, r): 
+			concatStrings(["(", ar2s(l), " + ", ar2s(r), ")"]);
+		ArMult(l, r): 
+			concatStrings(["(", ar2s(l), " * ", ar2s(r), ")"]);
+		ArInt(val): 
+			i2s(val);
+	}
+}
+
+s2ans(s:ArExp) -> int {
+	switch(s) {
+		ArSum(l, r): 
+			s2ans(l) + s2ans(r);
+		ArMult(l, r): 
+			s2ans(l) * s2ans(r);
+		ArInt(val): 
+			val;
+	}
+}
+
+main() -> void {
+	println(ar2s(s2ar("                    (1   +(2  *4)       		    )      ")));
+	println(s2ans(s2ar("(1+(2*4))")));
+}

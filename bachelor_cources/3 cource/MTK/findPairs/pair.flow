@@ -1,0 +1,16 @@
+import runtime;
+
+findPair(m: int, arr: [int]) -> [Pair<int, int>] {
+	fold(arr, [], \acc, x -> {
+		fold(arr, acc, \acc2, y -> {
+			if(x + y == m && x <= y)
+				concat(acc2, [Pair(x,y)])
+			else
+				acc2;
+		});
+	});
+}
+
+main() -> void {
+	println(findPair(10, [5, 5, 4, 6, 2, 8, 13, -3, 0, 10]));
+}

@@ -1,0 +1,36 @@
+import lingo/pegcode/driver;
+
+export {
+	AlgExp ::= AlgSum, AlgMin, AlgDiv, AlgMult, AlgDouble, AlgVar;
+	AlgSum(l:AlgExp, r:AlgExp);
+	AlgMin(l:AlgExp, r:AlgExp);
+	AlgDiv(up:AlgExp, down:AlgExp);
+	AlgMult(l:AlgExp, r:AlgExp);
+	AlgDouble(val:double);
+	AlgVar(var:string);
+
+	s2alg(s:string) -> AlgExp;
+	alg2s(ar:AlgExp) -> string;
+}
+ 
+s2alg(s:string) -> AlgExp {
+	gram="#include syntax_tree_exp.lingo";
+	parsic(compilePegGrammar(gram), s, defaultPegActions);
+}
+
+alg2s(ar:AlgExp) -> string {
+	switch(ar) {
+		AlgDiv(up, down): 
+			concatStrings(["(", alg2s(up), " / ", alg2s(down), ")"]);
+		AlgMin(l, r): 
+			concatStrings(["(", alg2s(l), " - ", alg2s(r), ")"]);
+		AlgSum(l, r): 
+			concatStrings(["(", alg2s(l), " + ", alg2s(r), ")"]);
+		AlgMult(l, r): 
+			concatStrings(["(", alg2s(l), " * ", alg2s(r), ")"]);
+		AlgDouble(val): 
+			d2s(val);
+		AlgVar(var):
+			var;
+	}
+}

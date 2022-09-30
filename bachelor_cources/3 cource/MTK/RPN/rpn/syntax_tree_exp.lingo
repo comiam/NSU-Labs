@@ -1,0 +1,23 @@
+S = operations | numeric;
+
+numeric = double | negd | int | negi | var | negv;
+operations = min | divide | plus | mult;
+ws = (" " | "\t" | "\n" | "\r")*;
+
+divide = ws "(" ws S:l ws "/" ws S:r ws ")" ws {AlgDiv(:l,:r)};
+min = ws "(" ws S:l ws "-" ws S:r ws ")" ws {AlgMin(:l,:r)};
+plus = ws "(" ws S:l ws "+" ws S:r ws ")" ws {AlgSum(:l,:r)};
+mult = ws "(" ws S:l ws "*" ws S:r ws ")" ws {AlgMult(:l,:r)};
+
+double = ws digitD$s ws {AlgDouble(s2d($s))};
+negd = ws ("-" digitD)$s ws {AlgDouble(s2d($s))};
+
+int = ws digit$s ws {AlgDouble(s2d($s))};
+negi = ws ("-" digit)$s ws {AlgDouble(s2d($s))};
+
+var = ws word$s ws {AlgVar($s)};
+negv = ws "-" word$s ws {AlgMult(AlgDouble(s2d("-1.0")), AlgVar($s))};
+
+digit  = ('0'-'9')+;
+digitD = ('0'-'9')+ "." ('0'-'9')+;
+word = ('a'-'z')+ ('0'-'9')*;

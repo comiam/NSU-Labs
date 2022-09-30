@@ -1,0 +1,16 @@
+import runtime;
+
+fib(k) {
+	if(k <= 2)
+		1
+	else
+		fib(k-1)+fib(k-2)	
+}
+
+fibArr(k) {
+	map(enumFromTo(1,k), fib)
+}
+
+main() -> void {
+	println(fibArr(10));
+}

@@ -1,0 +1,331 @@
+import lang/types;
+import lang/vmcompiler;
+import lang/grammar/validator;
+
+export {
+	generateZ3(p: ProgramSequence) -> string;
+	getACVCConditions(p: ProgramSequence) -> [Formule];
+	formulesToStr(f: [Formule]) -> string;
+}
+
+formulesToStr(f: [Formule]) -> string {
+	strGlue(map(f, acvcToStr), "\n");
+}
+
+getACVCConditions(ps: ProgramSequence) -> [Formule] {
+	p = checkStructure(ps);
+
+	if(!p.first) {
+		println(p.second);
+		[];
+	} else {
+		if(!isSameStructType(ps.op, emptyAnnotation())) {
+			println("Program not annotated!");
+			[];
+		} else {
+			f0 = cast (ps.op : Operation -> Annotation).formule;
+			f1 = foundPostCond(getNextPS(ps));
+
+			ac = generateAC(getNextPS(ps), f1);
+			vc = generateVC(getNextPS(ps), f1);
+
+			concat(vc, [Implication(f0, ac)]);
+		}
+	}
+}
+
+generateZ3(ps: ProgramSequence) -> string {
+	formules = getACVCConditions(ps);
+
+	if(formules == [])
+		""
+	else
+		translateToZ3(ps, formules);	
+}
+
+translateToZ3(p: ProgramSequence, formules : [Formule]) -> string {
+	strGlue(map(extractDecl(p), declToZ3), "\n") + "\n" + proveConditions(formules);
+}
+
+proveConditions(formules : [Formule]) -> string {
+	strGlue(mapi(formules, \i, f -> {
+			name = "cond" + i2s(i);
+			"(push)\n" +
+			"(define-fun " + name + "() Bool " + formuleToZ3(f) + ")\n" +
+			"(assert (not " + name + "))\n"
+		}), 
+	"\n") + 
+	strGlue(mapi(formules, \i,f -> {
+			"(check-sat)\n" +
+			"(pop)"
+		}), 
+	"\n");
+}
+
+declToZ3(decl : VarDefine) -> string {
+	"(declare-const " + decl.name + " " + type2Z3(decl.type) + ")";
+}
+
+type2Z3(type: TypeValue) -> string {
+	switch(type)
+	{
+		Array(s):
+			"(Array Int Int)";
+		Int(v):
+			"Int";	
+		default: "";
+	}
+}
+
+lt2z3(lt: LogicTypeValue) -> string {
+	switch(lt) {
+		LVariable(name):
+			name;
+		LInt(v):
+			i2s(v);
+		LBinOp(op, f, s):
+			"(" + op + " " + lt2z3(f) + " " + lt2z3(s) + ")";
+		LAccessArray(name, index): 
+			"(select " + lt2z3(name) + " " + lt2z3(index) + ")";
+        LRedefineArray(name, index, value): 
+        	"(store " + lt2z3(name) + " " + lt2z3(index) + " " + lt2z3(index) + ")";
+	}
+}
+
+formuleToZ3(f: Formule) -> string {
+	switch (f) {
+		Atom(test, f1, s): 
+			if(test == "!=")
+				"(not (= " + lt2z3(f1) + " " + lt2z3(s) + "))" 
+			else if(test == "==")
+				"(= " + lt2z3(f1) + " " + lt2z3(s) + ")" 
+			else
+				"(" + test + " " + lt2z3(f1) + " " + lt2z3(s) + ")";
+		EmptyAtom():
+		    "";
+		Or(f1, s):
+			"(or "  + formuleToZ3(f1) + " " + formuleToZ3(s) + ")";
+		And(f1, s):
+			"(and " + formuleToZ3(f1) + " " + formuleToZ3(s) + ")";
+		Neg(f1):
+			"(not " + formuleToZ3(f1) + ")";
+		Implication(f1, s):
+			"(=> "  + formuleToZ3(f1) + " " + formuleToZ3(s) + ")";
+		AllQuantor(var, f1): 
+			"(forall ((" + var + " Int)) " + formuleToZ3(f1) + ")";
+		ExiQuantor(var, f1):
+			"(exists ((" + var + " Int)) " + formuleToZ3(f1) + ")";
+	}
+}
+
+extractDecl(p: ProgramSequence) -> [VarDefine] {
+	p1 = p.op;
+
+	if(isNone(p.next))
+		getDecl(p1)
+	else 
+		concat(getDecl(p1), extractDecl(getNextOp(p)));
+}
+
+getDecl(op: Operation) -> [VarDefine] {
+	switch (op) {
+		VarDefine(name, type, val): [op];
+		default: [];
+	}
+}
+
+acvcToStr(f: Formule) -> string {
+	switch (f) {
+	  	Atom(test, f1, s):
+			"(" + lt2str(f1) + test + lt2str(s) + ")";
+		EmptyAtom():
+		    "";
+		Or(f1, s):
+			"(" + acvcToStr(f1) + "||" + acvcToStr(s) + ")";
+		And(f1, s):
+			"(" + acvcToStr(f1) + "&&" + acvcToStr(s) + ")";
+		Neg(f1):
+			"!(" + acvcToStr(f1) + ")";
+		Implication(f1, s):
+			"(" + acvcToStr(f1) + "->" + acvcToStr(s) + ")";
+		AllQuantor(var, f1): 
+			"ForAll " + var + ":(" + acvcToStr(f1) + ")";
+		ExiQuantor(var, f1):
+			"Exists " + var + ":(" + acvcToStr(f1) + ")";  
+	}  
+}
+
+lt2str(t: LogicTypeValue) -> string {
+	switch(t) {
+		LVariable(name):
+			name;
+		LInt(v):
+			i2s(v);
+		LBinOp(op, f, s):
+			"(" + lt2str(f) + op + lt2str(s) + ")";
+		LAccessArray(name, index): 
+			lt2str(name) + "[" + lt2str(index) + "]";
+        LRedefineArray(name, index, value):
+        	lt2str(name) + "[" + lt2str(index) + "] = " + lt2str(value);
+	}
+}
+
+foundPostCond(p:ProgramSequence) -> Formule {
+	if(!isSameStructType(p.op, emptyAnnotation()))
+		foundPostCond(getNextPS(p))
+	else 
+		cast (p.op : Operation -> Annotation).formule;
+}
+
+generateVC(p: ProgramSequence, postCond: Formule) -> [Formule] {
+	p1 = p.op;
+	p2 = getNextOp(p);
+
+	if(isNone(p.next))
+		operationToVC(p1, postCond)
+	else 
+		concat(operationToVC(p1, generateAC(p2, postCond)), generateVC(p2, postCond));
+}
+
+operationToVC(op: Operation, postCond: Formule) -> [Formule] {
+	switch (op) {
+		If(t, f, s): 
+			concat(operationToVC(f, postCond), operationToVC(s, postCond));
+		While(t, a, invariant): 
+			operationToVC(Sequence(Loop(Sequence(t,a), invariant), invertTest(t)), postCond);
+		Sequence(f, s): 
+			concat(operationToVC(f, operationToAC(s, postCond)), 
+				   operationToVC(s, postCond));
+		Choice(f, s): 
+			concat(operationToVC(f, postCond), 
+				   operationToVC(s, postCond));
+		Loop(f, invariant): 
+			concat(operationToVC(f, getInv(invariant)), 
+				[Implication(getInv(invariant), postCond)]);
+		default:
+			[];
+	}
+}	
+
+generateAC(p: ProgramSequence, postCond: Formule) -> Formule {
+	p1 = p.op;
+	p2 = getNextOp(p);
+
+	if(isNone(p.next))
+		operationToAC(p1, postCond)
+	else 
+		operationToAC(p1, generateAC(p2, postCond));
+}
+
+operationToAC(op: Operation, postCond: Formule) -> Formule {
+	switch (op) {
+		If(t, f, s): 
+			operationToAC(Choice(Sequence(t,f), Sequence(invertTest(t),s)), postCond);
+		While(test, a, invariant):
+			getInv(invariant);
+		Test(test, f, s):
+			Implication(Atom(test, tv2ltv(f), tv2ltv(s)), postCond);
+		Sequence(f, s): 
+			operationToAC(f, operationToAC(s, postCond));
+		Choice(f, s): 
+			And(operationToAC(f, postCond), operationToAC(s, postCond));
+		Loop(f, invariant): 
+			getInv(invariant);
+		VarRedefine(name, value): 
+			replaceFormules(postCond, LVariable(name), tv2ltv(value));
+		VarArrayRedefine(name, index, value):
+			replaceFormules(postCond, LVariable(name), LRedefineArray(LVariable(name), tv2ltv(index), tv2ltv(value)));
+		default:
+			postCond;
+	}
+}
+
+tv2ltv(tv: TypeValue) {
+	switch(tv) {
+		Int(val):
+			LInt(val);
+		Variable(var):
+			LVariable(var);
+		BinOp(op, f, s): {
+			t0 = tv2ltv(f);
+			t1 = tv2ltv(s);
+
+			LBinOp(op, t0, t1);
+		}
+		UnOp(op, f):
+			if(op == "--")
+				tv2ltv(BinOp("-", f, Int(1)))
+			else
+				tv2ltv(BinOp("+", f, Int(1)));
+		ArrayAccess(name, index):
+			LAccessArray(LVariable(name.name), tv2ltv(index));
+
+		default: LInt(0);	
+	}
+}
+
+replaceFormules(f: Formule, oldSt: LogicTypeValue, newSt: LogicTypeValue) -> Formule {
+	switch (f) {
+		Atom(test, f1, s):
+			Atom(test, replaceInLTypes(f1, oldSt, newSt), replaceInLTypes(s, oldSt, newSt));
+	    EmptyAtom():
+	    	EmptyAtom();
+	    Or(f1, s):
+	    	Or(replaceFormules(f1, oldSt, newSt), replaceFormules(s, oldSt, newSt));
+	    And(f1, s):
+	    	And(replaceFormules(f1, oldSt, newSt), replaceFormules(s, oldSt, newSt));
+	    Neg(f1):
+	    	Neg(replaceFormules(f1, oldSt, newSt));
+	    Implication(f1, s):
+	    	Implication(replaceFormules(f1, oldSt, newSt), replaceFormules(s, oldSt, newSt));
+	    AllQuantor(var, f1): 
+	    	AllQuantor(var, replaceFormules(f1, oldSt, newSt));
+	    ExiQuantor(var, f1):
+	    	ExiQuantor(var, replaceFormules(f1, oldSt, newSt));
+	}
+}
+
+replaceInLTypes(current: LogicTypeValue, old: LogicTypeValue, new: LogicTypeValue) -> LogicTypeValue {
+	if(old == current) 
+		new
+	else {
+		switch(current) {
+			LBinOp(op, f, s):
+				LBinOp(op, replaceInLTypes(f, old, new), replaceInLTypes(s, old, new));
+			LAccessArray(name, index):
+				LAccessArray(replaceInLTypes(name, old, new), replaceInLTypes(index, old, new));
+			default:
+				current;	
+		}
+	}	
+}
+
+emptyAnnotation()
+{
+	Annotation(Atom("==", LVariable("var"), LVariable("var2")));
+}
+
+getNextOp(p:ProgramSequence) {
+	switch (p.next) {
+		Some(val):
+			val;
+		None():
+			emptyPS();	
+	}
+}
+
+emptyPS() {
+	ProgramSequence(EmptyOp(), None());
+}
+
+getNextPS(p:ProgramSequence) {
+	either(p.next, emptyPS());
+}
+
+getInv(i) {
+	either(i, emptyAnnotation()).formule;
+}
+
+testToAtom(t) {
+	Atom(t.test, tv2ltv(t.f), tv2ltv(t.s));
+}

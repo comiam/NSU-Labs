@@ -1,0 +1,12 @@
+import lingo/pegcode/driver;
+import lang/types;
+
+export {
+	s2pseq(s:string) -> ProgramSequence;
+}
+
+s2pseq(s:string) -> ProgramSequence {
+	gram="#include /lang/grammar/gram_exp.lingo";
+	either(parsic(compilePegGrammar(gram), s, defaultPegActions), ProgramSequence(EmptyOp(), None()));
+}
+

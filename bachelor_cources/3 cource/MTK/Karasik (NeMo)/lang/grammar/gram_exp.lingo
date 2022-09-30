@@ -1,0 +1,76 @@
+//MAIN SECTION====================================================================================================
+program = annotation_begin | code_sequence | code_end | annotation_end;
+
+annotation_begin = ws "<" ws formule:f ws ">" ws semi program:next {Some(ProgramSequence(Annotation(:f),:next))};
+code_sequence = ws operation:op ws semi program:next {Some(ProgramSequence(:op,:next))};
+code_end = ws0 '\n' ws {None()};
+annotation_end   = ws "<" ws formule:f ws ">" ws semi ws0 '\n' ws {Some(ProgramSequence(Annotation(:f),None()))};
+
+operation = var_define | command;
+
+//VAR DEFENITION SECTOR=======================================================================================
+var_define = first_state_def | empty_state_def;
+
+type = int | array;
+int = "int" {Int(0)};
+array = '[' ws digit$s ws ']' {Array(s2i($s))};
+
+first_state_def = type:t ws var_name$s ws eqv ws expression:exp {VarDefine($s, :t, :exp)};
+empty_state_def = type:t ws var_name$s {VarDefine($s, :t, EmptyType())};
+
+//EXPRESSION SECTOR===============================================================================================
+expression = const | arr_access | expvar_arrredefine | expvar_redefine | var | bin_op | un_op;
+
+const = digit$s {Int(s2i($s))};
+expvar_redefine = '(' ws var_name$s ws eqv ws expression:exp ws ')' {VarRedefine($s, :exp)};
+expvar_arrredefine = '(' ws var_name$s'[' ws expression:exp0 ws ']' ws eqv ws expression:exp ws ')' {VarArrayRedefine($s, :exp0, :exp)};
+arr_access = var:v '[' ws expression:ind ws ']' {ArrayAccess(:v, :ind)};
+var = var_name$s {Variable($s)};
+bin_op = '(' ws expression:f ws bin_op_type$op ws expression:s ws ')' {BinOp($op, :f, :s)};
+un_op = un_op_type$s '(' ws expression:exp ws ')' {UnOp($s, :exp)};
+
+//COMMAND SECTOR==================================================================================================
+command = If_op | annotated_While | WhileSimple | sequence | choice | annotated_loop | loop | var_arrredefine | var_redefine | test | print;
+
+op_cond = "(" ws expression:ex0 ws test_op$s ws expression:ex1 ws ")" {Test($s, :ex0, :ex1)};
+
+If_op = "if" ws op_cond:t ws "then" ws command:c0 ws "else" ws command:c1 {If(:t, :c0, :c1)};
+annotated_While = "while" ws op_cond:t ws "<" ws formule:ann ws ">" ws "do" ws command:c0 {While(:t, :c0, Some(Annotation(:ann)))};
+WhileSimple     = "while" ws op_cond:t ws                              "do" ws command:c0 {While(:t, :c0, None())};
+sequence = "(" ws command:c0 ws ";" ws command:c1 ws ")" {Sequence(:c0, :c1)};
+choice = "(" ws command:c0 ws "U" ws command:c1 ws ")" {Choice(:c0, :c1)};
+annotated_loop = "*" ws "<" ws formule:ann ws ">" ws command:c {Loop(:c, Some(Annotation(:ann)))};
+loop           = "*" ws                              command:c {Loop(:c, None())};
+test = "(" ws expression:ex0 ws test_op$s ws expression:ex1 ws ")?" {Test($s, :ex0, :ex1)};
+var_redefine = var_name$s ws eqv ws expression:exp {VarRedefine($s, :exp)};
+var_arrredefine = var_name$s'[' ws expression:exp0 ws ']' ws eqv ws expression:exp {VarArrayRedefine($s, :exp0, :exp)};
+print  = "print" ws "(" ws expression:e ws ")" {Print(:e)};
+
+//FORMULE SECTION=================================================================================================
+formule = neg | atom | or | and | impl | allq | exq;
+logic_expression = lconst | larr | lvar | lbin_op;
+
+larr = var_name$s '[' ws logic_expression:ind ws ']' {LAccessArray(LVariable($s), :ind)};
+lconst = digit$s {LInt(s2i($s))};
+lvar = var_name$s {LVariable($s)};
+lbin_op = '(' ws logic_expression:f ws bin_op_type$op ws logic_expression:s ws ')' {LBinOp($op, :f, :s)};
+
+neg = "!" ws formule:a0 {Neg(:a0)};
+atom = "(" ws logic_expression:ex0 ws test_op$s ws logic_expression:ex1 ws ")" {Atom($s, :ex0, :ex1)};
+or = "(" ws formule:a0 ws "|" ws formule:a1 ws ")" {Or(:a0, :a1)};
+and = "(" ws formule:a0 ws "&" ws formule:a1 ws ")" {And(:a0, :a1)};
+impl = "(" ws formule:a0 ws "->" ws formule:a1 ws ")" {Implication(:a0, :a1)};
+allq = "All" ws var_name$s ws formule:a1 {AllQuantor($s, :a1)};
+exq = "Exists" ws var_name$s ws formule:a1 {ExiQuantor($s, :a1)};
+
+//MISCELLANEOUS===================================================================================================
+test_op = "==" | "!=" | "<=" | ">=" | '<' | '>';
+un_op_type = "--" | "++";
+bin_op_type = '+' | '-' | '*' | '/';
+digit  = ('0'-'9')+;
+semi = ';';
+eqv = '=';
+var_name = ('a'-'z')+ ('0'-'9')*;
+ws = (' ' | '\t' | '\n' | '\r')*;
+ws0 = (' ' | '\t' | '\r')*;
+

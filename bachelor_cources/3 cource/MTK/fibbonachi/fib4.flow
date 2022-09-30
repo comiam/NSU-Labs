@@ -1,0 +1,20 @@
+import runtime;
+
+fib(k, acc:ref[int]) -> ref[int] {
+	len = length(^acc);
+
+	if(len < k)
+	{
+		if(len < 2)
+			refArrayPush(acc,1)
+		else
+			refArrayPush(acc, (^acc)[len - 1] + (^acc)[len - 2]);
+
+		fib(k, acc)	
+	}else
+		acc
+}
+
+main() -> void {
+	println(^(fib(10,ref[])));
+}

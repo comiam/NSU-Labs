@@ -1,0 +1,289 @@
+import lang/types;
+import lang/vmtypes;
+import lang/grammar/validator;
+import ds/tree;
+import math/math;
+import string;
+
+export {
+	compile(s:ProgramSequence) -> Tree<int, VMCommand>;
+	printVM(prog: Tree<int, VMCommand>) -> void;
+}
+
+printVM(prog: Tree<int, VMCommand>) -> void {
+	ind = foldTree(prog, 0, \val, key, acc -> {
+		switch(key) {
+			InitVar(v, e, goto):
+				println(i2s(val) + ": " + "init_var " + v + " = " + obj2s(e) + " goto " + i2s(goto));
+			Access(var, expr, goto):
+				println(i2s(val) + ": " + var + " = " + obj2s(expr) + " goto " + i2s(goto));
+			IndexArrayAccess(var, index, expr, goto):
+				println(i2s(val) + ": " + var + "[" + obj2s(index) + "] = " + obj2s(expr) + " goto " + i2s(goto));
+			Condition(test, expr0, expr1, gotoTrue, gotoFalse):
+				println(i2s(val) + ": if(" + obj2s(expr0) + " " + test + " " + obj2s(expr1) + ") then goto " + toString(gotoTrue) + " else " + toString(gotoFalse));
+			VmPrint(data, goto):
+				println(i2s(val) + ": print(" + obj2s(data) + ") goto " + i2s(goto));
+		}
+		0;
+	});
+}
+
+obj2s(o:VMObj) {
+	switch (o) {
+		VMArray(a):
+			"[int]";
+		VMInt(i):
+			"int";
+		VMExpr():
+		    expr2s(o);
+	}				
+}
+
+expr2s(e:VMExpr) {
+	switch(e) {
+		Div(up, down): 
+			concatStrings(["(", expr2s(up), " / ", expr2s(down), ")"]);
+		Min(l, r): 
+			concatStrings(["(", expr2s(l), " - ", expr2s(r), ")"]);
+		Sum(l, r): 
+			concatStrings(["(", expr2s(l), " + ", expr2s(r), ")"]);
+		Mult(l, r): 
+			concatStrings(["(", expr2s(l), " * ", expr2s(r), ")"]);
+		ExpInt(val): 
+			i2s(val);
+		ExpVar(var):
+			var;
+		ExpArrayAccess(arr, ind):
+			concatStrings([arr, "[", expr2s(ind), "]"]);
+		Access(var, expr, goto): 
+			concatStrings([var, "=", expr2s(expr)]);
+        IndexArrayAccess(var, index, expr, goto):	
+        	concatStrings([var, "[", expr2s(index), "]", "=", expr2s(expr)]);
+	}
+}
+
+compile(ps:ProgramSequence) -> Tree<int, VMCommand> {
+	p = checkStructure(ps);
+
+	if(!p.first) {
+		println(p.second);
+		makeTree();
+	} else
+		translateToVMCode(ps);
+}	
+
+translateToVMCode(ps:ProgramSequence) -> Tree<int, VMCommand> {
+	plusSet = \tr, valPlus -> foldTree(tr, makeTree(), 
+		\stamp, v, acc -> setTree(acc, stamp + valPlus, plusStamp(v, valPlus)));
+	selectMax = \tr -> foldTree(tr, intMin, 
+		\stamp, val, acc -> if(max(findMaxStamp(val), stamp) > acc) max(findMaxStamp(val), stamp) else acc);
+
+	switch(ps.op) {
+		VarDefine(name, type, value): {
+			if(isSameStructType(Array(0), type)) {
+				ar = cast (type : TypeValue -> Array);
+				tr0 = makeTree1(0, InitVar(name, createArray(ar, []), 1));
+				switch(ps.next) {
+					Some(ps1):
+						mergeTree(tr0, plusSet(translateToVMCode(ps1), 1));
+					None():
+						tr0;	
+				}
+			} else {
+				tr0 = makeTree1(0, InitVar(name, tv2vme(value), 1));
+				switch(ps.next) {
+					Some(ps1):
+						mergeTree(tr0, plusSet(translateToVMCode(ps1), 1));
+					None():
+						tr0;	
+				}
+			}
+		}
+		Command(): {
+			tr0 = translateCommand(ps.op);
+
+			switch(ps.next) {
+				Some(ps1):
+					mergeTree(tr0, plusSet(translateToVMCode(ps1), selectMax(tr0)));
+				None():
+					tr0;	
+			}
+		}
+		Annotation(formule):
+			switch(ps.next) {
+				Some(ps1):
+					translateToVMCode(ps1);
+				None():
+					makeTree();	
+			}
+		EmptyOp(): {
+			makeTree();
+		}
+	}
+}
+
+translateCommand(com:Command) -> Tree<int, VMCommand> {
+	selectMax = \tr -> foldTree(tr, intMin, 
+		\stamp, val, acc -> if(max(findMaxStamp(val), stamp) > acc) max(findMaxStamp(val), stamp) else acc);
+
+	plusSet = \tr, valPlus -> foldTree(tr, makeTree(), 
+		\stamp, v, acc -> setTree(acc, stamp + valPlus, plusStamp(v, valPlus)));
+	
+	replaceStamp = \tr, f, repl -> foldTree(tr, makeTree(), \stamp, v, acc -> {
+		newv = replaceStampInCommand(v, f, repl);
+		if(f == stamp) 
+			setTree(acc, repl, newv)
+		else
+			setTree(acc, stamp, newv);
+	});
+	
+	switch (com) {
+		VarRedefine(name, value): 
+			makeTree1(0, Access(name, tv2vme(value), 1));
+		VarArrayRedefine(name, index, value):
+			makeTree1(0, IndexArrayAccess(name, tv2vme(index), tv2vme(value), 1));
+		Test(test, f, s): 
+			makeTree1(0, Condition(test, tv2vme(f), tv2vme(s), [1], [emptyTree]));
+		Print(data): 
+			makeTree1(0, VmPrint(tv2vme(data), 1));
+		Sequence(f, s): {
+			tr0 = translateCommand(f);
+			max0 = selectMax(tr0);
+			tr1 = plusSet(translateCommand(s), max0);
+			mergeTree(tr0, tr1);
+		}
+		Choice(f, s): {
+			tr0 = plusSet(translateCommand(f), 1);
+			max0 = selectMax(tr0);
+			tr1 = plusSet(translateCommand(s), max0);
+			max1 = selectMax(tr1);
+
+			trIf = makeTree1(0, Condition("==", ExpInt(1), ExpInt(1), [1, max0], [emptyTree]));
+
+			mergeTree(mergeTree(trIf, tr1), replaceStamp(tr0, max0, max1));
+		}
+		Loop(f, a): {
+			tr0 = plusSet(translateCommand(f), 1);
+			max0 = selectMax(tr0);
+
+			trIf = makeTree1(0, Condition("==", ExpInt(1), ExpInt(1), [1, max0], [emptyTree]));
+			mergeTree(trIf, replaceStamp(tr0, max0, 0));
+		}
+		If(t,f,s):
+			translateCommand(Choice(Sequence(t,f), Sequence(invertTest(t),s)));
+		While(t,a, ann):
+			translateCommand(Sequence(Loop(Sequence(t,a), ann), invertTest(t)));
+	}
+}
+
+tv2vme(t:TypeValue) -> VMExpr {
+	switch (t) {
+		Int(val):
+			ExpInt(val);
+		Variable(var):
+			ExpVar(var);
+		BinOp(op, f, s): {
+			t0 = tv2vme(f);
+			t1 = tv2vme(s);
+
+			if(op == "+") 
+				Sum(t0,t1)
+			else if(op == "-") 
+				Min(t0,t1)
+			else if(op == "*") 
+				Mult(t0,t1)
+			else if(op == "/") 
+				Div(t0,t1)
+			else {
+				println("oops..");
+				ExpInt(-1);
+			}
+		}
+		UnOp(op, f):
+			if(op == "--")
+				Min(tv2vme(f), ExpInt(1))
+			else
+				Sum(tv2vme(f), ExpInt(1));
+		ArrayAccess(var, ind):
+			ExpArrayAccess(var.name, tv2vme(ind));
+		VarRedefine(name, value):
+			Access(name, tv2vme(value), 0);
+		VarArrayRedefine(name, index, value):
+			IndexArrayAccess(name, tv2vme(index), tv2vme(value), 0);
+		default: {
+			ExpInt(0);
+		}
+	}
+}
+
+plusStamp(vm:VMCommand, val:int) -> VMCommand {
+	switch(vm) 
+	{
+		InitVar(v, e, goto): 
+			InitVar(v, e, goto + val);
+		Access(var, expr, goto): 
+			Access(var, expr, goto + val);
+		IndexArrayAccess(var, index, val0, goto):
+			IndexArrayAccess(var, index, val0, goto + val);	
+		Condition(test, expr0, expr1, gotoTrue, gotoFalse):
+			Condition(test, expr0, expr1, map(gotoTrue, \v -> v + val), gotoFalse);
+		VmPrint(data, goto):
+			VmPrint(data, goto + val);
+	}
+}
+
+findMaxStamp(vm:VMCommand) -> int {
+	switch(vm) 
+	{
+		InitVar(v, e, goto): 
+			goto;
+		Access(var, expr, goto): 
+			goto;
+		IndexArrayAccess(var, index, val, goto):
+			goto;	
+		Condition(test, expr0, expr1, gotoTrue, gotoFalse):
+			if(length(gotoTrue) == 2)
+				max(max(gotoTrue[0], gotoTrue[1]), gotoFalse[0])
+			else
+				max(gotoTrue[0], gotoFalse[0]);
+		VmPrint(data, goto):
+			goto;
+	}
+}
+
+replaceStampInCommand(vm:VMCommand, findSt: int, repl: int) -> VMCommand {
+	switch(vm) 
+	{
+		InitVar(v, e, goto): 
+			if(goto == findSt)
+				InitVar(v,e,repl)
+			else
+				vm;
+		Access(var, expr, goto): 
+			if(goto == findSt)
+				Access(var,expr,repl)
+			else
+				vm;
+		IndexArrayAccess(var, index, val, goto):
+			if(goto == findSt)
+				IndexArrayAccess(var,index,val,repl)
+			else
+				vm;		
+		Condition(test, expr0, expr1, gotoTrue, gotoFalse):
+			Condition(test, expr0, expr1, 
+				map(gotoTrue, \v -> if(v == findSt) repl else v),
+				map(gotoFalse, \v -> if(v == findSt) repl else v));
+		VmPrint(data, goto):
+			if(goto == findSt)
+				VmPrint(data, repl)
+			else
+				vm;
+	}
+}
+
+createArray(a:Array, acc: [int]) {
+	if(length(acc) == a.size)
+		VMArray(acc)
+	else
+		createArray(a, concat(acc, [0]));
+}

@@ -1,0 +1,370 @@
+import simplifier;
+
+export {
+	RatFun(num:Poly, denum:Poly);
+	Poly(sum:Tree<Mono,double>);//sum of coeff * monom
+	Mono(prod:Tree<string,double>);// produce of x^n
+
+	alg2rf(ar:AlgExp) -> RatFun;
+	rf2alg(ar:RatFun) -> AlgExp;
+	rf2s(rf:RatFun) -> string;
+}
+
+rf2alg(rf:RatFun) -> AlgExp {
+	simplifyTree(AlgDiv(poly2alg(rf.num), poly2alg(rf.denum)));
+}
+
+alg2rf(ar:AlgExp) -> RatFun {
+	div = ar2CommonDenum(ar);
+
+	//println(alg2s(div));
+
+	if(isDiv(div))
+	{
+		args = extractArgs(div);
+		p0 = simplifyPoly(alg2poly(args[0]));
+		p1 = simplifyPoly(alg2poly(args[1]));
+		tryDivideRF(RatFun(p0, p1));
+	}else {
+		p0 = simplifyPoly(alg2poly(div));
+		RatFun(p0, polyOne());
+	}
+}
+
+alg2poly(ar:AlgExp) -> Poly {
+	 switch(ar) {
+		AlgMin(l, r): 
+			Poly(mergeTreeCustom(alg2poly(l).sum, negPoly(alg2poly(r)).sum, \var, coeff0, coeff1 -> coeff1+coeff0));
+		AlgSum(l, r): 
+			Poly(mergeTreeCustom(alg2poly(l).sum, alg2poly(r).sum, \var, coeff0, coeff1 -> coeff1+coeff0));
+		AlgMult(l,r): 
+			multiplePolynoms(alg2poly(l), alg2poly(r));
+		AlgDouble(val): 
+			Poly(makeTree1(Mono(makeTree1("1.0",1.0)), val))
+		AlgVar(var):
+			Poly(makeTree1(Mono(makeTree1(var,1.0)), 1.0));
+		default:
+			Poly(makeTree());	//impossible situation
+	}
+}
+
+negPoly(a:Poly) -> Poly {
+	Poly(mapTree(a.sum, \v -> -1.0 * v));
+}
+
+multiplePolynoms(a:Poly, b:Poly) -> Poly {
+	tr0 = a.sum;
+	tr1 = b.sum;
+
+	p = Poly(foldTree(tr0, makeTree(), \mono0, coeff0, acc0 -> {
+		foldTree(tr1, acc0, \mono1, coeff1, acc1 -> {
+			mergeTreeCustom(acc1, makeTree1(mergeMonoms(mono0, mono1), coeff0 * coeff1), \v,c0,c1 -> c0 + c1);
+		});
+	}));
+	//println(poly2s(a) + " * " + poly2s(b) + " = " + poly2s(p));
+	p;
+}
+
+mergeMonoms(a:Mono, b:Mono) -> Mono {
+	Mono(mergeTreeCustom(a.prod, b.prod, \v, deg0, deg1 -> if(v != "1.0") deg0 + deg1 else 1.0));
+}
+
+ar2CommonDenum(ar:AlgExp) -> AlgExp {
+	arr = extractArgs(ar);
+
+	if(length(arr) == 1)
+		ar
+	else {
+		newL = ar2CommonDenum(arr[0]);
+		newR = ar2CommonDenum(arr[1]);
+		args0 = extractArgs(newL);
+		args1 = extractArgs(newR);
+
+		switch (ar) {
+			AlgMin(l, r): 
+				if(isDiv(newL)) {
+					if(isDiv(newR)) // a/b - c/d = (ad - cb)/bd
+						AlgDiv(AlgMin(AlgMult(args0[0], args1[1]), AlgMult(args1[0], args0[1])), AlgMult(args0[1], args1[1]))
+					else//a/b - c = (a - cb)/b
+						AlgDiv(AlgMin(args0[0], AlgMult(newR, args0[1])), args0[1]);
+				}else if(isDiv(newR)) //a - c/d = (ad - c)/d
+					AlgDiv(AlgMin(AlgMult(newL, args1[1]), args1[0]), args1[1])
+				else ar;
+			AlgSum(l, r): 
+				if(isDiv(newL)) {
+					if(isDiv(newR)) // a/b + c/d = (ad + cb)/bd
+						AlgDiv(AlgSum(AlgMult(args0[0], args1[1]), AlgMult(args1[0], args0[1])), AlgMult(args0[1], args1[1]))
+					else//a/b + c = (a + cb)/b
+						AlgDiv(AlgSum(args0[0], AlgMult(newR, args0[1])), args0[1]);
+				}else if(isDiv(newR)) //a + c/d = (ad + c)/d
+					AlgDiv(AlgSum(AlgMult(newL, args1[1]), args1[0]), args1[1])
+				else ar;
+			AlgMult(l, r): 
+				if(isDiv(newL)) {
+					if(isDiv(newR))//a/b * c/d =ab/cd
+						AlgDiv(AlgMult(args0[0], args1[0]), AlgMult(args0[1], args1[1]))
+					else //a/b * c =ac/b
+						AlgDiv(AlgMult(args0[0], newR), args0[1])
+				}else if(isDiv(newR))//a * c/d =ac/d
+					AlgDiv(AlgMult(args1[0], newL), args1[1])
+				else ar;
+			default: ar;
+		}
+	}			
+}
+
+isDiv(ar:AlgExp) -> bool {
+	switch (ar) {
+		AlgDiv(up,down): true;
+		default: false;
+	}
+}
+
+poly2alg(poly:Poly) -> AlgExp {
+	foldTree(poly.sum, AlgDouble(0.0), \mono, coeff, acc -> {
+		AlgSum(acc, AlgMult(mono2alg(mono), AlgDouble(coeff)));
+	});
+} 
+
+mono2alg(m:Mono) -> AlgExp {
+	foldTree(m.prod, AlgDouble(1.0), \var, deg, acc -> {
+		if(isDouble(var))
+			AlgMult(acc, AlgDouble(dpow(s2d(var), deg)))
+		else
+			AlgMult(acc, foldDegree(AlgVar(var), floor(deg)));
+	});
+}
+
+foldDegree(ar:AlgExp, deg: int) -> AlgExp {
+	if(deg == 0)
+		AlgDouble(1.0)
+	else if(deg == 1)
+		ar
+	else 
+		AlgMult(ar, foldDegree(ar, deg-1));
+}
+
+//test data
+//(((4*(x*x))-9)*((1/((2*x)-3))-(1/((2*x)+3))))
+//((((9*(x*x))-4)/((3*x)+2))-(3*x))
+//(((6*(x*x))-(2*x))/((2*(x*(x*x)))-(8*x)))
+
+tryDivideRF(rf:RatFun) -> RatFun {
+	num = rf.num;
+	denum = rf.denum;
+
+	if(sizeTree(denum.sum) != 1) {
+		cm0 = getCommonMultiplier(num);
+		cm1 = getCommonMultiplier(denum);
+
+		//println(cm0);
+		//println(cm1);
+
+		gcd0 = gcd(cm0.first, cm1.first);
+		pEq = \p0,p1,c0,c1 -> polyEquals(dividePoly(p0, Mono(c0.second), i2d(c0.first)), dividePoly(p1, Mono(c1.second), i2d(c1.first)));
+
+		if(pEq(num,denum,cm0,cm1))
+			RatFun(Poly(makeTree1(differenceMonos(Mono(cm0.second), Mono(cm1.second)), i2d(cm0.first) / i2d(cm1.first))), polyOne())
+		else {
+			newMult = removeCommonVars(Mono(cm0.second), Mono(cm1.second));
+
+			//println(newMult);
+
+			RatFun(multiplePolynoms(dividePoly(num, Mono(cm0.second), i2d(cm0.first)), Poly(makeTree1(newMult.first, i2d(cm0.first) / i2d(cm1.first)))), 
+				multiplePolynoms(dividePoly(denum, Mono(cm1.second), i2d(cm1.first)), Poly(makeTree1(newMult.second, 1.0))));
+		}
+	} else {
+		oneMono = tree2pairs(denum.sum)[0].first;
+		oneCoeff = tree2pairs(denum.sum)[0].second;
+
+		if(sizeTree(getIntersection(num, oneMono, oneCoeff).sum) == sizeTree(num.sum))
+			RatFun(simplifyPoly(dividePoly(num, oneMono, oneCoeff)), polyOne())
+		else rf;	
+	}
+}
+
+getCommonMultiplier(p:Poly) -> Pair<int, Tree<string, double>> {
+	gcd0 = foldTree(p.sum, Pair(0,0), \monom, coeff, acc0 -> {
+		if(acc0.first == 0 && acc0.second == 0) 
+			Pair(ceil(coeff), 1)
+		else
+			Pair(gcd(acc0.first, ceil(coeff)), 1);
+	});
+
+	varGCD = foldTree(p.sum, getAllVariablesWithMinDegree(p), \monom, coeff, acc0 -> {
+		foldTree(acc0, makeTree(), \var, deg, acc1 -> {
+			if(either(lookupTree(monom.prod, var), -1.0) >= deg)
+				setTree(acc1, var, deg)
+			else
+				acc1;	
+		});
+	});
+
+	Pair(gcd0.first, varGCD);
+}
+
+dividePoly(poly:Poly, sub:Mono, subCoeff: double) -> Poly {
+	Poly(foldTree(poly.sum, makeTree(), \monom, coeff, acc0 -> {
+		if(intersectMonos(monom,sub))
+			setTree(acc0, differenceMonos(monom, sub), coeff / subCoeff)
+		else
+			acc0;	
+	}))
+}
+
+removeCommonVars(m0:Mono, m1:Mono) -> Pair<Mono,Mono> {
+	Pair(differenceMonos(m0,m1), differenceMonos(m1,m0));
+}
+
+getIntersection(poly:Poly, sub:Mono, subCoeff: double) -> Poly {
+	Poly(foldTree(poly.sum, makeTree(), \monom, coeff, acc0 -> {
+		if(intersectMonos(monom,sub))
+			setTree(acc0, differenceMonos(monom, sub), coeff / subCoeff)
+		else
+			acc0;
+	}));
+} 
+
+intersectMonos(a:Mono, sub:Mono) -> bool {
+	foldTree(sub.prod, true, \var, deg0, acc0 -> {
+		if(!acc0)
+			acc0
+		else if(containsKeyTree(a.prod, var) && either(lookupTree(a.prod, var), -1.0) >= deg0) 
+			true
+		else
+			false;	
+	});
+} 
+
+differenceMonos(a:Mono, b:Mono) -> Mono {
+	m = Mono(mapTree2(a.prod, \var, deg0 -> {
+		if(containsKeyTree(b.prod, var)) 
+			deg0 - either(lookupTree(b.prod, var), -1.0)
+		else
+			deg0;
+	}));
+
+	if(isEmptyTree(m.prod))
+		Mono(makeTree1("1.0", 1.0))
+	else
+		m;	
+}
+
+getAllVariablesWithMinDegree(p:Poly) -> Tree<string,double> {
+	foldTree(p.sum, makeTree(), \monom, coeff, acc0 -> {
+		foldTree(monom.prod, acc0, \var, deg, acc1 -> {
+			//println(deg);
+			setTree(acc1, var, min3(doubleMax, either(lookupTree(acc1, var), doubleMax), deg));
+		});
+	});
+}
+
+polyEquals(p0:Poly, p1:Poly) -> bool {
+	foldTree(p0.sum, true, \monom0, coeff0, acc0 -> {
+		if(!acc0)
+			false
+		else
+			foldTree(p1.sum, false, \monom1, coeff1, acc1 -> {
+				if(acc1)
+					true
+				else 
+					coeff0 == coeff1 && equalTrees(monom0.prod, monom1.prod);
+			});	
+	})
+}
+
+simplifyPoly(poly:Poly) -> Poly {
+	it0 = Poly(foldTree(poly.sum, makeTree(), \mono, coeff, acc -> {
+		if(coeff != 0.0) {
+			switch (simplifyMono(Some(mono))) {
+				Some(val):
+					mergeTreeCustom(acc, makeTree1(val, coeff), \v, coeff0, coeff1 -> coeff1+coeff0)
+				default:
+					acc;	
+			}
+		}else acc;	
+	}));
+
+	if(it0 != poly)
+		simplifyPoly(it0)
+	else
+		poly;	
+}
+
+simplifyMono(a:Maybe<Mono>) -> Maybe<Mono> {
+	switch (a) {
+		Some(mono): {
+			it0 = foldTree(mono.prod, makeTree(), \v, k, acc -> {
+				if(k == 0.0) setTree(acc, "1.0", 1.0)
+				else setTree(acc, v, k);
+			});
+
+			if(containsKeyTree(it0, "0.0"))
+				None()
+			else if(containsKeyTree(it0, "1.0") && sizeTree(it0) != 1) {
+				tr1 = removeFromTree(it0, "1.0");
+				
+				if(!equalTrees(tr1, mono.prod))
+					simplifyMono(Some(Mono(tr1)))
+				else
+					Some(mono);	
+			}else {
+				if(!equalTrees(it0, mono.prod))
+					simplifyMono(Some(Mono(it0)))
+				else
+					Some(mono);	
+			}
+		}
+		None():
+			None();
+	}
+}
+
+rf2s(rf:RatFun) -> string {
+	nums = poly2s(rf.num);
+	denums = poly2s(rf.denum);
+
+	if(denums == "1.0")
+		nums
+	else
+		"(" + nums + ")/(" + denums + ")";	
+}
+
+poly2s(poly:Poly) -> string {
+ 	foldTree(poly.sum, "", \mono, coeff, acc -> {
+		mons = foldTree(mono.prod, "", \var, deg, acc1 -> {
+			if(deg != 1.0)
+				concatStrings([acc1, var, "^", d2s(deg)])
+			else 
+				concatStrings([acc1, var]);
+		});
+		if(acc == "")
+		{
+			if(coeff == 1.0)
+				concatStrings([mons])
+			else if(coeff == -1.0)
+				concatStrings(["(-",mons,")"])
+			else if(coeff < 0.0)
+				concatStrings(["(", d2s(coeff), "*", mons, ")"])
+			else
+				concatStrings([d2s(coeff), "*", mons]);
+		}else {
+			if(coeff == 1.0)
+				concatStrings([mons, "+", acc])
+			else if(coeff == -1.0)
+				concatStrings(["(-",mons, ")+", acc])
+			else if(coeff < 0.0)
+				concatStrings(["(", d2s(coeff), "*", mons, ")+",acc])
+			else
+				concatStrings([d2s(coeff), "*", mons, "+", acc]);
+		}
+	});
+}
+
+isPolyOne(poly:Poly) -> bool {
+	poly2s(poly) == "1.0";
+}
+
+polyOne() -> Poly {
+	Poly(makeTree1(Mono(makeTree1("1.0", 1.0)), 1.0));
+}

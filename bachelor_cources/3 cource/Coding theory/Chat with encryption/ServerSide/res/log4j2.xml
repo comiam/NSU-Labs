@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+  <!-- Секция аппендеров -->
+  <Appenders>
+    <File name="STDERR" fileName="log-${date:yyyy-MM-dd_hh-mm-ss}.log">
+      <PatternLayout pattern="%d{HH:mm:ss.SSS} - %m%n" />
+    </File>
+  </Appenders>
+  <Loggers>
+  	<Root level="debug">
+            <AppenderRef ref="STDERR"/>
+    </Root>
+  </Loggers>
+</Configuration> 

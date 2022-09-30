@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Hyperlink?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane prefHeight="46.0" prefWidth="266.0" style="-fx-background-color: WHITE;" stylesheets="@style.css" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1">
+   <children>
+      <VBox layoutX="100.0" layoutY="-50.0" prefHeight="150.0" prefWidth="300.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+         <children>
+            <Label style="-fx-background-color: WHITE;" text="Developer:" />
+            <HBox style="-fx-background-color: WHITE;">
+               <children>
+                  <Label prefHeight="29.0" prefWidth="73.0" text="Maxim:" />
+                  <Hyperlink prefHeight="29.0" prefWidth="206.0" text="https://github.com/comiam" />
+               </children>
+            </HBox>
+            <HBox style="-fx-background-color: WHITE;">
+               <children>
+                  <Label prefHeight="16.0" prefWidth="143.0" text="NSU, july 2020" />
+               </children>
+            </HBox>
+         </children>
+      </VBox>
+   </children>
+</AnchorPane>

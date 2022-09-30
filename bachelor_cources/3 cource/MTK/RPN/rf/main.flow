@@ -1,0 +1,9 @@
+import ratfun;
+import sys/system;
+
+main() -> void {
+	alg = readUntil("\n");
+
+	println(rf2s(alg2rf(s2alg(alg))));
+	println(alg2s(rf2alg(alg2rf(s2alg(alg)))));
+}

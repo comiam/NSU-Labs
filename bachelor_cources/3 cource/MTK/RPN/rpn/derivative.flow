@@ -1,0 +1,41 @@
+import simplifier;
+
+export {
+	ar2diff(ar:AlgExp, var: string) -> AlgExp;
+}
+
+ar2diff(ar:AlgExp, var: string) -> AlgExp {
+	simplifyTree(diffAlgImpl(ar, var));
+}
+
+diffAlgImpl(ar:AlgExp, var: string) -> AlgExp {
+	switch (ar) {
+		AlgDiv(up, down): 
+			if(containsVariable(up) || containsVariable(down))//(f(x)/g(x))'
+				AlgDiv(AlgMin(AlgMult(diffAlgImpl(up, var), down), AlgMult(up, diffAlgImpl(down, var))), AlgMult(down,down))
+			else AlgDouble(0.0);//const
+		AlgMin(l, r): 
+			AlgMin(diffAlgImpl(l, var), diffAlgImpl(r, var));
+		AlgSum(l, r): 
+			AlgSum(diffAlgImpl(l, var), diffAlgImpl(r, var));
+		AlgMult(l, r): 
+			AlgSum(AlgMult(diffAlgImpl(l, var), r), AlgMult(diffAlgImpl(r, var), l));
+		AlgDouble(val): 
+			AlgDouble(0.0);
+		AlgVar(var0):
+			if(var0 == var) AlgDouble(1.0) else AlgDouble(0.0);	
+	}
+}
+
+containsVariable(ar:AlgExp) -> bool {
+	switch(ar) {
+		AlgVar(var):
+			true;
+		AlgDouble(val):
+			false;
+		default:{
+			arr = extractArgs(ar);
+			containsVariable(arr[0]) || containsVariable(arr[1]);
+		}	
+	}	
+}

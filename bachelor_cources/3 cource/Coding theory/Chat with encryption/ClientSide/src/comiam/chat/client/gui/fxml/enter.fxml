@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox prefHeight="296.0" prefWidth="226.0" style="-fx-background-color: WHITE;" stylesheets="@style.css" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="comiam.chat.client.gui.fxml.EnterController">
+   <children>
+      <Label alignment="TOP_CENTER" maxWidth="1.7976931348623157E308" stylesheets="@style.css" text="Login or register first:)">
+         <font>
+            <Font size="19.0" />
+         </font>
+      </Label>
+      <Label prefHeight="71.0" prefWidth="36.0" />
+      <Label maxWidth="1.7976931348623157E308" text="username:">
+         <font>
+            <Font size="15.0" />
+         </font>
+      </Label>
+      <TextField fx:id="usernameTF" />
+      <Label maxWidth="1.7976931348623157E308" text="password:">
+         <font>
+            <Font size="15.0" />
+         </font>
+      </Label>
+      <TextField fx:id="passwordTF" />
+      <Label prefHeight="43.0" prefWidth="36.0" />
+      <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#signIn" style="-fx-font-size: 15;" text="Sign in" />
+      <Button maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#signUp" style="-fx-font-size: 15;" text="Sign up" />
+   </children>
+</VBox>

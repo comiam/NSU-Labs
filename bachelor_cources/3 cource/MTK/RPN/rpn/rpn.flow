@@ -1,0 +1,60 @@
+import syntax_tree;
+
+export {
+	AlgRpn(rpn:[RpnNode]);
+	RpnNode ::= RpnOp, RpnAlgg, RpnVar;
+	RpnOp(id:string, op: (double,double)-> double);
+	RpnAlgg(val:double);
+	RpnVar(var:string);
+
+	ar2rpn(ar:AlgExp) -> AlgRpn;
+	s2rpn(s:string) -> AlgRpn;
+	rpn2s(ar:AlgRpn, index:int) -> string;
+}
+
+ar2rpn(ar:AlgExp) -> AlgRpn {
+	switch(ar) {
+		AlgDiv(up, down): 
+			AlgRpn(concat([RpnOp("/", \i,i2 -> i/i2)], concat(ar2rpn(up).rpn, ar2rpn(down).rpn)));
+		AlgMin(l, r): 
+			AlgRpn(concat([RpnOp("-", \i,i2 -> i-i2)], concat(ar2rpn(l).rpn, ar2rpn(r).rpn)));
+		AlgSum(l, r): 
+			AlgRpn(concat([RpnOp("+", \i,i2 -> i+i2)], concat(ar2rpn(l).rpn, ar2rpn(r).rpn)));
+		AlgMult(l, r): 
+			AlgRpn(concat([RpnOp("*", \i,i2 -> i*i2)], concat(ar2rpn(l).rpn, ar2rpn(r).rpn)));
+		AlgDouble(val): 
+			AlgRpn([RpnAlgg(val)]);
+		AlgVar(var):
+			AlgRpn([RpnVar(var)]);
+	}
+}
+
+s2rpn(s:string) -> AlgRpn {
+	ar2rpn(s2alg(s));
+}
+
+rpn2s(ar:AlgRpn, index:int) -> string {
+	if(index < 0 || index >= length(ar.rpn))
+		"null"
+	else
+	{
+		switch(ar.rpn[index]) {
+			RpnOp(id, op):
+				if(index + 1 >= length(ar.rpn))
+					id
+				else	
+					concatStrings([rpn2s(ar, index+1),id]);
+			RpnAlgg(val):
+				if(index + 1 >= length(ar.rpn))
+					d2s(val)
+				else	
+					concatStrings([rpn2s(ar, index+1),d2s(val)]);
+			RpnVar(var):
+				if(index + 1 >= length(ar.rpn))
+					var
+				else	
+					concatStrings([rpn2s(ar, index+1),var]);	
+		}
+	}
+	
+}

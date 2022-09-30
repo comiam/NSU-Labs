@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Menu?>
+<?import javafx.scene.control.MenuBar?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox fx:id="mainPanel" prefHeight="400.0" prefWidth="280.0" stylesheets="@style.css" xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="comiam.chat.client.gui.fxml.MainMenuController">
+  <children>
+    <MenuBar VBox.vgrow="NEVER">
+      <menus>
+        <Menu mnemonicParsing="false" text="User">
+          <items>
+            <MenuItem mnemonicParsing="false" onAction="#exitFromAcc" text="Exit from account" />
+            <MenuItem mnemonicParsing="false" onAction="#exitFromApp" text="Close app" />
+          </items>
+        </Menu>
+        <Menu mnemonicParsing="false" text="Help">
+          <items>
+            <MenuItem mnemonicParsing="false" onAction="#showInfo" text="About chat" />
+          </items>
+        </Menu>
+      </menus>
+    </MenuBar>
+      <HBox alignment="TOP_RIGHT" prefHeight="35.0" prefWidth="280.0" style="-fx-background-color: white;" stylesheets="@style.css">
+         <children>
+            <Label fx:id="chatName" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="33.0" prefWidth="172.0" style="-fx-font-weight: bold; -fx-font-size: 16; -fx-background-color: white;" text="Label" visible="false" />
+            <Button fx:id="updateButton" maxHeight="1.7976931348623157E308" mnemonicParsing="false" style="-fx-font-weight: bold;" text="upd" />
+            <Button fx:id="addChatButton" alignment="CENTER" maxHeight="1.7976931348623157E308" mnemonicParsing="false" style="-fx-font-size: 15; -fx-font-weight: bold;" text="+" />
+         </children>
+      </HBox>
+      <VBox fx:id="chatPanel" prefHeight="340.0" prefWidth="280.0" stylesheets="@style.css">
+         <children>
+            <ScrollPane hbarPolicy="NEVER" prefHeight="371.0" prefWidth="280.0">
+               <content>
+                  <VBox fx:id="chatBox" maxWidth="1.7976931348623157E308" prefHeight="337.0" prefWidth="280.0" />
+               </content>
+            </ScrollPane>
+         </children></VBox>
+  </children>
+</VBox>

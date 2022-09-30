@@ -1,0 +1,24 @@
+export {
+	VMCommand ::= InitVar, Access, IndexArrayAccess, Condition, VmPrint;
+	InitVar(v:string, e:VMObj, goto:int);
+	Access(var:string, expr:VMExpr, goto:int);
+	IndexArrayAccess(var:string, index: VMExpr, expr: VMExpr, goto:int);
+	Condition(test:string, expr0:VMExpr, expr1:VMExpr, gotoTrue:[int], gotoFalse:[int]);
+	VmPrint(data:VMExpr, goto:int);
+
+	VMObj ::= VMExpr, VMType;
+	VMExpr ::= Sum, Min, Div, Mult, ExpInt, ExpVar, Access, IndexArrayAccess, ExpArrayAccess;
+	Sum(l:VMExpr, r:VMExpr);
+	Min(l:VMExpr, r:VMExpr);
+	Div(up:VMExpr, down:VMExpr);
+	Mult(l:VMExpr, r:VMExpr);
+	ExpInt(val:int);
+	ExpVar(var:string);
+	ExpArrayAccess(var:string, index:VMExpr);
+
+	VMType ::= VMInt, VMArray;
+	VMInt(i:int);
+	VMArray(a:[int]);
+
+	emptyTree = -3;
+} 

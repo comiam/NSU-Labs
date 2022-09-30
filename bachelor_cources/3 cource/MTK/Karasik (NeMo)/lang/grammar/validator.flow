@@ -1,0 +1,288 @@
+import lang/types;
+import ds/tree;
+import string;
+
+export {
+	checkStructure(ps:ProgramSequence) -> Pair<bool, string>;	
+}
+
+checkStructure(ps:ProgramSequence) -> Pair<bool, string> {
+	p0 = checkVariables(ps, makeTree());
+	p1 = checkAnnotations(ps, 0, getProgramDepth(ps), false, p0.third);
+
+	Pair(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"));
+}
+
+checkAnnotations(ps:ProgramSequence, level: int, size: int, containsAnnotation: bool, vars: Tree<string, TypeValue>) -> Pair<bool, string> {
+	p = checkFormules(ps.op, level, size, containsAnnotation, vars);
+
+	switch (ps.next) {
+		Some(ps1):{
+			p1 = checkAnnotations(ps1, level + 1, size, p.second, vars);
+			Pair(p.first && p1.first, trim2(p.third + "\n" + p1.second, "\n"));
+		}
+		None(): Pair(p.first, p.third);
+	}
+}
+
+checkVariables(ps:ProgramSequence, vars: Tree<string, TypeValue>) -> Triple<bool, string, Tree<string, TypeValue>> {
+	p = checkVariblesOfCommands(ps.op, vars);
+
+	switch (ps.next) {
+		Some(ps1):{
+			p1 = checkVariables(ps1, p.third);
+			Triple(p.first && p1.first, trim2(p.second + "\n" + p1.second, "\n"), mergeTree(p1.third, p.third));
+		}
+		None(): 
+			p;
+	}
+}
+
+checkFormules(op:Operation, level: int, size: int, containsAnnotation: bool, vars: Tree<string, TypeValue>) -> Triple<bool, bool, string> {
+	switch(op) {
+		Annotation(formule): {
+			if(level != 0 && level != size - 1) 
+				Triple(false, false, "Annotation in body of program!")
+			else if(level != 0 && !containsAnnotation)
+				Triple(false, false, "Have last annotation, but haven't first!")
+			else {
+				p0 = checkVariblesOfFormules(formule, vars);
+				Triple(p0.first, true, p0.second);		
+			}
+		}
+		While(t,a,i):
+			switch (i) {
+				None():
+					if(containsAnnotation)
+						Triple(false, true, "I haven't invariant, but have begin annotation!")
+					else
+						Triple(true, false, "");
+				Some(ann):
+					if(!containsAnnotation)
+						Triple(false, false, "I have invariant, but haven't begin annotation!")
+					else {
+						p = checkVariblesOfFormules(ann.formule, vars);
+						Triple(p.first, true, p.second);
+					}
+			}
+		Loop(c, i):
+			switch (i) {
+				None():
+					if(containsAnnotation)
+						Triple(false, true, "I haven't invariant, but have begin annotation!")
+					else
+						Triple(true, false, "");
+				Some(ann):
+					if(!containsAnnotation)
+						Triple(false, false, "I have invariant, but haven't begin annotation!")
+					else {
+						p = checkVariblesOfFormules(ann.formule, vars);
+						Triple(p.first, true, p.second);
+					}
+			}
+		default: 
+			Triple(true, containsAnnotation, "");
+	}
+}
+
+getProgramDepth(ps:ProgramSequence) {
+	switch (ps.next) {
+		Some(p):
+			getProgramDepth(p) + 1;
+		None():
+			1;
+	}
+}
+
+checkVariblesOfCommands(op:Operation, vars: Tree<string, TypeValue>) -> Triple<bool, string, Tree<string, TypeValue>> {
+	switch (op) {
+		VarDefine(name, type, val): 
+			if(containsKeyTree(vars, name))
+				Triple(false, "Variable " + name + " twice init!", vars)
+			else 
+				Triple(true, "", setTree(vars, name, type));
+		VarRedefine(name, val): 
+			if(!containsKeyTree(vars, name))
+				Triple(false, "Variable " + name + " doesn't exists!", vars)
+			else 
+				Triple(true, "", vars);
+		VarArrayRedefine(name, index, val): 
+			if(!containsKeyTree(vars, name))
+				Triple(false, "Variable " + name + " doesn't exists!", vars)
+			else 
+				Triple(true, "", vars);
+		Test(t, f, s): {
+			p0 = checkVariablesOfTypes(f, vars);
+			p1 = checkVariablesOfTypes(s, vars);
+
+			Triple(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"), vars);
+		}
+		Print(str): {
+			p = checkVariablesOfTypes(str, vars);
+
+			Triple(p.first, p.second, vars);
+		}
+		Sequence(f, s): {
+			p0 = checkVariblesOfCommands(f, vars);
+			p1 = checkVariblesOfCommands(s, vars);
+
+			tree = mergeTreeCustom(p0.third, p1.third, \k0,v0,v1 -> ErrorType());
+
+			if(containsKeyTree(tree, "err0r"))
+				Triple(false, "Variable redefine in sequence!", vars)
+			else
+				Triple(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"), vars);
+		}
+		Choice(f, s): {
+			p0 = checkVariblesOfCommands(f, vars);
+			p1 = checkVariblesOfCommands(s, vars);
+
+			tree = mergeTreeCustom(p0.third, p1.third, \k0,v0,v1 -> ErrorType());
+
+			if(containsKeyTree(tree, "err0r"))
+				Triple(false, "Variable redefine in choice!", vars)
+			else
+				Triple(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"), vars);
+		}
+		Loop(f, a): {
+			switch (a) {
+				None():
+					checkVariblesOfCommands(f, vars);
+				Some(ann): {
+					p0 = checkVariblesOfCommands(f, vars);
+					p1 = checkVariblesOfFormules(ann.formule, vars);
+
+					Triple(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"), vars);
+				}	
+			}
+		}	
+		If(t,c0,c1):{
+			p0 = checkVariblesOfCommands(c0, vars);
+			p1 = checkVariblesOfCommands(c1, vars);
+
+			Triple(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"), vars);
+		}	
+		While(t,c0, a): 
+			checkVariblesOfCommands(c0, vars);
+		Annotation(formule):
+			Triple(true, "", vars);
+		EmptyOp():
+			Triple(true, "", vars);	
+	}
+}
+
+checkVariblesOfFormules(formule:Formule, vars: Tree<string, TypeValue>) -> Pair<bool, string> {
+	switch (formule) {
+		Atom(t,f,s): {
+			p0 = checkVariablesOfLTypes(f, vars);
+			p1 = checkVariablesOfLTypes(s, vars);
+
+			Pair(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"));
+		}
+		Or(f, s): {
+			p0 = checkVariblesOfFormules(f, vars);
+			p1 = checkVariblesOfFormules(s, vars);
+
+			Pair(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"));
+		}
+	    And(f, s): {
+			p0 = checkVariblesOfFormules(f, vars);
+			p1 = checkVariblesOfFormules(s, vars);
+
+			Pair(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"));
+		}
+	    Neg(f): 
+	      	checkVariblesOfFormules(f, vars);
+	    Implication(f, s): {
+			p0 = checkVariblesOfFormules(f, vars);
+			p1 = checkVariblesOfFormules(s, vars);
+
+			Pair(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"));
+		}
+		default:
+			Pair(true, "");
+	}
+}
+
+checkVariablesOfLTypes(t:LogicTypeValue, vars: Tree<string, TypeValue>) -> Pair<bool, string> {
+	switch (t) {
+		LInt(val):
+			Pair(true, "");
+		LVariable(var):
+			if(containsKeyTree(vars, var))
+				Pair(true, "")
+			else
+				Pair(false, "Variable " + var + " doesnt exists!");
+		LBinOp(op, f, s): {
+			p0 = checkVariablesOfLTypes(f, vars);
+			p1 = checkVariablesOfLTypes(s, vars);
+
+			Pair(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"));
+		}
+		LAccessArray(name, index): {
+			p0 = checkVariablesOfLTypes(name, vars);
+			p1 = checkVariablesOfLTypes(index, vars);
+
+			Pair(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"));
+		}
+        LRedefineArray(name, index, value):{
+			p0 = checkVariablesOfLTypes(name, vars);
+			p1 = checkVariablesOfLTypes(index, vars);
+			p2 = checkVariablesOfLTypes(value, vars);
+
+			Pair(p0.first && p1.first && p2.first, trim2(p0.second + "\n" + p1.second + "\n" + p2.second, "\n"));
+		}
+	}
+}
+
+checkVariablesOfTypes(t:TypeValue, vars: Tree<string, TypeValue>) -> Pair<bool, string> {
+	switch (t) {
+		Int(val):
+			Pair(true, "");
+		Variable(var):
+			if(containsKeyTree(vars, var))
+				Pair(true, "")
+			else
+				Pair(false, "Variable " + var + " doesnt exists!");
+		Array(type):
+			Pair(true, "");
+		BinOp(op, f, s): {
+			p0 = checkVariablesOfTypes(f, vars);
+			p1 = checkVariablesOfTypes(s, vars);
+
+			Pair(p0.first && p1.first, trim2(p0.second + "\n" + p1.second, "\n"));
+		}
+		UnOp(op, f):
+			checkVariablesOfTypes(f, vars);
+		ArrayAccess(var, ind):
+			if(containsKeyTree(vars, var.name)) 
+				checkVariablesOfTypes(ind, vars)
+			else
+				Pair(false, "Variable " + var.name + " doesnt exists!");
+		EmptyType():
+			Pair(true, "");
+		VarRedefine(name, val): 
+			if(!containsKeyTree(vars, name))
+				Pair(false, "Variable " + name + " doesn't exists!")
+			else 
+				Pair(true, "");
+		VarArrayRedefine(name, index, val): 
+			if(!containsKeyTree(vars, name))
+				Pair(false, "Variable " + name + " doesn't exists!")
+			else {
+				if(isNonEmpty(val) && isNonEmpty(index))
+					Pair(true, "")
+				else
+					Pair(false, "Variable " + name + " and assign val haven't same types!");	
+			}	
+		default:
+			Pair(false, "");
+	}
+}
+
+isNonEmpty(t0:TypeValue) -> bool {
+	switch(t0) {
+		EmptyType():false;
+		default: true;
+	}
+}

@@ -1,0 +1,17 @@
+import runtime;
+
+fib(k) -> [int] {
+	if(k == 1)
+		[1]
+	else if(k == 2)
+		[1,1]
+	else {
+		x = fib(k - 1);
+
+		concat(x, [x[k - 2] + x[k - 3]]);
+	}
+}
+
+main() -> void {
+	println(fib(10));
+}

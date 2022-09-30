@@ -1,0 +1,4 @@
+export {
+	FALL_RUNTIME = 1;
+	SUCCESS_EXECUTE = 0;
+}

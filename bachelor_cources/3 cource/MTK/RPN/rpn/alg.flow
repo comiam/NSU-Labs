@@ -1,0 +1,131 @@
+import rpn;
+import ds/tree;
+import sys/system;
+
+export {
+	calcSimpleRpn(ar:AlgRpn) -> double;
+	calcVarRpn(ar:AlgRpn, vars: Tree<string, double>) -> double;
+}
+
+calcVarRpn(ar:AlgRpn, vars: Tree<string, double>) -> double {
+	val = foldr(ar.rpn, [0.0], \acc, rpnn -> {
+		len = length(acc);
+
+		if(acc[len-1] > 0.0)
+			acc
+		else
+		{
+			switch(rpnn) {
+				RpnOp(id, op):
+				{
+					if(id == "+") {
+						if(len < 2)
+							concat(take(acc, len-1), [1.0])
+						else 
+							concat([op(acc[0],acc[1])], tailFrom(acc, 2));
+					}else if(id == "*") {
+						if(len < 2)
+							concat(take(acc, len-1), [1.0])
+						else 
+							concat([op(acc[0],acc[1])], tailFrom(acc, 2));
+					}else if(id == "-") {
+						if(len < 2)
+							concat(take(acc, len-1), [1.0])
+						else 
+							concat([op(acc[0],acc[1])], tailFrom(acc, 2));
+					}else if(id == "/") {
+						if(len < 2)
+							concat(take(acc, len-1), [1.0])
+						else 
+							concat([op(acc[0],acc[1])], tailFrom(acc, 2));
+					}else acc;
+				}
+				RpnAlgg(val):
+					concat([val], acc);
+				RpnVar(var): {
+					res = lookupTree(vars, var);
+					switch (res) {
+							None():
+								concat(take(acc, len-1), [2.0]);
+							Some(value):
+								concat([value], acc);
+					}
+				}
+			}
+		}	
+	});
+
+	if(val[length(val)-1] > 0.0) {
+		print("was something wrong during calculating: ");
+		if(val[length(val)-1] == 1.0)
+			println("error in the stack due to lack of arguments")
+		else if(val[length(val)-1] == 2.0)
+			println("unknown variables!");
+		-1.0;	
+	}
+	else
+		val[0];
+}	
+
+calcSimpleRpn(ar:AlgRpn) -> double {
+	val = foldr(ar.rpn, [0.0], \acc, rpnn -> {
+		len = length(acc);
+
+		if(acc[len-1] > 0.0)
+			acc
+		else
+		{
+			switch(rpnn) {
+				RpnOp(id, op):
+				{
+					if(id == "+") {
+						if(len < 2)
+							concat(take(acc, len-1), [1.0])
+						else 
+							concat([op(acc[0],acc[1])], tailFrom(acc, 2));
+					}else if(id == "*") {
+						if(len < 2)
+							concat(take(acc, len-1), [1.0])
+						else 
+							concat([op(acc[0],acc[1])], tailFrom(acc, 2));
+					}else if(id == "-") {
+						if(len < 2)
+							concat(take(acc, len-1), [1.0])
+						else 
+							concat([op(acc[0],acc[1])], tailFrom(acc, 2));
+					}else if(id == "/") {
+						if(len < 2)
+							concat(take(acc, len-1), [1.0])
+						else 
+							concat([op(acc[0],acc[1])], tailFrom(acc, 2));
+					}else if(id == "^") {
+						if(len < 2)
+							concat(take(acc, len-1), [1.0])
+						else 
+							concat([op(acc[0],acc[1])], tailFrom(acc, 2));
+					}else if(id == "ln") {
+						if(len < 1)
+							concat(take(acc, len-1), [1.0])
+						else 
+							concat([op(acc[0],0.0)], tailFrom(acc, 1));
+					}else acc;
+				}
+				RpnAlgg(val):
+					concat([val], acc);
+				RpnVar(var):
+					concat(take(acc, len-1), [2.0]);
+			}
+		}	
+	});
+
+	if(val[length(val)-1] > 0.0) {
+		print("was something wrong during calculating: ");
+		if(val[length(val)-1] == 1.0)
+			println("error in the stack due to lack of arguments")
+		else if(val[length(val)-1] == 2.0)
+			println("variables in simple expression!");
+		-1.0;	
+	}
+	else
+		val[0];
+}

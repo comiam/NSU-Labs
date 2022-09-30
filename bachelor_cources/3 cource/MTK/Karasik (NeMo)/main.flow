@@ -1,0 +1,19 @@
+import lang/vmruntime;
+import lang/formule_compiler;
+import lang/grammar/gram_engine;
+import runtime;
+import sys/system;
+
+
+main() -> void {
+	alg = strReplace(readUntil("---"), "---", "");
+	//println(s2pseq(alg));
+
+	/*prog = compile(s2pseq(alg));
+	//printVM(prog);
+
+	a = execVM(prog);*/
+
+	prog = s2pseq(alg);
+	println(generateZ3(prog));
+}
