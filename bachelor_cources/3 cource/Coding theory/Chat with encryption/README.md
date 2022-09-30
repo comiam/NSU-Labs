@@ -1,8 +1,12 @@
 # Chat
 Full Chat with Server and Client side with message encryption
 
-## How to run server
-Go to Executions/ClientApp and Executions/ServerApp folder and run jar files with README instructions
+## How to run project
+Compile server and app to jar files.
+
+After that excute in terminal next:
+- For Client app: `java -jar --module-path "your_path_to_javafx/javafx-sdk-11.0.2/lib" --add-modules=javafx.controls,javafx.fxml ClientSide.jar`
+- For ServerApp: `java -jar ServerSide.jar config.conf`. Use `config.conf` from the root.
 
 Use java of version 11 or higher.
 

@@ -1,1 +1,0 @@
-Run `java -jar --module-path "your_path_to_javafx/javafx-sdk-11.0.2/lib" --add-modules=javafx.controls,javafx.fxml ClientSide.jar`
