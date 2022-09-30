@@ -4,11 +4,11 @@
             [task-1.task-test-common :refer :all]))
 
 (deftest third-length-test
-  (testing "Test sequenses 3nd length"
+  (testing "Test sequences 3nd length"
     (is (= three_len_set (sort (seq-all-words [] `("a" "b" "c") 3))))))
 
 (deftest second-length-test
-  (testing "Test sequenses 2nd length"
+  (testing "Test sequences 2nd length"
     (is (= two_len_set (sort (seq-all-words [] `("a" "b" "c") 2))))))
 
 (deftest length-test
