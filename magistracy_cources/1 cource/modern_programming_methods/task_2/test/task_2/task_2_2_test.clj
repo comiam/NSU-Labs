@@ -9,4 +9,3 @@
     (is (float-compare 13496.333 ((inf-integral polynomial 0.1) 10)))
     (is (float-compare 14233.928 ((inf-integral polynomial 0.1) 10.09)))
     (is (float-compare 0 ((inf-integral polynomial 0.1) 0)))))
-
