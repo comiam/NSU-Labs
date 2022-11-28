@@ -13,12 +13,16 @@
   (if (< a b)
     (+
       (trapezoid f a (+ a h))
-      (integral f (+ a h) b h)
-      )
-    0
-    ))
+      (integral f (+ a h) b h))
+    0))
 
-(def integral-mem (memoize integral))
+(defn integral-mem [f h]
+  (memoize (fn ! [a b]
+             (if (< a b)
+               (+
+                 (trapezoid f a (+ a h))
+                 (! (+ a h) b))
+               0))))
 
 (defn inf-integral [f step]
   (let [seq (map first (iterate (fn [[step_sum index]]
@@ -26,7 +30,7 @@
     (fn [x]
       (let [i (int (/ x step))] (+
                                   (nth seq i)
-                                  (trapezoid f (* step i) x)) )
+                                  (trapezoid f (* step i) x)))
       )
     )
   )

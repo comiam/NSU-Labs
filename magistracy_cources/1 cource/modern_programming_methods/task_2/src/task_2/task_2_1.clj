@@ -3,4 +3,4 @@
 
 (println "\n\nВыполняем замеры времени:")
 (time (integral polynomial -50 50 0.05))
-(time (integral-mem polynomial -50 50 0.05))
+(time ((integral-mem polynomial 0.05) -50 50))
