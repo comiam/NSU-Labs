@@ -1,0 +1,26 @@
+version: '3.1'
+
+services:
+  tm_backend_container:
+    build:
+      context: ./tm-backend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - "./tm-backend/build/libs:/usr/local/tomcat/webapps/"
+    expose:
+      - 8089
+    ports:
+      - "8089:8089"
+
+  tm_frontend_container:
+    build:
+      context: ./tm-frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - "./tm-frontend/build/:/usr/local/tomcat/webapps/"
+    expose:
+      - 8090
+    ports:
+      - "8090:8090"
+    depends_on:
+      - tm_backend_container

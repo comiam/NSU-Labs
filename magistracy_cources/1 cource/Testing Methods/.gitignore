@@ -1,0 +1,15 @@
+.idea
+.gradle
+.allure
+*.iml
+*/.idea
+*.class
+tm-backend/target
+tm-backend/build
+tm-backend/.build
+tm-backend/node_modules
+tm-e2e-tests/target
+tm-e2e-tests/build
+
+tm-frontend/node_modules
+tm-frontend/build

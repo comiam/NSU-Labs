@@ -1,0 +1,8 @@
+version = '1.0.1'
+description = 'Test Methods Application'
+
+allprojects {
+	group = 'org.nsu.test_methods'
+
+	project.logger.lifecycle("Start project: ${project.name}")
+}

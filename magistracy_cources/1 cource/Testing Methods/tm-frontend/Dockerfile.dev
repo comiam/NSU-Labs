@@ -1,0 +1,7 @@
+FROM tomcat:9.0
+
+RUN apt-get update && apt-get -y upgrade
+
+RUN sed -i 's/port="8080"/port="8090"/' /usr/local/tomcat/conf/server.xml
+
+WORKDIR /usr/local/tomcat

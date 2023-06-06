@@ -1,0 +1,58 @@
+// W/A for the problem: "Could not find org.nodejs":
+// https://github.com/srs/gradle-node-plugin/issues/301
+repositories.whenObjectAdded {
+    if (it instanceof IvyArtifactRepository) {
+        metadataSources {
+            artifact()
+        }
+    }
+}
+
+buildscript {
+    repositories {
+        maven { url "https://plugins.gradle.org/m2/" }
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.moowork.gradle:gradle-node-plugin:1.2.0'
+    }
+}
+
+apply plugin: 'base'
+apply plugin: "com.moowork.node"
+
+node {
+    version = "11.15.0"
+    npmVersion = '6.7.0'
+    download = true
+}
+
+task bundle(type: NpmTask, dependsOn: npmInstall) {
+    args = ['run', 'build']
+}
+
+task copyWebXml(type: Copy) {
+    from file("$projectDir/web.xml")
+    into file("$buildDir/WEB-INF")
+}
+
+copyWebXml.dependsOn(bundle)
+assemble.dependsOn(copyWebXml)
+
+task makeZip(type: Zip) {
+    archiveFileName = "${project.name}.war"
+    destinationDirectory = file("$buildDir")
+    from "$buildDir"
+    exclude "*.war"
+    includeEmptyDirs = false
+}
+assemble.dependsOn(makeZip)
+
+task run(type: NpmTask) {
+    args = ['start']
+}
+
+clean {
+    delete file("${project.buildDir}")
+    delete file("$projectDir/dist")
+}

@@ -1,0 +1,5 @@
+rootProject.name = "test-methods-project"
+
+include "tm-backend"
+include "tm-frontend"
+include "tm-e2e-tests"

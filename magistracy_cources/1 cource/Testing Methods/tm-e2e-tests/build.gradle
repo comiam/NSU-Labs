@@ -1,0 +1,96 @@
+buildscript {
+    repositories {
+        repositories {
+            jcenter()
+        }
+    }
+    dependencies {
+        classpath "io.qameta.allure:allure-gradle:2.8.1"
+    }
+}
+
+def allureVersion = "2.13.6"
+def testngVersion = "6.14.3"
+
+description = "E2E tests for Test Methods Application"
+group 'org.nsu.fit.test_methods'
+version '1.0.0'
+
+apply plugin: 'io.qameta.allure'
+apply plugin: 'java'
+
+repositories {
+    maven { url "https://plugins.gradle.org/m2/" }
+    mavenCentral()
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+allure {
+    autoconfigure = true
+    aspectjweaver = true
+    version = allureVersion
+
+    clean = true
+
+    useTestNG {
+        version = allureVersion
+    }
+
+    resultsDir = file('./allure-results')
+}
+
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+
+dependencies {
+    implementation group:'log4j', name: 'log4j', version: '1.2.17'
+    implementation "com.github.javafaker:javafaker:1.0.1"
+
+    implementation "org.slf4j:slf4j-simple:1.7.9"
+    implementation "javax.xml.bind:jaxb-api:2.3.0"
+    implementation "javax.activation:activation:1.1"
+    implementation "com.sun.xml.bind:jaxb-impl:2.3.0"
+    implementation "com.sun.xml.bind:jaxb-core:2.3.0"
+    implementation "com.sun.xml.ws:rt:2.3.0"
+    implementation "com.sun.xml.ws:jaxws-rt:2.3.0"
+
+
+    implementation group:'org.glassfish.jersey.core', name: 'jersey-client', version: '2.19'
+    implementation group:'org.glassfish.jersey.media', name: 'jersey-media-json-jackson', version: '2.19'
+
+    implementation group:'io.qameta.allure', name: 'allure-testng', version: allureVersion
+    implementation group:'org.testng', name: 'testng', version: testngVersion
+
+    implementation group:'org.seleniumhq.selenium', name: 'selenium-support', version: '3.11.0'
+    implementation group:'org.seleniumhq.selenium', name: 'selenium-java', version: '3.11.0'
+    implementation group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.0.1'
+}
+
+def api_suite = project.hasProperty("api")
+def ui_suite = project.hasProperty("ui")
+
+test {
+    ignoreFailures = true
+    useTestNG() {
+        dependsOn cleanTest
+        useDefaultListeners = true
+
+        //suites ""
+
+        if (api_suite) {
+            suites "./src/test/resources/testng-xml/api_suite.xml"
+        }
+
+        if (ui_suite) {
+            suites "./src/test/resources/testng-xml/ui_suite.xml"
+        }
+    }
+}
+
+configurations {
+   testCompile
+}

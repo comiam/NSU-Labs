@@ -1,0 +1,68 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite verbose="1" name="API Tests" annotations="JDK" parallel="tests">
+    <test name="AuthTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.AuthTest" />
+        </classes>
+    </test>
+    <test name="AdditionCustomerWithLongPasswordTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.AdditionCustomerWithLongPasswordTest" />
+        </classes>
+    </test>
+    <test name="AdditionCustomerWithShortNameTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.AdditionCustomerWithShortNameTest" />
+        </classes>
+    </test>
+    <test name="AdditionCustomerWithShortPasswordTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.AdditionCustomerWithShortPasswordTest" />
+        </classes>
+    </test>
+    <test name="AdditionSameCustomersTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.AdditionSameCustomersTest" />
+        </classes>
+    </test>
+    <test name="RemoveCustomerAsAdminTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.RemoveCustomerAsAdminTest" />
+        </classes>
+    </test>
+    <test name="RemoveCustomerNotAdminTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.RemoveCustomerNotAdminTest" />
+        </classes>
+    </test>
+    <test name="RemoveCustomerTwiceTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.RemoveCustomerTwiceTest" />
+        </classes>
+    </test>
+    <test name="GetCustomerPlansAsAdminTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.GetCustomerPlansTest" />
+        </classes>
+    </test>
+    <test name="CreateSubscriptionTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.AdditionCustomerSubscriptionTest" />
+        </classes>
+    </test>
+    <test name="RemoveCustomerSubscriptionTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.RemoveCustomerSubscriptionTest" />
+        </classes>
+    </test>
+    <test name="AdditionAdminPlanTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.AdditionAdminPlanTest" />
+        </classes>
+    </test>
+    <test name="RemoveAdminPlanTest">
+        <classes>
+            <class name="org.nsu.fit.tests.api.RemoveAdminPlanTest" />
+        </classes>
+    </test>
+</suite>

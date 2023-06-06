@@ -1,0 +1,63 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite verbose="1" name="UI Tests" annotations="JDK" parallel="tests">
+    <test name="AcceptanceTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.CreateCustomerTest" />
+        </classes>
+    </test>
+    <test name="AdditionCustomerWithLongPasswordTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.AdditionCustomerWithLongPasswordTest" />
+        </classes>
+    </test>
+    <test name="AdditionCustomerWithShortPasswordTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.AdditionCustomerWithShortPasswordTest" />
+        </classes>
+    </test>
+    <test name="AdditionCustomerWithShortNameTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.AdditionCustomerWithShortNameTest" />
+        </classes>
+    </test>
+    <test name="OpenAdminPageTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.OpenAdminPageTest" />
+        </classes>
+    </test>
+    <test name="RemoveCustomerTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.RemoveCustomerTest" />
+        </classes>
+    </test>
+    <test name="AdditionCustomerSubscriptionTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.AdditionCustomerSubscriptionTest" />
+        </classes>
+    </test>
+    <test name="AdditionPlanTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.AdditionPlanTest" />
+        </classes>
+    </test>
+    <test name="RemoveCustomerCancelTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.RemoveCustomerCancelTest" />
+        </classes>
+    </test>
+    <test name="RemovePlanCancelTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.RemovePlanCancelTest" />
+        </classes>
+    </test>
+    <test name="RemovePlanTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.RemovePlanTest" />
+        </classes>
+    </test>
+    <test name="AdditionSameCustomerTest">
+        <classes>
+            <class name="org.nsu.fit.tests.ui.AdditionSameCustomerTest" />
+        </classes>
+    </test>
+</suite>
